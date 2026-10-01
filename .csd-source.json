@@ -1,0 +1,67 @@
+{
+  "package": "@owlcodium/context-spec-develop",
+  "version": "1.2.1",
+  "repository": "yanpenalva/context-spec-develop",
+  "tag": "v1.2.1",
+  "commit": "6ca620e0491e94e0836bda29cd55b334b4f12aec",
+  "reason": "npm 1.2.1 omits workflows, reference adapters, LICENSE and the validator required by its onboarding contract. Only these files were supplemented from the immutable official tag.",
+  "files": [
+    {
+      "source": "LICENSE",
+      "path": "LICENSE",
+      "sha256": "ca5ae251528ecb7a937de6c959ccadd6254282e0feef433e9c76f7c6b61f788b"
+    },
+    {
+      "source": ".context/workflows/core.md",
+      "path": ".context/workflows/core.md",
+      "sha256": "0f9c86a5c698e2e542241305ffd461b4327d17d738b379b560001b1c88837789"
+    },
+    {
+      "source": ".context/workflows/product.md",
+      "path": ".context/workflows/product.md",
+      "sha256": "6dee46418c442e77f0529598e42d7188771f8afae33a46e1af009fcc00d62b0b"
+    },
+    {
+      "source": ".context/workflows/support.md",
+      "path": ".context/workflows/support.md",
+      "sha256": "e0d8a169467e937526dba8bf8ca22b2c7b068c5a4cb31ef5e6536ae53057b3bb"
+    },
+    {
+      "source": "adapters/codex/AGENTS.md",
+      "path": "adapters/codex/AGENTS.md",
+      "sha256": "6ee6c55221a328b806ca94405ac1f93e865bc160b809c0418242b5c65e83fb77"
+    },
+    {
+      "source": "adapters/claude/CLAUDE.md",
+      "path": "adapters/claude/CLAUDE.md",
+      "sha256": "1ae6f6e7e4b38e93f16dd1174cddb4d36f02ba1be5d70f8e842a4d2cf515446f"
+    },
+    {
+      "source": "adapters/copilot/copilot-instructions.md",
+      "path": "adapters/copilot/copilot-instructions.md",
+      "sha256": "0a0c1ffe4bc048e52f7834de2deb4b74c9cdcb30658ff706511de91030b28d20"
+    },
+    {
+      "source": "adapters/gemini/GEMINI.md",
+      "path": "adapters/gemini/GEMINI.md",
+      "sha256": "79fdf5b2e066f7f8564a3e19dc20e712e141a0d94269ed008c5ca8c565f12565"
+    },
+    {
+      "source": "adapters/opencode/AGENTS.md",
+      "path": "adapters/opencode/AGENTS.md",
+      "sha256": "a6a77f7f79909b7682f0a846d64fbf67780a2c0e6679ee072a8424bc82f2aaf4",
+      "upstream_sha256": "2749f216682ad2f90047c7c22b57778484db26341fb073ac7bd41820c253c711",
+      "normalization": "Remove redundant blank line at EOF for git diff --check"
+    },
+    {
+      "source": "adapters/cursor/AGENTS.md",
+      "path": "adapters/cursor/AGENTS.md",
+      "sha256": "14315ae55f5a2bdc07c2520b44acd7db8cf7349e61296fc5e6fb527b145b4ea9"
+    },
+    {
+      "source": "scripts/validate_context.py",
+      "path": "scripts/vendor/csd/validate_context.py",
+      "sha256": "609340027b942324a61cb291518412398bae44d7d896dec7748b74ca27441685"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "id": "HOT-0001",
+  "title": "<SHORT_TITLE>",
+  "track": "support",
+  "type": "hotfix",
+  "phase": "triage",
+  "status": "draft",
+  "risk": "critical",
+  "owner": "<OWNER>",
+  "conversation_profile": "devops-release-engineer",
+  "git_finalization_mode": "confirm_each",
+  "last_updated": "YYYY-MM-DD",
+  "severity": "sev1",
+  "implementation_required": true,
+  "classification": {
+    "complexity": "medium",
+    "impact": "system",
+    "security": "relevant",
+    "confidence": "low"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": ["core", "project", "testing", "incident", "security", "architecture"],
+    "deferred": ["release"],
+    "triggers": ["type hotfix", "security relevant", "impact system"]
+  },
+  "reclassification": [],
+  "policy_exceptions": []
+}
