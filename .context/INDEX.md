@@ -1,0 +1,61 @@
+# Context Index
+
+`.context/` is the canonical, versioned source of truth for this delivery template. A compatibility layout such as `.ai/` may be selected explicitly, but is never an automatic backup or mirror.
+
+## Read first
+
+1. `config.json`
+2. `profiles/README.md` and the selected conversation profile
+3. `tooling/README.md` when token-saving or review-graph tools are available
+4. `project/overview.md` and relevant project files
+5. Applicable policies in `policies/`
+6. `classification/README.md` and `interaction/README.md`
+7. `context-routing/README.md` — load only the context the next decision needs
+8. `workflows/core.md`
+9. `workflows/product.md` or `workflows/support.md`, selected by intake
+10. The active work item under `work/`
+
+For any uncertainty, read `policies/core/questioning-and-evidence.md` before asking the user or delegating a subtask.
+
+## Map
+
+| Path | Purpose |
+| --- | --- |
+| `project/` | Context that describes the adopting software project |
+| `policies/` | Normative core rules and exception process |
+| `workflows/` | Core process and Product/Support overlays |
+| `classification/` | Declarative work classification (complexity, impact, security, confidence) and routing depth |
+| `interaction/` | Canonical human↔agent protocol: questioning, decisions, uncertainty, escalation |
+| `context-routing/` | Minimum-sufficient context: catalog, manifest, budgets and triggers |
+| `prompts/` | Agent-facing phase contracts, including project onboarding (`initialize-project.md`) |
+| `profiles/` | Conversation roles and startup questions |
+| `orchestration/` | Configurable agent assignments and automatic work-item setup |
+| `tooling/` | Optional token, memory and review-graph integrations |
+| `templates/` | Human-readable work-item artifacts |
+| `schemas/` | Machine-readable contracts |
+| `work/` | Active and completed work items |
+| `exceptions/` | Approved, scoped and expiring policy deviations |
+
+The project fills the placeholders in `project/` once. Work items then reference that context instead of copying it into every prompt.
+
+Use `NOT FOUND` when an expected fact does not exist. Never invent a route, permission, status, test, owner or operational signal.
+
+## Lifecycle
+
+This kit distinguishes two conceptual modes (documentation distinction, not persisted state):
+
+- **Project onboarding** — first run in an adopting repository: initialize the canonical project context per `prompts/initialize-project.md`. Creates no work item.
+- **Daily work** — every operational request afterwards: the request enters through the front door — minimal bootstrap, classification, deterministic routing, context routing — before any detailed context loads.
+
+## Conversation routing
+
+At the beginning of a conversation, run the front door first — classify the request before optional configuration or questions — and resolve the conversation profile lazily per `profiles/README.md` (explicit choice, recorded preference, or the configured default, stated briefly). Then classify the request:
+
+- New user or business value: `product` / `feature`.
+- Reproducible defect without active degradation: `support` / `bug`.
+- Active degradation, outage or material impact: `support` / `incident`.
+- Urgent production change for active or critical impact: `support` / `hotfix`.
+
+If classification is unclear, ask the smallest question that distinguishes user value, defect, active impact and urgency. Do not start implementation before `track`, `type`, owner, risk and phase are recorded.
+
+After intake, classify the work per `classification/README.md` (dimensions; `derived` versus `effective` routing per `classification/routing.md`), build the context manifest per `context-routing/README.md`, and apply `interaction/README.md` to every question, assumption, decision and escalation. Then create or open the work item, decompose the plan into small subtasks, organize dependency-safe waves, and follow the phase gate. A subagent may work only on an assigned subtask and must return evidence to the parent work item.

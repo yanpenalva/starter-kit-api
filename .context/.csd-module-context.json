@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "decision": "enabled",
+  "scaffoldRoot": ".context/project/modules",
+  "files": [
+    ".context/project/modules/README.md",
+    ".context/project/modules/_module-template.md"
+  ]
+}

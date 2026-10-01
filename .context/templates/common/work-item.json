@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-0001",
+  "title": "<SHORT_TITLE>",
+  "track": "product",
+  "type": "feature",
+  "phase": "discover",
+  "status": "draft",
+  "risk": "medium",
+  "owner": "<OWNER>",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "confirm_each",
+  "classification": {
+    "complexity": "medium",
+    "impact": "module",
+    "security": "none",
+    "confidence": "low"
+  },
+  "routing": {
+    "derived": "standard",
+    "effective": "standard"
+  },
+  "context": {
+    "budget": "standard",
+    "required": ["core", "project", "testing"],
+    "deferred": ["architecture", "security", "release", "incident"],
+    "triggers": []
+  },
+  "reclassification": [],
+  "last_updated": "YYYY-MM-DD",
+  "policy_exceptions": []
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "package": "@owlcodium/context-spec-develop",
+  "version": "1.2.1",
+  "scope": "project",
+  "installedAt": "2026-10-01T02:51:48.748Z",
+  "agents": [
+    "codex"
+  ],
+  "files": [
+    {
+      "path": ".agents/skills/csd/SKILL.md",
+      "sha256": "6f00fe6f7def608f8cf41b806d0492cd64c3a549f972db152f7683b062762b91"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+/vendor/
+dist/
+.env
+*.env
+!.env.example
+.context/work/**/progress.md
+.context/work/**/.local/

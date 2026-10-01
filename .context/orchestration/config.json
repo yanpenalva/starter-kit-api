@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "config_version": "0.2.0",
+  "mode": "single-agent",
+  "startup": {
+    "selection_required": true,
+    "ask_only_missing": true,
+    "questions": [
+      "conversation_profile",
+      "orchestrator",
+      "planner",
+      "executor",
+      "reviewer",
+      "track",
+      "type",
+      "title",
+      "owner",
+      "risk",
+      "git_finalization_mode"
+    ],
+    "auto_create_work_item": true,
+    "auto_create_directories": true,
+    "auto_copy_templates": true
+  },
+  "assignments": {
+    "orchestrator": {
+      "actor": "agent",
+      "agent": "codex",
+      "profile": "delivery-orchestrator",
+      "selection": "user_or_default"
+    },
+    "planner": {
+      "actor": "agent",
+      "agent": "codex",
+      "profile": "technical-planner",
+      "selection": "user_or_default"
+    },
+    "executor": {
+      "actor": "agent",
+      "agent": "codex",
+      "profile": "senior-software-engineer",
+      "selection": "user_or_default"
+    },
+    "reviewer": {
+      "actor": "human",
+      "profile": "quality-engineer",
+      "independent": true,
+      "selection": "project"
+    },
+    "security_reviewer": {
+      "actor": "agent_or_human",
+      "agent": "codex",
+      "profile": "security-privacy-reviewer",
+      "independent": true,
+      "required_when": "security_or_sensitive_data_impact"
+    },
+    "release_approver": {
+      "actor": "human",
+      "selection": "project",
+      "required": true
+    }
+  },
+  "subagents": {
+    "enabled": false,
+    "max_parallel": 1,
+    "strategy": "dependency_ordered_waves",
+    "least_privilege": true,
+    "parent_integrates": true,
+    "stop_on_scope_change": true
+  },
+  "git": {
+    "agent_may_prepare": true,
+    "finalization_mode": "confirm_each",
+    "ask_before_commit": true,
+    "ask_before_push": true,
+    "human_approval_required_before_push": true,
+    "allow_force_push": false,
+    "require_clean_worktree": true,
+    "commit_message_style": "conventional_commits",
+    "tag_requires_explicit_approval": true,
+    "commands": [
+      "git add",
+      "git commit",
+      "git push"
+    ]
+  },
+  "pull_request": {
+    "mode": "manual",
+    "command": null,
+    "draft_default": true,
+    "merge_requires_human_approval": true
+  }
+}

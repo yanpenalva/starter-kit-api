@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "BUG-0001",
+  "title": "<SHORT_TITLE>",
+  "track": "support",
+  "type": "bug",
+  "phase": "triage",
+  "status": "draft",
+  "risk": "medium",
+  "owner": "<OWNER>",
+  "conversation_profile": "support-incident-engineer",
+  "git_finalization_mode": "confirm_each",
+  "classification": {
+    "complexity": "low",
+    "impact": "local",
+    "security": "none",
+    "confidence": "low"
+  },
+  "routing": {
+    "derived": "standard",
+    "effective": "standard"
+  },
+  "context": {
+    "budget": "standard",
+    "required": ["core", "project", "testing"],
+    "deferred": ["architecture", "security", "release", "incident"],
+    "triggers": []
+  },
+  "reclassification": [],
+  "last_updated": "YYYY-MM-DD",
+  "policy_exceptions": []
+}
