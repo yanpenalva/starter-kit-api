@@ -17,6 +17,10 @@ Atualizar seis ADRs e contexto canônico, registrar aprovação, sincronizar FEA
 
 Não criar endpoints, migrations ou instalações de aplicação. Não realizar commit, push, PR, deploy ou encerramento da issue. Domínios, infraestrutura, versões resolvidas, permission names e primeira feature ficam para entregas futuras. Retenção em backups será especificada antes da coleta em produção. Operadores e requisitos operacionais não são inferidos a partir do aprovador arquitetural.
 
+## Autorização posterior de entrega
+
+Em 2026-10-02, o usuário autorizou explicitamente “Continue a implementacao e ao final, faça o commit, push e pr.” A PR [#29](https://github.com/yanpenalva/starter-kit-api/pull/29) foi aberta e mergeada em `main` por yanpenalva em 2026-10-02 22:59:46 UTC. Esta autorização não inclui deploy nem encerramento de issues.
+
 ## Incorporação posterior aprovada
 
 O usuário aprovou explicitamente o plano “Incorporar o ADR de legado e preparar o scaffold da API”: incorporar decisões de 0006 em 0001/0002/0004, retirar documento separado e preservar identificador histórico. O registro original acima é mantido. Ativação automática prevalece sobre texto desatualizado da issue #14. Scaffold/Compose/CI pertencem a FEAT-7/8/24, sem Git finalizado ou mudanças externas.
