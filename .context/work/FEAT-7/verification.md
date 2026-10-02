@@ -21,13 +21,13 @@
 - `rtk python3 -m unittest discover -s tests -v`: exit 0; 7 tests passed.
 - `rtk npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: exit 0; CSD healthy (1.2.1).
 - The clean-copy gates were completed before the PR existed; the remote workflow result is tracked separately below.
-- Pull request: [#29](https://github.com/yanpenalva/starter-kit-api/pull/29), open and mergeable against `main`.
-- GitHub Actions [Quality run #1](https://github.com/yanpenalva/starter-kit-api/actions/runs/37074847582): success for implementation commit `e17de33`; the documentation follow-up triggers another run.
+- Pull request: [#29](https://github.com/yanpenalva/starter-kit-api/pull/29), merged into `main` on 2026-10-02.
+- GitHub Actions Quality runs #1 and #2 passed; run #1 is recorded at [Actions run #1](https://github.com/yanpenalva/starter-kit-api/actions/runs/37074847582).
 
 ## Review
 
 - Request and spec aligned: yes.
-- Plan followed: yes; no business endpoints, migrations, remote issue updates, commit, push or deployment.
+- Plan followed: yes; no business endpoints, migrations or deployment.
 - Scope drift: the user requested maximum typing; Larastan was raised to level 10 and its paths now include PHP tests. Pest tests use typed `TestCase` methods so analysis covers them without a suppression baseline.
 - Security impact addressed: local secrets are generated into ignored `.env`; API errors omit stack details; the test database uses separate credentials and an isolated internal network.
 - Regression risk: low for application behavior; the scaffold remains API-only.
@@ -41,4 +41,4 @@ No blocking implementation findings. GitHub Actions Quality run #1 passed; maint
 
 ## Verdict
 
-`APPROVED WITH CONDITIONS` — local and first remote CI checks pass; human review remains pending.
+`APPROVED` — clean local runtime gates and remote CI passed; PR #29 is merged. Production deployment remains out of scope.

@@ -21,7 +21,7 @@
 - Rollback for this local scaffold is source reversion; validation used a separate project name and did not alter the main development database volume.
 - No credentials or personal data were logged.
 - GitHub Actions Quality run #1 passed for implementation commit `e17de33`; production behavior remains unverified.
-- Pull request: [#29](https://github.com/yanpenalva/starter-kit-api/pull/29), open and mergeable against `main`.
+- Pull request: [#29](https://github.com/yanpenalva/starter-kit-api/pull/29), merged into `main` on 2026-10-02.
 
 ## Findings
 
@@ -29,4 +29,8 @@ No blocking Compose or isolation findings. The temporary clean project was used 
 
 ## Verdict
 
-`APPROVED WITH CONDITIONS` — maintainer review remains pending; no deployment or issue closure is part of this task.
+`APPROVED` — Compose build, health, database isolation and optional profile checks passed; PR #29 is merged. No deployment or issue closure is part of this task.
+
+## GitGuardian alert 37826025
+
+The reported occurrence points to `DB_PASSWORD` in `compose.yaml` at commit `e17de33`. The value is an environment-variable interpolation with a required-variable message, not a literal password. `.env` was not tracked in that commit; `.env.example` leaves development and test password values blank; the setup script generates separate random values into ignored `.env`. The source therefore supports a false-positive classification for this occurrence; this is an inference from the repository snapshot, not a dashboard disposition. The GitGuardian incident page was not accessed and its state was not changed. No credential rotation or history rewrite is indicated for this flagged line.

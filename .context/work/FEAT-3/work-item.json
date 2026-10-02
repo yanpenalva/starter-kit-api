@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-3",
+  "title": "Definir convenções HTTP e contratos OpenAPI incrementais",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "high",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "confirm_each",
+  "classification": {
+    "complexity": "high",
+    "impact": "system",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": ["core", "project", "architecture", "security", "testing"],
+    "deferred": ["release", "incident"],
+    "triggers": ["API issue #3; draft initial contract using the accepted ADRs and API #13 scope"]
+  },
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify"],
+  "last_updated": "2026-10-02",
+  "policy_exceptions": []
+}

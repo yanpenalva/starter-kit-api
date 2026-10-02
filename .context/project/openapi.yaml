@@ -1,0 +1,239 @@
+openapi: 3.1.0
+info:
+  title: Starter Kit API
+  version: 0.1.0
+  description: >-
+    Initial v1 contract draft. Login, profile, and logout are planned by API #13
+    and are not yet implemented. The source of truth for conventions is
+    .context/project/api.md.
+servers:
+  - url: http://localhost:8080
+    description: Local development only
+paths:
+  /api/v1:
+    get:
+      operationId: getApiAvailability
+      summary: Check API availability
+      responses:
+        '200':
+          description: The API process can answer requests.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+              example:
+                status: ok
+  /up:
+    get:
+      operationId: getApplicationLiveness
+      summary: Check application liveness
+      description: >-
+        Framework health route. It indicates that the application can answer;
+        it does not promise database or dependency readiness and exposes no
+        infrastructure diagnostics.
+      responses:
+        '200':
+          description: The application can answer the liveness request.
+  /sanctum/csrf-cookie:
+    get:
+      operationId: getSanctumCsrfCookie
+      summary: Initialize browser CSRF protection
+      description: >-
+        Framework-provided Sanctum endpoint. The browser calls this before
+        state-changing requests and sends the resulting XSRF token in
+        X-XSRF-TOKEN. This route is supplied by Laravel/Sanctum, not an
+        application controller.
+      responses:
+        '204':
+          description: CSRF and session cookies have been initialized.
+  /api/v1/login:
+    post:
+      operationId: createSession
+      summary: Start a first-party SPA session
+      description: >-
+        Requires a valid CSRF token. An unverified account may establish a
+        limited session for logout, minimal profile, and verification only.
+        An explicitly deactivated account is denied. Successful login does
+        not issue a personal access token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.test
+                password:
+                  type: string
+                  format: password
+                  writeOnly: true
+      responses:
+        '204':
+          description: Session established; load the profile separately.
+        '401':
+          description: Credentials are invalid; response does not reveal account existence.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is explicitly deactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '419':
+          description: CSRF token is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Request fields are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '429':
+          description: Login attempts are throttled.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds until another request is accepted, when available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/my-profile:
+    get:
+      operationId: getMyProfile
+      summary: Read the authenticated user's profile
+      description: >-
+        An unverified account receives only its minimal identity; roles and
+        permissions are empty until email verification activates the basic
+        profile. CPF is omitted from this initial profile contract; later
+        identity responses must follow ADR 0004 access restrictions.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Current user's profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Profile'
+              example:
+                data:
+                  id: 42
+                  name: Example User
+                  email: user@example.test
+                  email_verified_at: null
+                  roles: []
+                  permissions: []
+        '401':
+          description: No valid session is present.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account is explicitly deactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/logout:
+    post:
+      operationId: destroyCurrentSession
+      summary: End the current SPA session
+      description: Requires a valid CSRF token. Does not revoke independently authorized integration tokens.
+      security:
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Current session invalidated.
+        '401':
+          description: No valid session is present.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '419':
+          description: CSRF token is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: starter-kit-api-session
+      description: >-
+        Default HttpOnly stateful session cookie derived from APP_NAME. The
+        runtime may configure another name per environment. This is not a
+        personal access token or a Bearer credential.
+  schemas:
+    Profile:
+      type: object
+      required: [id, name, email, email_verified_at, roles, permissions]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        email_verified_at:
+          type: [string, 'null']
+          format: date-time
+          description: RFC 3339 UTC verification timestamp, or null while pending.
+        roles:
+          type: array
+          items:
+            type: string
+          description: Effective role identifiers; exact names belong to API #16.
+        permissions:
+          type: array
+          items:
+            type: string
+          description: Effective permission identifiers; exact names belong to API #16.
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+          description: Optional stable machine code when an endpoint defines one.
+    ValidationErrorResponse:
+      type: object
+      required: [message, errors]
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

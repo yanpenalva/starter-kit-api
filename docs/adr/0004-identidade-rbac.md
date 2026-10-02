@@ -9,7 +9,7 @@ A [issue #1](https://github.com/yanpenalva/starter-kit-api/issues/1) pede defini
 
 ## Decisão
 
-Permitir cadastro público com conta inicialmente pendente de verificação. A verificação do email ativa automaticamente o acesso aos recursos permitidos ao perfil básico; não concede privilégios administrativos. Até verificar, permitir apenas sessão, logout, identificação mínima e fluxo de verificação; negar recursos de negócio. Bloquear usuário desativado em toda requisição protegida, mesmo com sessão existente; a verificação não pode reativar uma conta desativada explicitamente.
+Permitir cadastro público com conta inicialmente pendente de verificação. A verificação do email ativa automaticamente o acesso aos recursos permitidos ao perfil básico; não concede privilégios administrativos. Até verificar, permitir uma sessão limitada apenas para logout, perfil mínimo e fluxo de verificação; negar recursos de negócio. Usuário explicitamente desativado recebe 403 em recursos protegidos, mesmo com sessão existente; a verificação não pode reativar uma conta desativada explicitamente. O contrato inicial registra esse comportamento em [FEAT-3](../../.context/work/FEAT-3/approval.md).
 
 Cadastro aceita somente atributos explicitamente permitidos; cliente não pode enviar roles, permissions, estado de ativação ou verificação. Usar Spatie Permission e Policies por recurso, negando acesso sem permissão explícita e verificando também acesso ao objeto. A UI não é controle de autorização. Nomes de roles e matriz de permissões serão definidos na feature correspondente.
 
