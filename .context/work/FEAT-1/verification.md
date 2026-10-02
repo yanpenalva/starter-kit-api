@@ -23,10 +23,12 @@ Na preparação anterior, strict/strict --examples, 6 testes e diff --check pass
 
 ## Limites
 
-Sem aplicação Laravel, endpoints, migrations, pacotes de aplicação instalados ou lockfile resolvido. Casos futuros: CPF ausente/inválido/duplicado/concorrente e acesso por permissão; ativação após verificação sem elevação/reativação indevida; bootstrap idempotente; rollback privilegiado por falha de auditoria; CPF/credenciais fora de eventos/diffs e limpeza de 90 dias. Esses testes runtime não foram executados nesta entrega documental.
+Sem aplicação Laravel, endpoints, migrations, pacotes de aplicação instalados ou lockfile resolvido nesta entrega documental. Casos futuros: CPF ausente/inválido/duplicado/concorrente e acesso por permissão; ativação após verificação sem elevação/reativação indevida; bootstrap idempotente; rollback privilegiado por falha de auditoria; CPF/credenciais fora de eventos/diffs e limpeza de 90 dias. Esses testes runtime não foram executados nesta entrega documental.
 
-Domínios, infraestrutura, versões resolvidas, nomes de permissões e primeira feature ficam para suas entregas. Backup retention/classificação/operadores antes da coleta em produção. Sem commit, push, PR, release, alteração do quadro ou encerramento da issue; FEAT-1 permanece verify/active.
+Domínios, infraestrutura, versões resolvidas, nomes de permissões e primeira feature ficam para suas entregas. Backup retention/classificação/operadores antes da coleta em produção. FEAT-1 permanece verify/active; release, alteração do quadro e encerramento da issue continuam fora do escopo.
 
 ## Incorporação posterior
 
 O plano seguinte incorporou 0006 em 0001/0002/0004 e retirou seu documento. Os checks anteriores de seis arquivos referem-se à etapa histórica. Na incorporação, script de resolução de links conferiu 43 links relativos atuais, exit 0; CSD strict e strict --examples passaram. Aprovações originais foram preservadas.
+
+As decisões ADR desta etapa foram incluídas no [PR #29](https://github.com/yanpenalva/starter-kit-api/pull/29), aberto contra `main`; a issue #1 permanece aberta.

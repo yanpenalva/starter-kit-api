@@ -14,16 +14,16 @@
 
 ## Problems and risks
 
-- GitHub-hosted Actions has not run. Hosted runner behavior, permissions and remote package/service availability remain unverified.
+- GitHub Actions Quality run #1 passed for implementation commit `e17de33`; the documentation follow-up will trigger a new run.
 - No independent reviewer was assigned in this single-agent implementation; maintainer review is pending.
 
 ## Baseline checklist
 
 - [x] Workflow scopes are pull requests and pushes to `main`.
 - [x] CI credentials are ephemeral and the token permission is read-only.
-- [x] Local gates passed; remote CI is clearly marked unrun.
+- [x] Local gates and the initial remote CI run passed.
 - [x] No deployment or release claim is made.
 
 ## Verdict
 
-`APPROVED WITH CONDITIONS` — require a real CI result and maintainer review before merge.
+`APPROVED WITH CONDITIONS` — initial remote CI passed; maintainer review remains required before merge.

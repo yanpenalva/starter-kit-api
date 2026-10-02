@@ -20,7 +20,8 @@
 - Test isolation is enforced by Compose network, service, database, credentials and test assertion.
 - Rollback for this local scaffold is source reversion; validation used a separate project name and did not alter the main development database volume.
 - No credentials or personal data were logged.
-- Remote CI and production behavior remain unverified.
+- GitHub Actions Quality run #1 passed for implementation commit `e17de33`; production behavior remains unverified.
+- Pull request: [#29](https://github.com/yanpenalva/starter-kit-api/pull/29), open and mergeable against `main`.
 
 ## Findings
 

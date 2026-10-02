@@ -20,7 +20,9 @@
 - `rtk python3 scripts/validate_context.py --strict --examples`: exit 0; expected warning that this repository has no example suite.
 - `rtk python3 -m unittest discover -s tests -v`: exit 0; 7 tests passed.
 - `rtk npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: exit 0; CSD healthy (1.2.1).
-- Remote GitHub Actions was not run because this delivery has no PR or push.
+- The clean-copy gates were completed before the PR existed; the remote workflow result is tracked separately below.
+- Pull request: [#29](https://github.com/yanpenalva/starter-kit-api/pull/29), open and mergeable against `main`.
+- GitHub Actions [Quality run #1](https://github.com/yanpenalva/starter-kit-api/actions/runs/37074847582): success for implementation commit `e17de33`; the documentation follow-up triggers another run.
 
 ## Review
 
@@ -31,12 +33,12 @@
 - Regression risk: low for application behavior; the scaffold remains API-only.
 - Quality and privacy evidence: commands and scope above; no real credentials or personal data were used.
 - Subtask integration: scaffold/lockfile (S1), isolated Compose/PostgreSQL (S2), tests/CI (S3) and docs/context (S4) verified together from the clean copy.
-- Limitations: no remote CI result, deployment, production signal or production owner is claimed.
+- Limitations: production deployment, production signal and production owner are not claimed.
 
 ## Findings
 
-No blocking implementation findings. Maintainer review and remote CI remain required before merge or release.
+No blocking implementation findings. GitHub Actions Quality run #1 passed; maintainer review remains required before merge or release.
 
 ## Verdict
 
-`APPROVED WITH CONDITIONS` — local acceptance checks pass; human review and remote CI remain pending.
+`APPROVED WITH CONDITIONS` — local and first remote CI checks pass; human review remains pending.
