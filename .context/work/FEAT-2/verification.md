@@ -8,6 +8,7 @@
 - `rtk python3 scripts/validate_context.py --strict`: passed.
 - `rtk python3 scripts/validate_context.py --strict --examples`: passed with the expected warning that this repository has no example suite.
 - `rtk python3 -m unittest discover -s tests -v`: 7 tests passed.
+- Pull request [#30](https://github.com/yanpenalva/starter-kit-api/pull/30) is open; GitHub Actions [Quality run #4](https://github.com/yanpenalva/starter-kit-api/actions/runs/37077785239) passed.
 - Independent CSD doctor could not run in this sandbox: npm registry access failed with DNS `ENOTFOUND`; offline retry found no cached package.
 
 ## Scope
