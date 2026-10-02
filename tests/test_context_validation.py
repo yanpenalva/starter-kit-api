@@ -11,6 +11,13 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def ignore_generated(path, names):
+    excluded = {".git", "__pycache__", "node_modules"}
+    if Path(path) == ROOT:
+        excluded.add("vendor")
+    return excluded.intersection(names)
+
+
 class ContextValidationTests(unittest.TestCase):
     def run_validator(self, root, *args):
         result = subprocess.run(
@@ -41,7 +48,7 @@ class ContextValidationTests(unittest.TestCase):
         for name, path, content, expected in changes:
             with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
                 fixture = Path(directory) / "repo"
-                shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(".git", "__pycache__", "node_modules"))
+                shutil.copytree(ROOT, fixture, ignore=ignore_generated)
                 target = fixture / path
                 if content is None:
                     target.unlink()
@@ -54,7 +61,7 @@ class ContextValidationTests(unittest.TestCase):
     def test_invalid_active_work_item_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             fixture = Path(directory) / "repo"
-            shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(".git", "__pycache__", "node_modules"))
+            shutil.copytree(ROOT, fixture, ignore=ignore_generated)
             item = fixture / ".context/work/FEAT-99/work-item.json"
             item.parent.mkdir()
             item.write_text(json.dumps({"schema_version": "invalid"}))
@@ -65,7 +72,7 @@ class ContextValidationTests(unittest.TestCase):
     def test_installed_example_suite_is_validated(self):
         with tempfile.TemporaryDirectory() as directory:
             fixture = Path(directory) / "repo"
-            shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(".git", "__pycache__", "node_modules"))
+            shutil.copytree(ROOT, fixture, ignore=ignore_generated)
             (fixture / "examples").mkdir()
             status, report = self.run_validator(fixture, "--examples")
             self.assertEqual(status, 1, report)
@@ -74,7 +81,7 @@ class ContextValidationTests(unittest.TestCase):
     def test_force_push_policy_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             fixture = Path(directory) / "repo"
-            shutil.copytree(ROOT, fixture, ignore=shutil.ignore_patterns(".git", "__pycache__", "node_modules"))
+            shutil.copytree(ROOT, fixture, ignore=ignore_generated)
             path = fixture / ".context/orchestration/config.json"
             config = json.loads(path.read_text())
             config["git"]["allow_force_push"] = True
@@ -82,6 +89,17 @@ class ContextValidationTests(unittest.TestCase):
             status, report = self.run_validator(fixture)
             self.assertEqual(status, 1, report)
             self.assertIn("allow_force_push must be false", " ".join(report["errors"]))
+
+    def test_installed_dependency_docs_are_not_project_context(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / "repo"
+            shutil.copytree(ROOT, fixture, ignore=ignore_generated)
+            dependency_docs = fixture / "vendor/example/package/README.md"
+            dependency_docs.parent.mkdir(parents=True)
+            dependency_docs.write_text("[missing](docs/missing.md)\n<DEPENDENCY_PLACEHOLDER>\n")
+            status, report = self.run_validator(fixture)
+            self.assertEqual(status, 0, report)
+            self.assertTrue(report["ok"])
 
 
 if __name__ == "__main__":

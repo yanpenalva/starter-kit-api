@@ -7,5 +7,12 @@ dist/
 .env
 *.env
 !.env.example
+/.phpunit.cache/
+/.phpstan.cache/
+/.phpunit.result.cache
+/bootstrap/cache/*.php
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitignore
 .context/work/**/progress.md
 .context/work/**/.local/

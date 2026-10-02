@@ -1,9 +1,9 @@
 # Testing Context
 
-- Automated application tests are required from the first scaffold; none exist yet.
-- API plans Pest; frontend runner and test levels: `NOT FOUND`.
-- Isolated test database; engine/version, connection and safe reset procedure: `NOT FOUND`.
-- Never run tests against production or shared data. Real test commands must be established and verified during scaffold work.
-- No test, lint or application build command is asserted as operational before the corresponding config exists.
-- This onboarding runs context validation, adapter regression checks and official installer doctor. Evidence: `onboarding.md` in this directory.
-- CI is progressive; provider configuration and application jobs: `NOT FOUND`.
+- Application tests use Pest inside PHP 8.5; initial Feature suite covers boot, JSON availability, framework health, route boundaries and PostgreSQL test isolation.
+- Test service connects on an internal test-only network to its own PostgreSQL 18 container, database/user starter_api_test and ephemeral filesystem; development uses a separate service/database/credentials. No data from legacy or production.
+- Run `docker compose --profile test run --rm test`; bare composer test requires correctly configured isolated test connection. PHPUnit forces test DB/name/user; Compose/CI supply its host/password.
+- No migrations/factories/seeds for identity or business features yet; boot database checks do not reset development data.
+- Python context regression tests remain in tests/ and run with unittest separately.
+- Initial GitHub Actions workflow defines context/application gates for PR/main; remote execution is not claimed without a push/PR.
+- Exact commands/results and limitations in FEAT-7/8/24 verification.md. CI expands with owning feature tests and OpenAPI contracts.

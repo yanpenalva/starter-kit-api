@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/laravel/laravel",
+  "ref": "13.x",
+  "commit": "06d016a364a37430eec9cbc52209adce3d7667ce",
+  "source": "official GitHub tarball extracted in /tmp/starter-api-official",
+  "adaptations": [
+    "API-only routing",
+    "no frontend assets or Blade frontend",
+    "no default identity model, factories, seeders or migrations",
+    "project governance/tests preserved",
+    "PHP 8.5, PostgreSQL, Pest/Pint/Larastan"
+  ]
+}

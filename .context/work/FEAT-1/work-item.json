@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-1",
+  "title": "Registrar ADRs incrementais da arquitetura greenfield",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "confirm_each",
+  "classification": {
+    "complexity": "medium",
+    "impact": "system",
+    "security": "relevant",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing"
+    ],
+    "deferred": [
+      "release",
+      "incident"
+    ],
+    "triggers": [
+      "Issue #1: architecture, identity and audit decisions accepted; authorized documentary consolidation"
+    ]
+  },
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "last_updated": "2026-10-02",
+  "policy_exceptions": []
+}

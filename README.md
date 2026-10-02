@@ -1,9 +1,67 @@
 # starter-kit-api
 
-Greenfield REST API for the Starter Kit ecosystem. This repository currently contains CSD governance and context only.
+Independent Laravel 13 API for the Starter Kit ecosystem, running on PHP 8.5 through Docker Compose. No identity, RBAC, audit or business endpoints are implemented yet.
 Known stack and pending decisions: [.context/project/stack.md](.context/project/stack.md) and [.context/project/architecture.md](.context/project/architecture.md).
 
-## Agent onboarding
+Accepted architecture for [issue #1](https://github.com/yanpenalva/starter-kit-api/issues/1): [incremental ADRs](docs/adr/README.md), approved by yanpenalva on 2026-10-01 ([evidence](.context/work/FEAT-1/approval.md)). Architecture acceptance is distinct from runtime implementation: this delivery implements the platform scaffold only. ADR 0006 has been incorporated into ADRs 0001/0002/0004 with its historical reference preserved.
+
+## Local API setup
+
+Requirements: Linux, Docker Engine with Docker Compose, Python 3, and network access for image/package downloads. PHP 8.5 and Composer run inside Docker; host PHP is not used. The development image is not a production image.
+
+From a fresh checkout:
+
+```sh
+python3 scripts/setup_local_env.py
+docker compose build api
+docker compose run --rm --no-deps api composer install --no-interaction --prefer-dist
+docker compose run --rm --no-deps api php artisan key:generate --no-interaction
+docker compose up -d --wait
+curl --fail http://localhost:8080/api/v1
+curl --fail http://localhost:8080/up
+```
+
+The environment script creates `.env` once with distinct random local database passwords and the current Linux UID/GID. It refuses to overwrite an existing configuration. No secrets are printed or versioned. Set `HTTP_PORT` in `.env` to change the default HTTP port; `APP_DEBUG` stays false. PHP-FPM uses the same UID/GID as the checkout so generated files remain owned by the developer.
+
+`GET /api/v1` returns `{"status":"ok"}`. `/up` is Laravel's framework health endpoint; it verifies application boot, not dependency readiness. `/` has no frontend. API errors render JSON; authentication and its middleware will be implemented in their own issues. There are no business migrations or default users/admin accounts.
+
+Development migration command, when migrations are introduced:
+
+```sh
+docker compose exec api php artisan migrate --no-interaction
+```
+
+This command targets development, not the legacy or production database. Do not use `migrate:fresh` on development. Tests use a separate PostgreSQL container, an internal test-only network, distinct credentials and an ephemeral filesystem; the test service overrides the connection so it cannot use development defaults.
+
+## Application quality gates
+
+```sh
+docker compose run --rm --no-deps api composer validate --strict
+docker compose run --rm --no-deps api composer check-platform-reqs
+docker compose run --rm --no-deps api composer audit
+docker compose run --rm --no-deps api composer lint
+docker compose run --rm --no-deps api composer analyse
+docker compose --profile test run --rm test
+```
+
+`composer test` runs Pest; use the Compose `test` service to supply its isolated database. Pint is read-only through `composer lint`; Larastan runs at level 10 without a suppression baseline over application code, bootstrap, routes and PHP tests. The initial suite covers boot, JSON availability, framework health, route boundaries and PostgreSQL test isolation. Python context tests remain under `tests/` and run separately. [QUALITY_GATES.md](QUALITY_GATES.md) defines initial and progressive checks; CI runs these gates on PRs and `main`.
+
+## Optional services and local operations
+
+```sh
+docker compose --profile async up -d --wait redis mailpit
+docker compose ps
+docker compose logs --tail=100 api nginx
+docker compose down
+```
+
+Mailpit UI is available only on localhost, default port 8025 (`MAILPIT_PORT` overrides it). Redis and SMTP have no host ports. The scaffold still uses synchronous queues and the log mailer; enabling containers does not enable application integrations. No workers/scheduler are installed in this stage. Logs go to stderr; Nginx access logs are disabled to avoid capturing query strings. Never add credentials or personal data to logs. Correlation IDs/redaction for business inputs belong to the HTTP/observability feature deliveries.
+
+`docker compose down` preserves the development database volume. Do not use `down --volumes` as a routine reset. The test database's tmpfs is disposable when its container is removed. On database authentication errors, check the local `.env` against the credentials used when the development volume was initialized; do not silently reset that volume. On permission errors, regenerate only UID/GID configuration as needed, not secrets or existing data. Docker daemon access is required; failures before image/container execution are environment limitations, not passing checks.
+
+Scaffold provenance: [.scaffold-source.json](.scaffold-source.json). Work items: [.context/work/FEAT-7](.context/work/FEAT-7/work-item.json), [FEAT-8](.context/work/FEAT-8/work-item.json), [FEAT-24](.context/work/FEAT-24/work-item.json). Runtime dependencies are MIT/open-source as identified in their manifests; the application itself has no public distribution license selected (Composer's private-project `proprietary` marker is not a new license grant).
+
+## CSD onboarding
 
 Read [AGENTS.md](AGENTS.md), invoke `$csd` in Codex, and describe the intended outcome. Context is canonical under `.context/`.
 Project onboarding follows `.context/prompts/initialize-project.md` and creates no work item. Unknown facts are `NOT FOUND`; revisit context after ADRs and scaffold.

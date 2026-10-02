@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-8",
+  "title": "Docker Compose local isolado",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "confirm_each",
+  "classification": {
+    "complexity": "medium",
+    "impact": "system",
+    "security": "relevant",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing"
+    ],
+    "deferred": [
+      "release",
+      "incident"
+    ]
+  },
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "last_updated": "2026-10-02",
+  "policy_exceptions": []
+}
