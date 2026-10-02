@@ -1,0 +1,128 @@
+name: starter-kit-api
+
+x-api: &api
+  build:
+    context: .
+  image: starter-kit-api-dev:local
+  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+  working_dir: /var/www/html
+  volumes:
+    - .:/var/www/html
+  environment:
+    APP_ENV: local
+    APP_DEBUG: "false"
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_DATABASE: starter_api_dev
+    DB_USERNAME: starter_api_dev
+    DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
+    CACHE_STORE: file
+    SESSION_DRIVER: file
+    QUEUE_CONNECTION: sync
+    LOG_CHANNEL: stderr
+
+services:
+  api:
+    <<: *api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(is_resource(@fsockopen('127.0.0.1', 9000)) ? 0 : 1);"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  nginx:
+    image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./public:/var/www/html/public:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/up"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  postgres:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    environment:
+      POSTGRES_DB: starter_api_dev
+      POSTGRES_USER: starter_api_dev
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
+    volumes:
+      - postgres-dev:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starter_api_dev -d starter_api_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  postgres-test:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    profiles: [test]
+    networks: [testing]
+    environment:
+      POSTGRES_DB: starter_api_test
+      POSTGRES_USER: starter_api_test
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:?Run the documented local environment setup first}
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starter_api_test -d starter_api_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  test:
+    <<: *api
+    profiles: [test]
+    networks: [testing]
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres-test
+      DB_DATABASE: starter_api_test
+      DB_USERNAME: starter_api_test
+      DB_PASSWORD: ${TEST_DB_PASSWORD:?Run the documented local environment setup first}
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      LOG_CHANNEL: stderr
+    command: [composer, test]
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+
+  redis:
+    image: redis:alpine@sha256:6cbef353e480a8a6e7f10ec545f13d7d3fa85a212cdcc5ffaf5a1c818b9d3798
+    profiles: [async]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  mailpit:
+    image: axllent/mailpit@sha256:c076638db1e15662150be4fb62b8a6e96ef6ba5bde90c838a0239225854830f7
+    profiles: [async]
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres-dev:
+
+networks:
+  testing:
+    internal: true

@@ -1,8 +1,19 @@
 # Quality Configuration
 
-Normative baseline: `.context/policies/core/code-quality.md`. Governance mode is `starter`: application quality tools/thresholds remain `NOT FOUND` until scaffold, without suppressing context validation.
+Normative baseline: `.context/policies/core/code-quality.md`; governance mode starter. Configured initial application checks:
 
-Executed/required CSD checks:
+```sh
+docker compose run --rm --no-deps api composer validate --strict
+docker compose run --rm --no-deps api composer check-platform-reqs
+docker compose run --rm --no-deps api composer audit
+docker compose run --rm --no-deps api composer lint
+docker compose run --rm --no-deps api composer analyse
+docker compose --profile test run --rm test
+```
+
+Pint read-only; Larastan level 10 without a suppression baseline over `app/`, `bootstrap/app.php`, `routes/` and `tests/`; Pest runs on isolated PostgreSQL 18. Dependency versions are in composer.lock and PHP 8.5 images are pinned by digest. Actual execution evidence: FEAT-7/8/24 verification.md. `.github/workflows/quality.yml` defines matching PR/main gates; remote CI execution is not claimed. Progressive checks in QUALITY_GATES.md.
+
+Required CSD checks:
 
 ```sh
 python3 scripts/validate_context.py --strict
@@ -11,8 +22,6 @@ python3 -m unittest discover -s tests -v
 npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project
 ```
 
-The unmodified official validator is in `scripts/vendor/csd/validate_context.py`; source commit and SHA-256 are recorded in `.csd-source.json`. The local entrypoint disables only the public-kit neutrality scan (which rejects Laravel/Vue application context). `--examples` validates a suite if present, otherwise reports its absence; real work-item validation always runs. No example suite is installed and onboarding creates no work item.
+Official validator provenance/hashes remain in `.csd-source.json`. The local adapter disables public-kit neutrality scanning and excludes installed Composer `vendor/` package documentation from project-owned link/placeholder checks; it leaves all project context, schemas, policies and active work items under validation. `--examples` warns when no example suite is installed while real work items still validate.
 
-All other upstream structural, schema/config, link, placeholder, classification, governance, approval and active-work-item checks remain enabled. Thin reference adapters required by upstream validation are present; only Codex is activated by the project installer.
-
-Application test/static-analysis/lint/build commands, measured complexity/coverage/duplication thresholds and quality owner: `NOT FOUND`. API intends Pest/Pint/Larastan; frontend tooling is pending. These are plans, not claimed passing checks.
+No automated cognitive/cyclomatic metric or measured coverage/duplication threshold is configured; do not claim measured values. CSD structural/code-review defaults still apply. Changed-feature tests are required; coverage policy will be reviewed when business logic exists. Quality owner: yanpenalva for this approved plan; production operational owner NOT FOUND.

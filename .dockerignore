@@ -1,0 +1,9 @@
+.git
+.env
+*.env
+vendor
+node_modules
+.phpunit.cache
+.phpstan.cache
+storage/logs/*
+storage/framework/cache/*
