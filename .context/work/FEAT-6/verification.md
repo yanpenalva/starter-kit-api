@@ -105,3 +105,10 @@ Fatos duráveis observados e registrados pelo orquestrador pai (recebimento: [co
 - Contadores anteriores de 7/47 (roadmap legend, FEAT-6 review/verification, FEAT-4 discovery) são instantâneos pré-reconcile do mesmo dia — históricos com data, superseded por este recibo e pela seção 9 do roadmap.
 - Gate global da wave 0 segue aguardando revisão e integração da entrega documental da API; nenhuma wave 1 inicia.
 - Nota de publicação: o diário `progress.md` é local e ignorado pelo Git (`.context/work/**/progress.md`); referências versionadas apontam para este verification.md e para handoff.md.
+
+### Gate da wave 0 ACEITO — wave 1 ativa (2026-10-03T18:35:08Z; evidência atribuída ao pai)
+
+- API: [PR #31](https://github.com/yanpenalva/starter-kit-api/pull/31) merged — head `c726dfcd50648045ca48024e5c9d1320d413eb8d`, merge `398a952fcbe6f546131297c233fa4cc566f2a900` (2026-10-03T18:35:08Z); checks PR context/application/GitGuardian todos SUCCESS; `main` context/application SUCCESS (run 37144751065, jobs 111266271952 e 111266271604); pai executou strict CSD + 7 testes Python limpos no main integrado.
+- Frontend: PR #22 (arquitetura) e PR #23 (checkpoint) merged em `main` `42f235ce8085375357570675d32db0972a78f3d8`; strict local + 6 testes passaram (frontend sem Actions — nenhum CI de main alegado).
+- Board: Done 8/47; API #9/#10 e SPA #2 movidas para In progress; API #4/#6/#22/#24 restauradas In progress (progressivas).
+- Branch da wave 1 criada pelo pai: `feat/wave-1-api-foundations` (base 398a952). Fase atual: planejamento CSD de FEAT-9/FEAT-10 (sem código/instalações neste passo).

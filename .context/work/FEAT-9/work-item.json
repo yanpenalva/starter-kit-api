@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-9",
+  "title": "Modelar banco, migrations, índices e seeders",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "high",
+    "impact": "system",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing"
+    ],
+    "deferred": [
+      "release",
+      "incident"
+    ],
+    "triggers": [
+      "API issue #9; wave-1 first slice: User identity schema and Factory with optional CPF; no RBAC/audit/privilege schema until wave 2"
+    ]
+  },
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "last_updated": "2026-10-03",
+  "policy_exceptions": [
+    "EXC-0001"
+  ]
+}

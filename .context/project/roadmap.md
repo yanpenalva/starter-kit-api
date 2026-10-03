@@ -8,6 +8,8 @@ Este roteiro cobre os 47 itens do [quadro Starter Kit](https://github.com/users/
 
 **Reconciliação operacional após integração da SPA (2026-10-03):** SPA #1 está fechada e Done no quadro. PR #22 integrada em `main` no SHA `86bf3d0efa715fca1edd5105add6bd5206c1bf92`; validação CSD estrita e seis testes Python passaram na revisão integrada. [Registro do orquestrador](https://github.com/yanpenalva/starter-kit-frontend/issues/1#issuecomment-5971166151). Total atual: **8/47 Done**. Menções anteriores a materialização/integração SPA pendentes são snapshots superseded por esta evidência. O gate global da wave 0 ainda aguarda revisão e integração da entrega documental da API.
 
+**Gate da wave 0 ACEITO — wave 1 ativa (2026-10-03T18:35:08Z):** API [PR #31](https://github.com/yanpenalva/starter-kit-api/pull/31) merged (head `c726dfc`, merge `398a952`; PR checks context/application/GitGuardian ALL SUCCESS; `main` context/application SUCCESS, run 37144751065); frontend PR #22/#23 merged (`main` `42f235ce`); strict + testes limpos no main integrado (execução do pai). Board: 8/47 Done; API #9/#10 e SPA #2 In progress; API #4/#6/#22/#24 restauradas In progress. Fase atual: planejamento CSD de [FEAT-9](../work/FEAT-9/spec.md) e [FEAT-10](../work/FEAT-10/spec.md) na branch `feat/wave-1-api-foundations` (base 398a952); o catálogo da seção 8 permanece como está.
+
 ## 1. Estado de partida
 
 | Situação observada | Itens | Consequência |
