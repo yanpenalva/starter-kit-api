@@ -29,3 +29,9 @@ No blocking local CI configuration findings. The GitHub-hosted workflow passed o
 ## Verdict
 
 `APPROVED WITH CONDITIONS` — the initial CI stage is merged and its checks passed; remaining CI stages from issue #24 are still outstanding.
+
+## Additive evidence — 2026-10-03 (append-only)
+
+- Parent-attributed remote evidence: PR [#30](https://github.com/yanpenalva/starter-kit-api/pull/30) checks (context/application/GitGuardian) passed on head 99321a9; the `main` merge run [37078252890](https://github.com/yanpenalva/starter-kit-api/actions/runs/37078252890/job/111072849711) (jobs 111072849711 and 111072850044) succeeded for context/application.
+- Issue #24 remains **In progress** and progressive: this record only recognizes the integrated initial CI stage. No later CI stage is claimed, nothing is recreated, no workflow file is modified by this docs slice, and no closure is declared.
+- Gate definitions for future stages live in [FEAT-4](../FEAT-4/spec.md); the initial threat model for security-related stages lives in [FEAT-22](../FEAT-22/spec.md).

@@ -18,4 +18,4 @@ Ask these only after the front door (classification, routing, context manifest).
 - Keep one parent work item, split execution into small waves, and collect agent evidence before advancing gates.
 - Never approve production, accept risk or hide a failed subagent result.
 - Apply `.context/policies/core/questioning-and-evidence.md`: inspect before asking, ask only questions that change a decision, and stop on unresolved scope, authorization or `MUST` evidence.
-- At closure, show the validation summary and proposed commit message, then request separate human approval for commit and push.
+- At closure, record the validation summary and proposed commit message. Request separate approval only in `confirm_each` or when authorization is genuinely missing. In `automatic`, reuse the [standing roadmap authorization](../work/FEAT-6/approval.md) within its scope and follow the commit/PR/integration route in [delivery context](../project/delivery.md); do not ask again for an already approved routine operation.

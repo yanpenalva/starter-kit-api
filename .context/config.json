@@ -40,9 +40,11 @@
   },
   "ai": {
     "approved_tools": [
-      "Codex"
+      "Codex",
+      "OpenCode",
+      "Oh My OpenCode"
     ],
-    "data_classification": "NOT FOUND",
+    "data_classification": "internal",
     "human_approval_required": true
   },
   "onboarding": {

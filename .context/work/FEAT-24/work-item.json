@@ -9,7 +9,7 @@
   "risk": "medium",
   "owner": "yanpenalva",
   "conversation_profile": "senior-software-engineer",
-  "git_finalization_mode": "confirm_each",
+  "git_finalization_mode": "automatic",
   "classification": {
     "complexity": "medium",
     "impact": "system",
@@ -42,6 +42,6 @@
     "execute",
     "verify"
   ],
-  "last_updated": "2026-10-02",
-  "policy_exceptions": []
+  "last_updated": "2026-10-03",
+  "policy_exceptions": ["EXC-0001"]
 }

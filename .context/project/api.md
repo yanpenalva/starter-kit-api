@@ -48,4 +48,38 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - Laravel 13 documents Sanctum SPA authentication as cookie/session based and separate from personal access token authentication: [Sanctum SPA authentication](https://laravel.com/framework/docs/13.x/sanctum#spa-authentication).
 - Scramble documents OpenAPI 3.1 generation and its current Composer manifest declares Laravel 13 compatibility: [Scramble](https://github.com/dedoc/scramble), [composer.json](https://github.com/dedoc/scramble/blob/main/composer.json).
 
-**Review state:** draft for API #3. The limited pre-verification session rule is explicitly approved; the rest of the contract must be reviewed before implementing dependent public endpoints. API names/matrix, production domains, session configuration, and per-resource filters remain `NOT FOUND` until their owning features.
+**Review state (historical snapshot):** draft for API #3 at authoring time. **Superseded 2026-10-03:** the initial conventions were accepted by the human and integrated via [PR #30](https://github.com/yanpenalva/starter-kit-api/pull/30) (merged 2026-10-02T23:34:49Z; closure of API #3 confirmed by yanpenalva in the PR; [FEAT-3](../work/FEAT-3/work-item.json) closed as a receipt — the acceptance is not reopened). The limited pre-verification session rule remains explicitly approved. Still genuinely open: generated publication, endpoint-level contracts and compatibility CI belong to API #11 and the owning implementation issues; API names/matrix, production domains, session configuration, and per-resource filters remain `NOT FOUND` until their owning features.
+
+## Private OpenAPI transport policy (approved 2026-10-03)
+
+yanpenalva approved this policy via the question tool ("Aprovar transporte") on 2026-10-03. Routine SHA/workflow pins need no new human choice; CI credential provision remains a human decision. Producer and consumer workflows do not exist yet; this slice is documentation only.
+
+### Producer (API repository; API #11, wave 3)
+
+- Generate the OpenAPI document only from real implemented Controllers, Form Requests and Resources, in a successful trusted run on `main` at an exact full revision SHA that is already reviewed and integrated under the recorded delivery authorization.
+- Identify the run by an allowlist of trusted workflow id/path/triggering event; verify the artifact by id, name and digest.
+
+### Consumer (frontend repository)
+
+- Consume only a durably committed OpenAPI document plus generated types and a provenance receipt. Frontend CI runs on every PR build/test with NO API credential, including fork and Dependabot builds.
+- Normal CI never downloads the artifact; this avoids per-PR retention failures and keeps credential-free builds.
+
+### Synchronization and credentials
+
+- Synchronization uses a separate trusted default-branch `workflow_dispatch`, or the local orchestrator with the existing authorized `gh`. Never check out or run PR code with a secret present.
+- Conditional CI credential: a fine-grained PAT with Actions:read on the API repository only (Metadata is auto-granted). It is currently absent — `NOT FOUND`; human provision is deferred to wave 3. The built-in GitHub token is repo-scoped and cannot fetch cross-repo artifacts. Actions:read cannot dereference refs or commits; no hidden broader permission is assumed.
+- Out of scope: reading source contents, classic PATs, new identities, ruleset changes, auto tags and bot PR settings. A candidate contract output follows the normal branch commit/PR route by the orchestrator, not an automatic bot that would require new identities or permissions.
+
+### Fail-closed verification and records
+
+- Caller inputs: the expected API SHA taken from a prior reviewed merge, and a logical contract version (not a Git tag). Verification fails closed unless: the run completed successfully; the head SHA matches exactly; the workflow and event are allowlisted and trusted; the artifact is not expired; the archive digest matches; and the OpenAPI file SHA-256 is recomputed independently. Absent or expired artifacts fail. Never use `latest`, never widen the check, never fall back to manually maintained DTOs.
+- Record per delivery: API repository SHA, workflow run id, path and workflow SHA, artifact id and archive digest, file hash, contract version, generator version, plus the SPA paired SHA and provenance. The archive digest proves transfer integrity, not authorship attestation.
+- Recovery is limited to an API-owner rerun (Actions:write via the API-authorized identity, never the SPA token) or a newly explicit reviewed SHA. Never pretend that a workflow dispatch can reproduce an old `main` historical SHA arbitrarily.
+
+### Scope limits and current assumptions
+
+- Retention: the 90-day default is proposed as the technical default under existing policy; absent/expired artifacts fail the gate.
+- Production and backups are out of scope.
+- No producer workflow exists today. Verified 2026-10-03: both default branches are UNPROTECTED (rulesets empty; branch protection 404); a full SHA is immutable — never treat a branch or tag name as the pinned revision.
+- Actual Actions artifact upload/download behavior is re-verified against real implementation at wave 3; no workflow YAML is written by this documentation slice.
+- Sources: [fine-grained PAT permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), [GITHUB_TOKEN security](https://docs.github.com/en/actions/concepts/security/github_token), [security hardening](https://docs.github.com/en/actions/reference/security/secure-use), [workflow runs API](https://docs.github.com/en/rest/actions/workflow-runs), [artifact retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization), [gh run download](https://cli.github.com/manual/gh_run_download).
