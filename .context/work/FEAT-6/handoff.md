@@ -9,3 +9,9 @@
 - Commands and evidence: ver "Correção pós-merge e wave 0" em [verification.md](verification.md) — evidência remota atribuída ao pai + gates desta fatia.
 - Failures and risks: aplicação não reexecutada (Docker/Compose acessíveis, sem rerun); `main` sem proteção (rulesets [], 404 em branch protection) — gates dependem da disciplina CSD; approving review formal por outra identidade indisponível — nunca forjar.
 - Next step: concluir pendências da wave 0 (SPA #1, API #4/#6, fatia #24, prep #22), aplicar gate e liberar wave 1. API #6 permanece aberta; quadro já reflete In progress somente de #6 e SPA #1.
+
+## Atualização — gate da wave 0 aceito; wave 1 em planejamento (2026-10-03T18:35:08Z)
+
+- Gate aceito com evidência atribuída ao pai: API PR #31 merged (head `c726dfc`, merge `398a952`, PR checks context/application/GitGuardian ALL SUCCESS; main context/application SUCCESS, run 37144751065, jobs 111266271952/111266271604); pai rodou strict + 7 testes limpos no main. Frontend PR #22/#23 merged (main `42f235ce`, strict local 6 testes). Detalhes: [verification.md](verification.md) "Gate da wave 0 ACEITO".
+- Board: Done 8/47; API #9/#10 e SPA #2 In progress; API #4/#6/#22/#24 restauradas In progress.
+- Wave 1: branch `feat/wave-1-api-foundations` (base 398a952, criada pelo pai). FEAT-9/FEAT-10 em fase plan (docs apenas; sem código/instalação até preflight independente PASS). Um único integrador API (User/migrations/factories/composer/bootstrap/routes/config/tests+docs) na execução posterior; sem escritor paralelo na API.

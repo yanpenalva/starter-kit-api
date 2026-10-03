@@ -46,7 +46,7 @@ final class ScaffoldTest extends TestCase
         $this->assertFalse((bool) $developmentDatabaseExists['exists']);
     }
 
-    public function test_only_the_scaffold_api_and_health_routes_are_registered(): void
+    public function test_only_the_public_surface_routes_are_registered(): void
     {
         $uris = array_map(
             static fn (RouteDefinition $route): string => $route->uri(),
@@ -54,6 +54,6 @@ final class ScaffoldTest extends TestCase
         );
         sort($uris);
 
-        $this->assertSame(['api/v1', 'up'], $uris);
+        $this->assertSame(['api/v1', 'sanctum/csrf-cookie', 'up'], $uris);
     }
 }
