@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-6",
+  "title": "Roadmap ponta a ponta para execu\u00e7\u00e3o CSD entre API e SPA",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "high",
+    "impact": "system",
+    "security": "relevant",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing",
+      "release"
+    ],
+    "deferred": [
+      "incident"
+    ],
+    "triggers": [
+      "User requested a complete dependency and parallel execution roadmap for all 47 project items; documentation only"
+    ]
+  },
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "last_updated": "2026-10-03",
+  "policy_exceptions": ["EXC-0001"]
+}

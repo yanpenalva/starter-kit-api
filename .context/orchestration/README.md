@@ -25,9 +25,9 @@ The optional `pull_request` block configures how pull requests are opened:
 
 | Field | Meaning |
 | --- | --- |
-| `mode` | `never` (default) keeps the current push-only flow; `manual` means the agent drafts the PR title and body and a human opens it; `automatic` means the agent runs the configured project command after a successful push |
+| `mode` | `never` keeps the push-only flow; `manual` drafts a PR for a human; `automatic` runs the configured creation command after push when the delivery route requires a PR |
 | `command` | The project-owned CLI command that opens a pull request on the team's forge; it MUST only open PRs — merging, force and administrative flags are rejected by the validator |
 | `draft_default` | Open pull requests as drafts when supported |
-| `merge_requires_human_approval` | Always `true`; review and merge stay human decisions |
+| `merge_requires_human_approval` | Always `true`; for the Starter Kit roadmap the human decision is already recorded in [standing authorization](../work/FEAT-6/approval.md), permitting conditional execution after independent review/checks without another routine confirmation |
 
-The kit ships no forge CLI. `automatic` mode additionally requires `git.finalization_mode: automatic` and a configured `command`; the validator enforces both. Record the opened PR reference in `release.md`.
+The kit ships no forge CLI. `automatic` mode additionally requires `git.finalization_mode: automatic` and a configured `command`; the validator enforces both. Record the opened PR reference in `release.md`. Merge is a separate operation under the recorded human authorization and repository rules, never an administrative bypass embedded in the creation command. Routes without PR record the integrated SHA instead.

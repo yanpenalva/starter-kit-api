@@ -4,8 +4,8 @@
   "title": "Inventariar comportamentos do monólito para requisitos greenfield",
   "track": "product",
   "type": "feature",
-  "phase": "verify",
-  "status": "active",
+  "phase": "close",
+  "status": "completed",
   "risk": "medium",
   "owner": "yanpenalva",
   "conversation_profile": "senior-software-engineer",
@@ -26,7 +26,7 @@
     "deferred": ["release", "incident"],
     "triggers": ["API issue #2; read-only inspection at the pinned legacy commit"]
   },
-  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify"],
-  "last_updated": "2026-10-02",
-  "policy_exceptions": []
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify", "release", "observe", "close"],
+  "last_updated": "2026-10-03",
+  "policy_exceptions": ["EXC-0001"]
 }

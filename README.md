@@ -100,6 +100,8 @@ For an approved newer version, replace the explicit version in those commands, r
 
 ## Issues and delivery
 
+Roadmap ponta a ponta para distribuir entregas via CSD: [ordem, paralelismo e complexidades](.context/project/roadmap.md).
+
 Onboarding: https://github.com/yanpenalva/starter-kit-api/issues/5. No artificial CSD work item represents initialization.
 Future tasks follow [issue/work-item/PR conventions](.context/project/conventions.md) and [delivery authorization](.context/project/delivery.md).
 Actual onboarding evidence and unresolved decisions: [.context/project/onboarding.md](.context/project/onboarding.md).

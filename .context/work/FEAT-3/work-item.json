@@ -4,8 +4,8 @@
   "title": "Definir convenções HTTP e contratos OpenAPI incrementais",
   "track": "product",
   "type": "feature",
-  "phase": "verify",
-  "status": "active",
+  "phase": "close",
+  "status": "completed",
   "risk": "high",
   "owner": "yanpenalva",
   "conversation_profile": "senior-software-engineer",
@@ -26,7 +26,7 @@
     "deferred": ["release", "incident"],
     "triggers": ["API issue #3; draft initial contract using the accepted ADRs and API #13 scope"]
   },
-  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify"],
-  "last_updated": "2026-10-02",
-  "policy_exceptions": []
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify", "release", "observe", "close"],
+  "last_updated": "2026-10-03",
+  "policy_exceptions": ["EXC-0001"]
 }
