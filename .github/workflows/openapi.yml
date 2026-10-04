@@ -1,21 +1,10 @@
 name: OpenAPI Contract
 
-# Producer: generates the real OpenAPI 3.1 document from implemented Controllers,
-# Form Requests and Resources (Scramble 0.13.47, LC_ALL=C, 2x idempotent export)
-# on main at a reviewed commit, then publishes the artifact openapi-<fullSHA>.
-#
-# Triggers: workflow_dispatch (manual, main only).
-# Wrong-branch or non-allowlisted events fail closed via the branch guard.
-# Permissions are minimal (contents: read). No secrets, no PAT, no frontend writes.
-# The receipt is constructed by the operator fetch AFTER trusted metadata + raw
-# ZIP verification (never inside the same ZIP: upload returns id/digest after
-# the archive is built, avoiding circular self-hash).
-
 on:
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Execution trigger reason (producer export on main)'
+        description: 'Motivo da execução do workflow produtor (exclusivo para main)'
         required: true
         default: 'producer-export'
 
@@ -61,7 +50,7 @@ jobs:
       - name: Guard main branch
         run: |
           if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
-            echo "ERROR: producer export runs on main only (ref=${GITHUB_REF})." >&2
+            echo "ERRO: a exportacao do produtor deve ser executada exclusivamente na branch main (ref=${GITHUB_REF})." >&2
             exit 1
           fi
 

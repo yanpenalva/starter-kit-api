@@ -1,8 +1,8 @@
-# Verification — FEAT-11
+# Verification — FEAT-11 (Stage B)
 
-Data de execução: 2026-10-04 · Worktree persistente exclusivo: `/home/hiyan/Development/github/personal/starter-kit-api-wave3-contract-worktree` · Branch: `feat/wave-3-openapi-prep` (base main imutável `origin/main` @ `1390009d37f6a3493b21be7d83dbd32ae355d579`).
+Data de execução: 2026-10-04 · Worktree persistente exclusivo: `/home/hiyan/Development/github/personal/starter-kit-api-wave3-contract-worktree` · Branch: `feat/wave-3-openapi-prep` (main integrada `f5dce81711315458e8c32cf61367d58b5206ac05`).
 
-## Gates Executados — Stage B (Evidência Real)
+## Gates Executados — Stage B (Evidência Real desta execução)
 
 | Gate | Comando | Exit Code | Resultado e contagens |
 | --- | --- | :---: | --- |
@@ -10,13 +10,16 @@ Data de execução: 2026-10-04 · Worktree persistente exclusivo: `/home/hiyan/D
 | 2. Platform requirements | `docker compose -p starter-wave3-contract run --rm --no-deps api composer check-platform-reqs` | 0 | `success` para todas as extensões e PHP 8.5.11 |
 | 3. Composer audit | `docker compose -p starter-wave3-contract run --rm --no-deps api composer audit` | 0 | `No security vulnerability advisories found.` |
 | 4. Pint linter | `docker compose -p starter-wave3-contract run --rm --no-deps api composer lint` | 0 | `PASS 81 files` (estilo Laravel estrito) |
-| 5. Larastan Level 10 | `docker compose -p starter-wave3-contract run --rm --no-deps api composer analyse` | 0 | `[OK] No errors` (57 arquivos analisados, memória 512M) |
-| 6. Pest test suite | `docker compose -p starter-wave3-contract --profile test run --rm test vendor/bin/pest` | 0 | **96 passed (644 assertions)** em 34.37s |
-| 7. Validador estrito CSD | `python3 scripts/validate_context.py --strict` | 0 | `Context validation passed.` (0 erros) |
-| 8. Validador CSD exemplos | `python3 scripts/validate_context.py --strict --examples` | 0 | `Context validation passed.` (0 erros) |
-| 9. Unittests Python | `python3 -m unittest discover -s tests -v` | 0 | **87 passed, 0 failed** em 2.268s (7 CSD + 52 Stage A + 28 Stage B) |
-| 10. CSD Doctor | `npx -y @owlcodium/context-spec-develop@1.2.1 doctor --scope project` | 0 | `CSD is healthy (1.2.1)` (0 achados) |
-| 11. Checker Breaking Changes | `python3 scripts/contract_compat.py --base-commit=1390009d37f6a3493b21be7d83dbd32ae355d579 --contract-path=contracts/openapi.json --candidate=contracts/openapi.json` | 0 | `BOOTSTRAP VÁLIDO: Commit baseline '1390009...' existe e caminho comprovadamente ausente. Checker fixado 'oasdiff 1.33.0' operacional com 5 fixtures negativas rejeitadas e 1 positiva aceita.` |
+| 5. Larastan Level 10 | `docker compose -p starter-wave3-contract run --rm --no-deps api composer analyse` | 0 | `[OK] No errors` (57 arquivos analisados) |
+| 6. Pest test suite | `docker compose -p starter-wave3-contract --profile test run --rm test vendor/bin/pest` | 0 | **96 passed (645 assertions), 0 warnings** em ~30.7s contra PostgreSQL + Redis + Mailpit reais (2 execuções consecutivas com o mesmo resultado) |
+| 7. Validador estrito CSD | `python3 scripts/validate_context.py --strict` | 0 | `Context validation passed.` |
+| 8. Validador CSD exemplos | `python3 scripts/validate_context.py --strict --examples` | 0 | `Context validation passed.` (warning esperado: nenhum example suite instalado; work items ativos validados) |
+| 9. Unittests Python | `python3 -m unittest discover -s tests` | 0 | **113 passed, 0 failed** em ~2.9s (7 CSD + 52 Stage A + 54 Stage B) |
+| 10. CSD Doctor | `npx -y @owlcodium/context-spec-develop@1.2.1 doctor --scope project` | 0 | `CSD is healthy (1.2.1)` |
+| 11. Checker contra baseline | `python3 scripts/contract_compat.py --base-commit=1390009d37f6a3493b21be7d83dbd32ae355d579 --candidate=contracts/openapi.json` | 0 | `BOOTSTRAP VÁLIDO` (ausência comprovada via `git ls-tree`) com 5 fixtures negativas rejeitadas e 1 positiva aceita (`oasdiff 1.33.0` real) |
+| 12. Instalador oasdiff | `scripts/install_oasdiff.py` (pipeline completo testado; hashes reais medidos do asset oficial) | 0 | Tarball `43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247` (6.822.600 bytes) confirmado no `checksums.txt` oficial da release v1.33.0; binário extraído medido `fa65aae43c867e9f79da9cb121d3c1a113637883afe014c0680fd5b50696f416` (18.837.664 bytes, `oasdiff version 1.33.0`); ambos fixados e verificados antes de qualquer extração/execução |
+
+Suítes Stage B novas observadas na contagem do gate 9: resolvedor de baseline (validação de SHA, eventos `pull_request`/`push`, ciclo de vida Git real com bootstrap, quebra com exatamente 1 finding `error[api-path-removed-without-deprecation]`, SHA inexistente, caminho inválido, repositório sem Git, push com `before` zero, baseline == HEAD, commit indisponível) e integridade do instalador (digest do asset, digest do binário, symlink, membro ausente, membro oversized, membro não regular, pipeline feliz com binário falso e divergência de digest do binário).
 
 ---
 
@@ -70,10 +73,11 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 
 ## Verificador de Compatibilidade Baseline (`oasdiff 1.33.0`)
 
-- **Ferramenta**: `oasdiff` versão `1.33.0` (binário oficial linux_amd64).
-- **Baseline commit**: `1390009d37f6a3493b21be7d83dbd32ae355d579` (imutável).
-- **Comprovação de ausência de contrato**: `git cat-file -e 1390009...:contracts/openapi.json` retorna código 128 com `fatal: Not a valid object name` (caminho comprovadamente inexistente no commit baseline da main).
-- **Bootstrap comprovado**: Executado em modo bootstrap com commit existente e caminho comprovadamente ausente.
+- **Ferramenta**: `oasdiff` versão `1.33.0` (binário oficial linux_amd64, digests fixados e verificados).
+- **Baseline**: resolvido dinamicamente do payload oficial do evento (`pull_request.base.sha`; `before` em push restrito a `refs/heads/main`), com fallback manual a `--base-commit` para execução local controlada. O primeiro baseline histórico da main foi `1390009d37f6a3493b21be7d83dbd32ae355d579` (imutável, usado nas fixtures locais desta verificação).
+- **Comprovação de ausência de contrato**: `git ls-tree <commit> -- contracts/openapi.json` com estado tri-partido — exit 0 sem saída prova ausência; exit 0 com saída prova presença; qualquer outro código Git falha fechado sem bootstrap. Verificação de existência do commit precede a checagem de caminho.
+- **Bootstrap comprovado**: executado contra commit real existente e caminho comprovadamente ausente em ciclo de vida Git real (repositório fixture temporário).
+- **Detecção real de quebra**: baseline contendo o contrato + candidato removendo a única rota → `CompatibilityError` com exatamente 1 finding `error[api-path-removed-without-deprecation]` (observado no output real do oasdiff 1.33.0).
 - **Fixtures operacionais testadas**:
   - `path_removido`: Rejeitada com `exit 1` (`api-path-removed-without-deprecation`).
   - `status_removido`: Rejeitada com `exit 1` (`response-success-status-removed`).
@@ -81,22 +85,22 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
   - `campo_obrigatorio_adicionado_requisicao`: Rejeitada com `exit 1` (`request-property-became-required`).
   - `propriedade_obrigatoria_removida_resposta`: Rejeitada com `exit 1` (`response-required-property-removed`).
   - `positiva_compativel`: Aceita com `exit 0` (nenhuma quebra de contrato reportada).
+- **Fail-closed comprovado em fixtures reais**: SHA inexistente, caminho fora do caminho fixo `contracts/openapi.json`, repositório sem Git válido, push com `before` zero-SHA, baseline igual ao HEAD e commit indisponível no repositório — todos rejeitados sem bootstrap.
 
 ---
 
-## Reconciliação da Discrepância Histórica de Asserções
+## Observações de Asserções Pest — Fatos Observados Apenas
 
-- **Discrepância**: Produtor anterior citava `96 passed, 621 assertions`; revisor citava `96 passed, 625 assertions`.
-- **Reconciliação e Prova**:
-  - No commit base `1390009`, a suíte de autenticação contém 89 testes e 572 asserções (com `HttpAuthSmokeTest` contribuindo 60 asserções após o fechamento dos achados M1, M2, L3, L4 em `617e562`).
-  - A adição inicial dos testes de contrato Stage B (`OpenApiSnapshotTest` com 33 asserções e `ApiDocsAccessTest` com 20 asserções) totalizou: 572 + 33 + 20 = **625 asserções**.
-  - A menção histórica a 621 asserções decorria da execução contra um rascunho em que `HttpAuthSmokeTest` possuía 57 asserções (-3) e outra asserção pendente (-1).
-  - Com o aprofundamento das asserções de resolução de URL de operações e checagem de 429, a suíte Pest agora executa **96 passed (644 assertions)**.
+- **Observação ANTIGA (CI run sobre o source remoto `35f6ae82`)**: registrada pela revisão independente anterior do parent — **96 testes, com WARNINGS, 644 asserções, exit 0**. Nenhuma causa para a divergência histórica de contagens (621 vs 625 em relatos anteriores) foi verificada; nenhuma explicação causal é alegada.
+- **Observação ATUAL (execução local desta verificação, 2026-10-04, duas execuções consecutivas)**: **96 passed, 645 asserções, 0 warnings**, exit 0. O aviso `file_get_contents` citado em runs antigas de CI **não** foi observado nesta árvore atual (main `f5dce81` já integrada).
+- As duas observações acima são mantidas separadas e nenhuma reconciliação causal entre elas é alegada. Qualquer diff de contagens entre observações permanece fato bruto registrado, sem história reconstruída.
 
 ---
 
 ## Status de Entrega e Limitações
 
 - **Stage A**: Aprovado em `edbbe2f` com 59 unit + 25 testes adversariais históricos preservados.
-- **Stage B**: **PENDING INDEPENDENT REVIEW** pelo parent orchestrator sobre o SHA candidato exato.
-- Nenhum merge, fechamento de issue, publicação real no GitHub Actions ou alegação de aprovação é feita.
+- **Stage B**: **PREVIOUS FAIL (integration) — PENDING INDEPENDENT PARENT RE-REVIEW** sobre o novo SHA candidato desta submissão.
+- A revisão independente anterior via conversa AGY `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em FAIL de integração sobre `35f6ae82`. As cinco constatações foram remediadas nesta submissão (resolvedor dinâmico de baseline, reconciliação de observações, alinhamento CSD, integridade criptográfica do instalador, limpeza pt-BR dos workflows) e submetidas para reavaliação independente. O SHA exato do candidato está registrado no corpo do PR #39 e no recibo final desta execução.
+- Gap de preflight histórico permanece registrado em `preflight.md` como lacuna observável (preflight do Stage B documentado apenas nesta data, sem evidência anterior): nada foi retrofabricado.
+- Nenhum merge, fechamento de issue, publicação real no GitHub Actions ou alegação de auto-aprovação de PASS é feita.

@@ -13,8 +13,14 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 from typing import Any
+
+try:  # package import (tests, repo root) or direct-script import (python3 scripts/...)
+    from scripts.resolve_contract_baseline import resolve_baseline_sha
+except ImportError:  # pragma: no cover - exercised only via direct script execution
+    from resolve_contract_baseline import resolve_baseline_sha  # type: ignore[no-redef]
 
 TOOL_NAME: str = "oasdiff"
 PINNED_VERSION: str = "1.33.0"
@@ -71,7 +77,7 @@ def resolve_pinned_checker(
     )
 
 
-def verify_commit_exists(commit_sha: str) -> None:
+def verify_commit_exists(commit_sha: str, git_cwd: Path | None = None) -> None:
     """Verifica se o commit baseline existe no repositório git local."""
     if not re.fullmatch(r"[0-9a-fA-F]{40}", commit_sha):
         raise CompatibilityError(
@@ -83,6 +89,7 @@ def verify_commit_exists(commit_sha: str) -> None:
         capture_output=True,
         text=True,
         check=False,
+        cwd=git_cwd,
     )
     if proc.returncode != 0:
         raise CompatibilityError(
@@ -90,37 +97,39 @@ def verify_commit_exists(commit_sha: str) -> None:
         )
 
 
-def is_contract_absent_in_commit(commit_sha: str, contract_path: str) -> bool:
-    """Comprova se o arquivo de contrato está estritamente ausente no commit informado."""
+def is_contract_absent_in_commit(
+    commit_sha: str, contract_path: str, git_cwd: Path | None = None
+) -> bool:
+    """Comprova se o arquivo de contrato está estritamente ausente no commit informado.
+
+    Usa `git ls-tree` com estado tri-partido: exit 0 sem saída prova ausência do
+    caminho; exit 0 com saída prova presença; qualquer outro código (objeto
+    inválido, repositório corrompido) falha fechado sem bootstrap.
+    """
     proc = subprocess.run(
-        ["git", "cat-file", "-e", f"{commit_sha}:{contract_path}"],
+        ["git", "ls-tree", commit_sha, "--", contract_path],
         capture_output=True,
         text=True,
         check=False,
+        cwd=git_cwd,
     )
-    if proc.returncode == 0:
-        return False
-
-    stderr = proc.stderr.lower()
-    is_path_absence = (
-        "not a valid object name" in stderr
-        or "does not exist in" in stderr
-        or "fatal: path" in stderr
-    )
-    if is_path_absence:
-        return True
-
-    raise CompatibilityError(
-        f"Erro inesperado do Git ao inspecionar caminho '{contract_path}' no commit '{commit_sha}': {proc.stderr.strip()}."
-    )
+    if proc.returncode != 0:
+        raise CompatibilityError(
+            f"Erro do Git ao inspecionar caminho '{contract_path}' no commit '{commit_sha}': "
+            f"{proc.stderr.strip()}."
+        )
+    return proc.stdout.strip() == ""
 
 
-def extract_base_contract(commit_sha: str, contract_path: str) -> bytes:
+def extract_base_contract(
+    commit_sha: str, contract_path: str, git_cwd: Path | None = None
+) -> bytes:
     """Extrai os bytes do contrato no commit baseline."""
     proc = subprocess.run(
         ["git", "show", f"{commit_sha}:{contract_path}"],
         capture_output=True,
         check=False,
+        cwd=git_cwd,
     )
     if proc.returncode != 0:
         raise CompatibilityError(
@@ -269,17 +278,23 @@ def check_compatibility(
     contract_path: str,
     candidate_path: Path,
     checker: PinnedChecker,
+    git_cwd: Path | None = None,
 ) -> str:
     """Executa a verificação completa de compatibilidade e proveniência."""
+    if contract_path != DEFAULT_CONTRACT_PATH:
+        raise CompatibilityError(
+            f"Caminho de contrato inválido '{contract_path}': a verificação é restrita exclusivamente a '{DEFAULT_CONTRACT_PATH}'."
+        )
+
     if not candidate_path.is_file():
         raise CompatibilityError(
             f"Arquivo de contrato candidato '{candidate_path}' não encontrado."
         )
 
-    verify_commit_exists(base_commit)
+    verify_commit_exists(base_commit, git_cwd)
     verify_operational_fixtures(checker)
 
-    absent = is_contract_absent_in_commit(base_commit, contract_path)
+    absent = is_contract_absent_in_commit(base_commit, contract_path, git_cwd)
     if absent:
         return (
             f"BOOTSTRAP VÁLIDO: Commit baseline '{base_commit}' existe e caminho '{contract_path}' "
@@ -287,7 +302,7 @@ def check_compatibility(
             f"com 5 fixtures negativas rejeitadas e 1 positiva aceita."
         )
 
-    base_bytes = extract_base_contract(base_commit, contract_path)
+    base_bytes = extract_base_contract(base_commit, contract_path, git_cwd)
     with tempfile.TemporaryDirectory() as temp_dir:
         base_file = Path(temp_dir) / "base_extracted.json"
         base_file.write_bytes(base_bytes)
@@ -312,13 +327,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--base-commit",
-        default=IMMUTABLE_BASE_MAIN,
-        help="Commit SHA baseline imutável da main.",
+        default=None,
+        help="Commit SHA baseline imutável da main (resolvido automaticamente do evento do GitHub se omitido).",
     )
     parser.add_argument(
         "--contract-path",
         default=DEFAULT_CONTRACT_PATH,
-        help="Caminho relativo do contrato OpenAPI no commit baseline.",
+        help=f"Caminho relativo do contrato OpenAPI no commit baseline (fixo em {DEFAULT_CONTRACT_PATH}).",
     )
     parser.add_argument(
         "--candidate",
@@ -342,19 +357,23 @@ def main(args: list[str] | None = None) -> int:
     """Ponto de entrada CLI."""
     parsed = parse_args(args)
     try:
+        base_commit = parsed.base_commit
+        if not base_commit:
+            base_commit = resolve_baseline_sha()
+
         checker = resolve_pinned_checker(
             parsed.tool_name, parsed.expected_version
         )
         message = check_compatibility(
-            parsed.base_commit,
+            base_commit,
             parsed.contract_path,
             Path(parsed.candidate),
             checker,
         )
         print(message)
         return 0
-    except CompatibilityError as exc:
-        print(f"FALHA FECHADA: {exc}")
+    except Exception as exc:
+        print(f"FALHA FECHADA: {exc}", file=sys.stderr)
         return 1
 
 

@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "id": "FEAT-11",
-  "title": "[Contract] Publicar OpenAPI Scramble e política de compatibilidade — Stage A: preparação de contrato e proveniência (API #11)",
+  "title": "[Contract] Publicar OpenAPI Scramble e política de compatibilidade — Stage B: exportação, compatibilidade e proveniência (API #11)",
   "track": "product",
   "type": "feature",
-  "phase": "plan",
+  "phase": "verify",
   "status": "active",
   "risk": "medium",
   "owner": "yanpenalva",
@@ -34,14 +34,17 @@
       "release"
     ],
     "triggers": [
-      "Roadmap onda 3, item API #11: OpenAPI gerado e publicado — Stage A preparação de proveniência de artefato e workflow guardado",
+      "Roadmap onda 3, item API #11: OpenAPI gerado e publicado — Stage B exportação Scramble, verificação de compatibilidade e proveniência",
       "Execução isolada no worktree persistente starter-kit-api-wave3-contract-worktree (branch feat/wave-3-openapi-prep)"
     ]
   },
   "phase_history": [
     "discover",
     "specify",
-    "plan"
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
   ],
   "last_updated": "2026-10-04",
   "policy_exceptions": ["EXC-0001"]

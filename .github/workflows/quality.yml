@@ -21,10 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install pinned oasdiff
-        run: |
-          curl -fsSL https://github.com/oasdiff/oasdiff/releases/download/v1.33.0/oasdiff_1.33.0_linux_amd64.tar.gz | sudo tar -xz -C /usr/local/bin oasdiff
-          test "$(oasdiff -v | awk '{print $3}')" = "1.33.0"
+      - name: Install pinned oasdiff with SHA256 integrity verification
+        run: sudo python3 scripts/install_oasdiff.py --target-dir /usr/local/bin
       - run: python3 scripts/validate_context.py --strict
       - run: python3 scripts/validate_context.py --strict --examples
       - run: python3 -m unittest discover -s tests -v
@@ -157,7 +155,7 @@ jobs:
       - name: Committed snapshot freshness gate
         run: |
           if [ ! -f contracts/openapi.json ]; then
-            echo "ERROR: contracts/openapi.json missing; generate it via the producer export before merging." >&2
+            echo "ERRO: contracts/openapi.json ausente; gere o snapshot via export do produtor antes do merge." >&2
             exit 1
           fi
           cmp storage/app/openapi-ci1.json contracts/openapi.json
@@ -185,10 +183,10 @@ jobs:
           assert '429' in login_responses, 'throttled login route must declare 429'
           print('Contract structural validation passed.')
           PY
-      - name: Install pinned oasdiff
+      - name: Install pinned oasdiff with SHA256 integrity verification
+        run: sudo python3 scripts/install_oasdiff.py --target-dir /usr/local/bin
+      - name: Real breaking changes comparison against resolved immutable baseline
         run: |
-          curl -fsSL https://github.com/oasdiff/oasdiff/releases/download/v1.33.0/oasdiff_1.33.0_linux_amd64.tar.gz | sudo tar -xz -C /usr/local/bin oasdiff
-          test "$(oasdiff -v | awk '{print $3}')" = "1.33.0"
-      - name: Real breaking changes comparison against immutable main baseline
-        run: |
-          python3 scripts/contract_compat.py --base-commit=1390009d37f6a3493b21be7d83dbd32ae355d579 --contract-path=contracts/openapi.json --candidate=contracts/openapi.json
+          BASE_SHA=$(python3 scripts/resolve_contract_baseline.py)
+          echo "Comparando contrato candidato contra baseline imutavel resolvido: ${BASE_SHA}"
+          python3 scripts/contract_compat.py --base-commit="${BASE_SHA}" --candidate=contracts/openapi.json

@@ -8,13 +8,13 @@ Worktree persistente exclusivo: `/home/hiyan/Development/github/personal/starter
 | Subtask ID | Owner | Dependencies | Acceptance evidence | Wave | Context domains |
 | --- | --- | --- | --- | --- | --- |
 | FEAT-11-STAGE-A-PROVENANCE | yanpenalva | none | scripts/verify_contract_artifact.py fail-closed implementation, unittests in tests/tools/ passing | 1 | core,project,testing |
-| FEAT-11-STAGE-A-WORKFLOW | yanpenalva | FEAT-11-STAGE-A-PROVENANCE | .github/workflows/openapi.yml draft guarded workflow rejecting premature execution | 1 | core,project,architecture |
-| FEAT-11-STAGE-A-DOCS | yanpenalva | FEAT-11-STAGE-A-WORKFLOW | Updated .context/project/api.md and stack.md reflecting private gh transport decision | 2 | core,project,security |
-| FEAT-11-STAGE-A-VERIFY | yanpenalva | FEAT-11-STAGE-A-DOCS | Execution of all 4 CSD gates: validate_context strict/examples, unittest discover, csd doctor | 2 | core,project,testing |
-| FEAT-11-STAGE-B-DISPATCH | yanpenalva | FEAT-11-STAGE-A-VERIFY | Scramble 0.13.47 export determinístico (2x, LC_ALL=C), server '/', paths completos '/api/v1/...', CSRF sem 429 | 3 | core,project,architecture,testing |
-| FEAT-11-STAGE-B-DECOMPOSITION | yanpenalva | FEAT-11-STAGE-B-DISPATCH | Decomposição CSD15: ContractDocumentTransformer <=15 métodos, ContractOperationOverlay, ContractResponseFactory | 3 | core,architecture |
-| FEAT-11-STAGE-B-COMPATIBILITY | yanpenalva | FEAT-11-STAGE-B-DECOMPOSITION | scripts/contract_compat.py com oasdiff 1.33.0 pinned, fixtures operacionais e bootstrap fail-closed | 3 | core,testing,ci |
-| FEAT-11-STAGE-B-PUBLICATION-TRIGGER | yanpenalva | FEAT-11-STAGE-B-COMPATIBILITY | openapi.yml estrito a workflow_dispatch em main (remoção de push trigger) | 3 | core,security,ci |
+| FEAT-11-STAGE-A-WORKFLOW | yanpenalva | FEAT-11-STAGE-A-PROVENANCE | .github/workflows/openapi.yml draft guarded workflow rejecting premature execution | 2 | core,project,architecture |
+| FEAT-11-STAGE-A-DOCS | yanpenalva | FEAT-11-STAGE-A-WORKFLOW | Updated .context/project/api.md and stack.md reflecting private gh transport decision | 3 | core,project,security |
+| FEAT-11-STAGE-A-VERIFY | yanpenalva | FEAT-11-STAGE-A-DOCS | Execution of all 4 CSD gates: validate_context strict/examples, unittest discover, csd doctor | 4 | core,project,testing |
+| FEAT-11-STAGE-B-DISPATCH | yanpenalva | FEAT-11-STAGE-A-VERIFY | Scramble 0.13.47 export determinístico (2x, LC_ALL=C), server '/', paths completos '/api/v1/...', CSRF sem 429 | 5 | core,project,architecture,testing |
+| FEAT-11-STAGE-B-DECOMPOSITION | yanpenalva | FEAT-11-STAGE-B-DISPATCH | Decomposição CSD15: ContractDocumentTransformer <=15 métodos, ContractOperationOverlay, ContractResponseFactory | 6 | core,architecture |
+| FEAT-11-STAGE-B-COMPATIBILITY | yanpenalva | FEAT-11-STAGE-B-DECOMPOSITION | scripts/contract_compat.py com oasdiff 1.33.0 pinned, fixtures operacionais e bootstrap fail-closed | 7 | core,testing |
+| FEAT-11-STAGE-B-PUBLICATION-TRIGGER | yanpenalva | FEAT-11-STAGE-B-COMPATIBILITY | openapi.yml estrito a workflow_dispatch em main (remoção de push trigger) | 8 | core,security |
 
 ## Passos detalhados do Stage B
 
@@ -30,9 +30,9 @@ Worktree persistente exclusivo: `/home/hiyan/Development/github/personal/starter
    - Testes assertam presença de 429 nas rotas da API e ausência estrita na rota CSRF.
 
 3. **Verificação de compatibilidade contra base imutável (Blocker 3)**:
-   - Ferramenta fixada: `oasdiff` versão 1.33.0 (`scripts/contract_compat.py`).
-   - Commit baseline imutável da main: `1390009d37f6a3493b21be7d83dbd32ae355d579`.
-   - Condição de bootstrap estrita e comprovada: commit existe e caminho `contracts/openapi.json` está comprovadamente ausente no baseline.
+   - Ferramenta fixada: `oasdiff` versão 1.33.0 (`scripts/contract_compat.py` + `scripts/install_oasdiff.py` com digests do asset e do binário fixados).
+   - Baseline resolvido dinamicamente do payload oficial do evento (`pull_request.base.sha`; `before` em push restrito a `refs/heads/main`) via `scripts/resolve_contract_baseline.py`; primeiro baseline histórico da main: `1390009d37f6a3493b21be7d83dbd32ae355d579`.
+   - Condição de bootstrap estrita e comprovada: commit existe e caminho `contracts/openapi.json` está comprovadamente ausente no baseline (tri-state via `git ls-tree`); qualquer outro erro Git falha fechado.
    - Suíte de fixtures operacionais comprovando que o checker detecta e rejeita quebras (path removido, status removido, tipo alterado, campo obrigatório adicionado em requisição, campo obrigatório removido de resposta) e aceita mudanças compatíveis.
    - Integração em `.github/workflows/quality.yml` com checkout completo (`fetch-depth: 0`) e instalação do binário fixado.
 

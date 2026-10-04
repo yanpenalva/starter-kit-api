@@ -1,7 +1,7 @@
 # Review — FEAT-11
 
-> **STATUS: PENDING — STAGE B REVIEW PENDING (candidate SHA exact, independent review NOT yet performed).**
-> Stage A (CONTRACT prep, `edbbe2f`) remains approved (59 unittests + 25 adversariais históricos). A implementação do Stage B abaixo é nova, não revisada de forma independente, e NÃO deve ser tratada como aprovada. Nenhum merge, fechamento de issue, publicação real ou claim de produção/attestation é feito.
+> **STATUS: PREVIOUS FAIL (integration) — PENDING INDEPENDENT PARENT RE-REVIEW (candidate SHA exact).**
+> Stage A (CONTRACT prep, `edbbe2f`) remains approved (59 unittests + 25 adversariais históricos). A revisão independente anterior pelo parent orchestrator via conversa AGY `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em FAIL de integração sobre o commit `35f6ae8`. As cinco constatações de revisão foram integralmente remediadas nesta submissão candidata e submetidas para reavaliação independente. Nenhum merge, fechamento de issue, publicação real ou alegação de auto-aprovação de PASS é feita.
 
 ## Inputs para o revisor independente — Stage A (Aprovado em `edbbe2f`)
 
@@ -18,48 +18,49 @@
 
 ## Inputs para o revisor independente — Stage B (Candidato Atual, 2026-10-04)
 
-- **Base Main Imutável**: `1390009d37f6a3493b21be7d83dbd32ae355d579` (PR #37 auth merge consumido via merge commit `7693209`).
+- **Base Main Integrada**: `f5dce81711315458e8c32cf61367d58b5206ac05` (PR #38 merge consumido via merge commit ordinário).
 - **Scramble**: `dedoc/scramble 0.13.47` fixado no `composer.lock` (`d1597812fa8ce40a257d83c527bec28cb60de7a5`); PHP 8.5.11, Laravel 13.34.
 - **Snapshot OpenAPI**: `contracts/openapi.json` (OpenAPI 3.1.0, 19439 bytes, SHA256 `be1842f089e66755d48ecc4661c6b9ec7bb86762198544316b6d2870213c3239`, exportado deterministicamente 2x sob `LC_ALL=C` e `TZ=UTC`).
 
-### Resolução dos Cinco Blockers Confirmados
+### Resolução dos Cinco Findings de Revisão do Parent
 
-1. **Servidor OpenAPI e Paths Completos (Blocker 1)**:
-   - Servidor fixado em `'/'` root-relative em `ContractDocumentTransformer::ensureServers`, sem dependência de `APP_URL` ou origem local (`localhost:8080`).
-   - Configuração de `config/scramble.php` com `'api_path' => ['include' => ['api/v1', 'api/v1/*']]` preservando caminhos reais completos: `/api/v1`, `/api/v1/login`, `/api/v1/logout`, `/api/v1/auth/my-profile`.
-   - Rota `/sanctum/csrf-cookie` na raiz, válida e independente.
-   - Resolução de URLs de operação contra rotas reais do framework testada programaticamente em `OpenApiSnapshotTest`.
-   - Independência de `APP_URL` comprovada: exportação sob `APP_URL=http://staging.internal:9999` e `http://unexpected-custom-origin.test:9999` produz bytes idênticos.
+1. **Resolvedor Dinâmico de Baseline Imutável (Finding 1 — HIGH)**:
+   - Implementado `scripts/resolve_contract_baseline.py` para extração estrita do payload oficial do GitHub Actions:
+     - `pull_request`: extrai `pull_request.base.sha` (nunca head ou candidato).
+     - `push`: restrito exclusivamente a `refs/heads/main`, extrai `before` SHA.
+   - Validação estrita de SHA de 40 caracteres hexadecimais, rejeição de zero-SHA e rejeição de auto-comparação contra o HEAD atual.
+   - Caminho fixo exclusivo em `contracts/openapi.json` (sem caminhos arbitrários ou fallbacks).
+   - Ausência do contrato no baseline comprovada por `git ls-tree` em estado tri-partido: qualquer erro Git que não seja ausência genuína falha fechado sem bootstrap.
+   - Testado com repositórios reais de ciclo de vida git: bootstrap na primeira ausência; quebra real (remoção de rota) rejeitada com exatamente 1 finding `error[api-path-removed-without-deprecation]`; SHA inexistente, caminho inválido, repositório sem Git, push `before` zero, baseline == HEAD e commit indisponível falham fechado; mudanças compatíveis passam.
 
-2. **Remoção de 429 na Rota CSRF (Blocker 2)**:
-   - Endpoint `/sanctum/csrf-cookie` pertence ao middleware `web` sem throttling; declaração de 429 removida em `injectCsrfCookieOverlay` (mantendo apenas resposta 204).
-   - Operações throttled da API (`/api/v1/login`, `/api/v1/logout`, `/api/v1/auth/my-profile`) preservam resposta 429 com cabeçalho `Retry-After`.
-   - Ambas as condições são estritamente asseridas em `OpenApiSnapshotTest`.
+2. **Reconciliação e Prova de Asserções (Finding 2 — MED)**:
+   - Causa da discrepância histórica de 621 asserções permanece **HISTORICAL CAUSE NOT VERIFIED**; nenhuma especulação causal é alegada.
+   - Observação ANTIGA registrada (CI sobre `35f6ae82`): 96 testes, WARNINGS, 644 asserções, exit 0.
+   - Observação ATUAL desta submissão (2026-10-04, duas execuções): **96 passed, 645 asserções, 0 warnings**, exit 0; o aviso `file_get_contents` de runs antigas não foi observado nesta árvore.
+   - As observações permanecem estritamente separadas, sem reconciliação causal.
 
-3. **CI de Breaking Changes com Ferramenta Fixada (Blocker 3)**:
-   - Ferramenta fixada: `oasdiff` versão `1.33.0` via script `scripts/contract_compat.py`.
-   - Base de comparação: commit baseline imutável `1390009d37f6a3493b21be7d83dbd32ae355d579`.
-   - Bootstrap fail-closed: commit existe no Git e o arquivo `contracts/openapi.json` está comprovadamente ausente no baseline (código 128 com erro de objeto não existente). Erros arbitrários falham fechado sem bootstrap.
-   - Fixtures operacionais: 5 negativas (remoção de rota, remoção de status de sucesso, alteração de tipo, novo campo obrigatório na requisição, remoção de propriedade obrigatória da resposta) rejeitadas com erro; 1 fixture positiva (mudança compatível) aceita.
-   - Workflow `.github/workflows/quality.yml` atualizado com checkout completo (`fetch-depth: 0`), instalação do binário fixado e execução de `contract_compat.py`.
+3. **Alinhamento do Work Item e Fases Canônicas CSD (Finding 3 — MED)**:
+   - Atualizado `work-item.json` para fase canônica `verify`, histórico completo `["discover", "specify", "plan", "preflight", "execute", "verify"]`.
+   - Criado `preflight.md` registrando o preflight check do Stage B e o registro factual do gap documental do passado.
+   - Status de revisão explicitado como **Previous FAIL (integration) — pending independent parent re-review**.
 
-4. **Workflow de Publicação com Disparo Estrito (Blocker 4)**:
-   - Removido trigger extra `push: branches: [main]` de `.github/workflows/openapi.yml`.
-   - Publicação restrita exclusivamente a `workflow_dispatch` na branch `main`.
+4. **Integridade Criptográfica do Binário oasdiff (Finding 4 — MED)**:
+   - Implementado `scripts/install_oasdiff.py` com validação de digest SHA256 oficial do tarball (`43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247`, confirmado no `checksums.txt` oficial da release v1.33.0) e do binário extraído (`fa65aae43c867e9f79da9cb121d3c1a113637883afe014c0680fd5b50696f416`, medido nesta execução; não publicado no `checksums.txt` oficial).
+   - Verificação fail-closed antes da extração ou execução; extração com limites de tamanho/nome, rejeição de symlink/link, membro ausente ou não regular; aplicado consistentemente nos jobs `context` e `contract` do workflow `quality.yml`.
+   - Testes unitários comprovam rejeição imediata em caso de adulteração, mismatch de asset ou de binário.
 
-5. **Decomposição Coesa CSD15 (Blocker 5)**:
-   - `ContractDocumentTransformer` decomposto em 3 classes com responsabilidades estritas e coesas:
-     - `app/OpenApi/ContractResponseFactory.php`: 3 métodos, 56 linhas, zero `else`/`elif`.
-     - `app/OpenApi/ContractOperationOverlay.php`: 12 métodos, 134 linhas, zero `else`/`elif`.
-     - `app/OpenApi/ContractDocumentTransformer.php`: 8 métodos, 153 linhas, zero `else`/`elif`.
-   - Todos os 8 scripts de produção em `scripts/` e todas as classes PHP atendem a `<= 15` métodos/funções, `<= 500` linhas, `<= 7` parâmetros, `<= 3` retornos e zero `else`/`elif`.
+5. **Localização em pt-BR e Limpeza Narrativa em openapi.yml (Finding 5 — LOW)**:
+   - Removidos comentários narrativos extensos de `.github/workflows/openapi.yml`.
+   - Traduzidas as descrições de inputs e mensagens de erro do guard para pt-BR.
+   - Exemplos de resposta em runtime da API preservados no padrão em inglês atual da API.
 
-### Reconciliação da Discrepância de Asserções
+### Observações de Asserções Pest — Fatos Observados Apenas
 
-- **Discrepância histórica**: produtor anterior relatou `96 passed, 621 assertions`; revisor relatou `96 passed, 625 assertions`.
-- **Origem comprovada**: o commit base da main `1390009` contém 89 testes e 572 asserções (com `HttpAuthSmokeTest` contribuindo 60 asserções após o fechamento dos achados M1, M2, L3, L4 em `617e562`). A adição de `OpenApiSnapshotTest` (33 asserções) e `ApiDocsAccessTest` (20 asserções) perfaz exatamente 572 + 33 + 20 = 625 asserções. A contagem histórica de 621 refletia a execução contra rascunho anterior em que `HttpAuthSmokeTest` possuía 57 asserções (-3) e outra asserção defasada (-1).
-- **Contagem atual**: com a adição de asserções de resolução de URL de operações e verificação estrita de ausência/presença de 429, a suíte Pest reporta **96 passed (644 assertions)**.
-- **Python unittests**: **87 passed** (59 Stage A + 28 Stage B).
+- **Discrepância histórica**: Produtor anterior relatou `96 passed, 621 assertions`; revisor relatou `96 passed, 625 assertions`.
+- **Causa**: **NOT VERIFIED**. Nenhuma explicação causal é alegada; relatos permanecem como fatos brutos separados.
+- **Observação ANTIGA (CI sobre `35f6ae82`)**: 96 testes, WARNINGS, 644 asserções, exit 0.
+- **Observação ATUAL (2026-10-04, duas execuções locais)**: **96 passed, 645 asserções, 0 warnings**, exit 0.
+- **Python unittests atuais**: **113 passed** (7 CSD + 52 Stage A + 54 Stage B).
 
 ### O Revisor Independente Deve Conferir
 
@@ -68,6 +69,8 @@
 3. Ausência de esquemas Bearer, JWT ou PAT na especificação exportada.
 4. Servidor root-relative `'/'` e paths completos `/api/v1/...` com `/sanctum/csrf-cookie` na raiz.
 5. Ausência de declaração de 429 na rota CSRF e presença nas rotas de API.
-6. Funcionamento de `scripts/contract_compat.py` contra `1390009` com bootstrap e fixtures operacionais.
+6. Funcionamento de `scripts/contract_compat.py` com baseline resolvido dinamicamente do evento (ou `--base-commit` explícito, ex.: `1390009` para fixtures locais), bootstrap tri-state via `git ls-tree` e fixtures operacionais.
 7. Trigger único `workflow_dispatch` em `.github/workflows/openapi.yml`.
 8. Conformidade CSD15 (`<= 15` métodos, zero `else`) em todos os fontes de produção tocados.
+9. Resolvedor de baseline: eventos fora de `pull_request`/`push`, push fora de `refs/heads/main`, zero-SHA, SHA malformado, commit indisponível e baseline == HEAD falham fechado.
+10. Integridade do instalador: digests do asset e do binário fixados; verificação antes de extração/execução; rejeição de symlink, membro ausente, oversized e não regular.
