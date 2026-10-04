@@ -1,0 +1,3 @@
+# Approval — FEAT-9 (owned slices)
+
+Standing roadmap authorization plus EXC-0001 (owner yanpenalva, valid until 2026-12-31) covered the slice execution, independent reviews, and conditional integration. Final gates were executed by the parent: PR #35 normal merge for the default-seed slice (`main` `5604bf5e6fbbdb2c043780c82580f1cabf26293d`, CI success) and PR #37 normal merge for the email-uniqueness slice (`main` `1390009d37f6a3493b21be7d83dbd32ae355d579`, CI 3/3 success), each with required checks green and no waiver, bypass, force push, or fabricated approval. Issue and board closure remain the parent's explicit act.

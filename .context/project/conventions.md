@@ -8,5 +8,7 @@
 - Preserve `.context/` as the sole normative context. Agent adapters only route to it.
 - Deployment and versioning remain independent between API and frontend.
 - API HTTP conventions and the initial OpenAPI draft are in [api.md](api.md) and [openapi.yaml](openapi.yaml); review their contract before API #13, and add Scramble generation/publication under API #11.
-- Naming and language convention: New variables, identifiers, and machine tokens in en-US. All human-facing status, error, validation, request, and response messages in pt-BR in touched contract-owned source. Machine fields, protocols, interfaces, and tool-required names remain untouched.
-- Naming beyond these conventions, review ownership and detailed compatibility policy: `NOT FOUND`.
+- Language and naming convention: code identifiers (variables, properties, methods, classes) in en-US; human-facing text (status, error messages, request validation, general user responses) in pt-BR in touched contract-owned source and general project code.
+- Code comments: remove obsolete or purely narrative comments that merely restate readable code; preserve PHPStan/Larastan static analysis annotations (@var, @param, @return, generics) and essential tool/legal directives.
+- Machine interfaces: preserve machine error codes, API JSON field keys, HTTP routes, protocols, interfaces and vendor code unchanged.
+- Review ownership and detailed compatibility policy: `NOT FOUND`.
