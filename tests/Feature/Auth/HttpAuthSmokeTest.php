@@ -242,7 +242,7 @@ final class HttpAuthSmokeTest extends TestCase
             $this->assertSame(403, $blockedResponse->getStatusCode());
             /** @var array{message: string} $blockedBody */
             $blockedBody = json_decode((string) $blockedResponse->getBody(), true);
-            $this->assertSame('This account has been deactivated.', $blockedBody['message']);
+            $this->assertSame('Esta conta foi desativada.', $blockedBody['message']);
 
             // 10. Logout and invalidation proof
             $authenticatedXsrfCookie = $jar->getCookieByName('XSRF-TOKEN');

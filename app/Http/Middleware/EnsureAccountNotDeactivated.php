@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\ApiMessage;
 use Closure;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -17,7 +18,7 @@ final class EnsureAccountNotDeactivated
         $user = $request->user();
 
         if ($user instanceof User && $user->deactivated_at !== null) {
-            abort(403, 'This account has been deactivated.');
+            abort(403, ApiMessage::DEACTIVATED);
         }
 
         $response = $next($request);

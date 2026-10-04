@@ -82,7 +82,7 @@ final class LoginTest extends TestCase
             ]);
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Invalid credentials.']);
+            ->assertExactJson(['message' => 'Credenciais inválidas.']);
         $this->assertFalse(Auth::guard('web')->check());
     }
 
@@ -104,7 +104,7 @@ final class LoginTest extends TestCase
             ]);
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Invalid credentials.']);
+            ->assertExactJson(['message' => 'Credenciais inválidas.']);
         $this->assertFalse(Auth::guard('web')->check());
     }
 
@@ -126,7 +126,7 @@ final class LoginTest extends TestCase
             ]);
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Invalid credentials.']);
+            ->assertExactJson(['message' => 'Credenciais inválidas.']);
         $this->assertFalse(Auth::guard('web')->check());
     }
 
@@ -148,7 +148,7 @@ final class LoginTest extends TestCase
             ]);
 
         $response->assertStatus(403)
-            ->assertExactJson(['message' => 'This account has been deactivated.']);
+            ->assertExactJson(['message' => 'Esta conta foi desativada.']);
         $this->assertFalse(Auth::guard('web')->check());
     }
 
@@ -186,7 +186,11 @@ final class LoginTest extends TestCase
             ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email', 'password']);
+            ->assertJsonValidationErrors(['email', 'password'])
+            ->assertJsonStructure(['message', 'errors']);
+
+        $this->assertSame('O campo email deve ser um endereço de e-mail válido.', $response->json('errors.email.0'));
+        $this->assertSame('O campo password é obrigatório.', $response->json('errors.password.0'));
 
         $content = (string) $response->getContent();
         $this->assertStringNotContainsString('password123', $content);
@@ -225,6 +229,7 @@ final class LoginTest extends TestCase
 
         $blocked->assertStatus(429);
         $this->assertTrue($blocked->headers->has('Retry-After'));
+        $blocked->assertExactJson(['message' => 'Muitas tentativas. Por favor, tente novamente mais tarde.']);
 
         // Different email on the same IP is not blocked
         $differentIdentity = $this->withSession([])
@@ -249,7 +254,8 @@ final class LoginTest extends TestCase
             'password' => 'secret123',
         ]);
 
-        $response->assertStatus(419);
+        $response->assertStatus(419)
+            ->assertExactJson(['message' => 'Token CSRF inválido ou expirado.']);
     }
 
     public function test_login_rejects_bearer_authorization_header_with_401(): void
@@ -266,7 +272,7 @@ final class LoginTest extends TestCase
             ]);
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Unauthenticated.']);
+            ->assertExactJson(['message' => 'Não autenticado.']);
     }
 
     public function test_login_succeeds_for_user_with_stored_whitespace_in_database(): void

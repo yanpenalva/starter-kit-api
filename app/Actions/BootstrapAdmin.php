@@ -25,22 +25,22 @@ final class BootstrapAdmin
     public function run(int $userId, bool $confirmedForProduction): array
     {
         if (app()->environment('production') && ! $confirmedForProduction) {
-            throw new DomainException('Production bootstrap requires an explicit confirmation flag.');
+            throw new DomainException('O bootstrap em produção exige a flag de confirmação explícita.');
         }
 
         return PrivilegeTransaction::run(function () use ($userId): array {
             $user = User::query()->lockForUpdate()->find($userId);
 
             if ($user === null) {
-                throw new RuntimeException('Bootstrap target does not exist.');
+                throw new RuntimeException('O alvo do bootstrap não existe.');
             }
 
             if ($user->email_verified_at === null) {
-                throw new RuntimeException('Bootstrap target is not verified.');
+                throw new RuntimeException('O alvo do bootstrap não está verificado.');
             }
 
             if ($user->deactivated_at !== null) {
-                throw new RuntimeException('Bootstrap target is deactivated.');
+                throw new RuntimeException('O alvo do bootstrap está desativado.');
             }
 
             $key = $user->getKey();

@@ -28,7 +28,7 @@ final class LogoutTest extends TestCase
         $response = $this->postJson('/api/v1/logout');
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Unauthenticated.']);
+            ->assertExactJson(['message' => 'Não autenticado.']);
     }
 
     public function test_authenticated_logout_invalidates_session_and_returns_204(): void
@@ -83,7 +83,7 @@ final class LogoutTest extends TestCase
             ->postJson('/api/v1/logout');
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Unauthenticated.']);
+            ->assertExactJson(['message' => 'Não autenticado.']);
 
         $this->assertSame([], $executedQueries);
     }

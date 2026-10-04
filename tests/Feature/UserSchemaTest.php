@@ -111,6 +111,23 @@ final class UserSchemaTest extends TestCase
         $this->assertFalse(Validator::make(['cpf' => 52998224725], $rule)->passes());
     }
 
+    public function test_cpf_rule_rejections_carry_localized_ptbr_messages(): void
+    {
+        $cases = [
+            [52998224725, 'O campo cpf deve ser uma string de 11 dígitos.'],
+            ['5299822472', 'O campo cpf deve conter exatamente 11 dígitos.'],
+            ['11111111111', 'O campo cpf não pode ter todos os dígitos repetidos.'],
+            ['12345678901', 'Os dígitos verificadores do campo cpf são inválidos.'],
+        ];
+
+        foreach ($cases as [$value, $expectedMessage]) {
+            $validation = Validator::make(['cpf' => $value], ['cpf' => [new Cpf]]);
+
+            $this->assertFalse($validation->passes());
+            $this->assertSame($expectedMessage, $validation->errors()->first('cpf'));
+        }
+    }
+
     public function test_formatted_cpf_input_is_normalized_before_persisting(): void
     {
         $user = User::factory()->withCpf('529.982.247-25')->create();
