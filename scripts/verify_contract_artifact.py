@@ -84,8 +84,9 @@ SHA256_PATTERN = _core.SHA256_PATTERN
 SHA40_PATTERN = _core.SHA40_PATTERN
 VALID_MODES = _core.VALID_MODES
 
-# Re-exported class
+# Re-exported classes
 ProvenanceVerificationError = _core.ProvenanceVerificationError
+VerificationPolicy = _core.VerificationPolicy
 
 # Re-exported functions from contract_core
 check_duplicate_keys = _core.check_duplicate_keys
@@ -104,6 +105,7 @@ verify_artifact_file = _core.verify_artifact_file
 verify_provenance = _core.verify_provenance
 
 # Re-exported from contract_receipt
+ReceiptRecord = _receipt.ReceiptRecord
 build_receipt = _receipt.build_receipt
 
 # Re-exported from contract_cli
@@ -131,6 +133,8 @@ __all__ = [
     "SHA40_PATTERN",
     "VALID_MODES",
     "ProvenanceVerificationError",
+    "ReceiptRecord",
+    "VerificationPolicy",
     "build_receipt",
     "check_duplicate_keys",
     "compute_file_sha256",

@@ -17,6 +17,7 @@ Verifies fail-closed provenance requirements:
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError, replace
 from datetime import datetime, timedelta, timezone
 import hashlib
 import io
@@ -29,14 +30,22 @@ import unittest
 from unittest.mock import patch
 
 from scripts.verify_contract_artifact import (
+    DEFAULT_ALLOWED_EVENTS,
+    DEFAULT_BRANCH,
+    DEFAULT_MAX_AGE_DAYS,
+    DEFAULT_WORKFLOW_NAME,
+    DEFAULT_WORKFLOW_PATH,
     MAX_ARTIFACT_BYTES,
     MAX_RECEIPT_BYTES,
     MODE_DOWNLOAD_FRESH,
     MODE_VERIFY_COMMITTED,
     ProvenanceVerificationError,
+    ReceiptRecord,
+    VerificationPolicy,
     build_receipt,
     read_bounded_bytes,
     run_cli,
+    validate_receipt_identity,
     verify_provenance,
 )
 
@@ -54,6 +63,24 @@ SAMPLE_CREATED_AT: str = "2026-10-04T16:13:55Z"
 SAMPLE_ARCHIVE_SHA256: str = "a" * 64
 
 
+def make_sample_record(artifact_file_sha256: str) -> ReceiptRecord:
+    return ReceiptRecord(
+        workflow_name=SAMPLE_WORKFLOW_NAME,
+        workflow_path=SAMPLE_WORKFLOW_PATH,
+        workflow_id=SAMPLE_WORKFLOW_ID,
+        run_id=SAMPLE_RUN_ID,
+        run_url=SAMPLE_RUN_URL,
+        artifact_id=SAMPLE_ARTIFACT_ID,
+        artifact_name=SAMPLE_ARTIFACT_NAME,
+        commit_sha=SAMPLE_SHA,
+        head_branch="main",
+        event=SAMPLE_EVENT,
+        created_at=SAMPLE_CREATED_AT,
+        archive_sha256=SAMPLE_ARCHIVE_SHA256,
+        artifact_file_sha256=artifact_file_sha256,
+    )
+
+
 class VerifyContractArtifactTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -64,35 +91,26 @@ class VerifyContractArtifactTests(unittest.TestCase):
         self.artifact_file_sha256 = hashlib.sha256(self.artifact_content).hexdigest()
 
         self.receipt_path = self.root / "contract-receipt.json"
-        self.valid_receipt = build_receipt(
-            workflow_name=SAMPLE_WORKFLOW_NAME,
-            workflow_path=SAMPLE_WORKFLOW_PATH,
-            workflow_id=SAMPLE_WORKFLOW_ID,
-            run_id=SAMPLE_RUN_ID,
-            run_url=SAMPLE_RUN_URL,
-            artifact_id=SAMPLE_ARTIFACT_ID,
-            artifact_name=SAMPLE_ARTIFACT_NAME,
-            commit_sha=SAMPLE_SHA,
-            head_branch="main",
-            event=SAMPLE_EVENT,
-            created_at=SAMPLE_CREATED_AT,
-            archive_sha256=SAMPLE_ARCHIVE_SHA256,
-            artifact_file_sha256=self.artifact_file_sha256,
-        )
+        self.sample_record = make_sample_record(self.artifact_file_sha256)
+        self.valid_receipt = build_receipt(self.sample_record)
         self.receipt_path.write_text(json.dumps(self.valid_receipt), encoding="utf-8")
+        self.default_policy = VerificationPolicy(expected_sha=SAMPLE_SHA)
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
     def test_valid_provenance_verification_committed_mode_passes(self) -> None:
-        result = verify_provenance(
-            artifact_path=self.artifact_path,
-            receipt_path=self.receipt_path,
+        policy = VerificationPolicy(
             expected_sha=SAMPLE_SHA,
             expected_branch="main",
             expected_workflow_name=SAMPLE_WORKFLOW_NAME,
             expected_workflow_path=SAMPLE_WORKFLOW_PATH,
             expected_workflow_id=SAMPLE_WORKFLOW_ID,
+        )
+        result = verify_provenance(
+            artifact_path=self.artifact_path,
+            receipt_path=self.receipt_path,
+            policy=policy,
             mode=MODE_VERIFY_COMMITTED,
         )
         self.assertEqual(result["status"], "verified")
@@ -109,7 +127,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
         result = verify_provenance(
             artifact_path=self.artifact_path,
             receipt_path=self.receipt_path,
-            expected_sha=SAMPLE_SHA,
+            policy=self.default_policy,
             mode=MODE_DOWNLOAD_FRESH,
         )
         self.assertEqual(result["status"], "verified")
@@ -120,7 +138,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=missing_receipt,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Receipt file not found", str(ctx.exception))
 
@@ -130,7 +148,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=missing_artifact,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Artifact file not found", str(ctx.exception))
 
@@ -140,7 +158,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Receipt file is malformed JSON", str(ctx.exception))
 
@@ -168,7 +186,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Duplicate JSON key in receipt", str(ctx.exception))
 
@@ -197,7 +215,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
                     verify_provenance(
                         artifact_path=self.artifact_path,
                         receipt_path=self.receipt_path,
-                        expected_sha=SAMPLE_SHA,
+                        policy=self.default_policy,
                     )
                 self.assertIn("Receipt missing or empty required fields", str(ctx.exception))
 
@@ -209,7 +227,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Receipt missing or empty required fields", str(ctx.exception))
 
@@ -221,7 +239,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
                     verify_provenance(
                         artifact_path=self.artifact_path,
                         receipt_path=self.receipt_path,
-                        expected_sha=invalid,
+                        policy=VerificationPolicy(expected_sha=invalid),
                     )
                 self.assertIn("Invalid expected_sha", str(ctx.exception))
 
@@ -233,7 +251,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Invalid receipt commit_sha", str(ctx.exception))
 
@@ -243,7 +261,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=divergent_sha,
+                policy=VerificationPolicy(expected_sha=divergent_sha),
             )
         self.assertIn("Commit SHA mismatch", str(ctx.exception))
 
@@ -255,8 +273,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
-                expected_branch="main",
+                policy=self.default_policy,
             )
         self.assertIn("Head branch mismatch", str(ctx.exception))
 
@@ -271,7 +288,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
                     verify_provenance(
                         artifact_path=self.artifact_path,
                         receipt_path=self.receipt_path,
-                        expected_sha=SAMPLE_SHA,
+                        policy=self.default_policy,
                     )
                 self.assertIn("not in allowed workflow events", str(ctx.exception))
 
@@ -283,8 +300,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
-                expected_workflow_name=SAMPLE_WORKFLOW_NAME,
+                policy=self.default_policy,
             )
         self.assertIn("Workflow name mismatch", str(ctx.exception))
 
@@ -296,8 +312,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
-                expected_workflow_path=SAMPLE_WORKFLOW_PATH,
+                policy=self.default_policy,
             )
         self.assertIn("Workflow path mismatch", str(ctx.exception))
 
@@ -309,8 +324,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
-                expected_artifact_name="latest",
+                policy=replace(self.default_policy, expected_artifact_name="latest"),
             )
         self.assertIn("Artifact name cannot be 'latest'", str(ctx.exception))
 
@@ -322,7 +336,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Artifact name mismatch", str(ctx.exception))
 
@@ -331,8 +345,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
-                expected_workflow_id=99999999,
+                policy=replace(self.default_policy, expected_workflow_id=99999999),
             )
         self.assertIn("Workflow ID mismatch", str(ctx.exception))
 
@@ -344,7 +357,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Strict run_url mismatch", str(ctx.exception))
 
@@ -356,7 +369,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Strict run_url mismatch", str(ctx.exception))
 
@@ -368,7 +381,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Strict run_url mismatch", str(ctx.exception))
 
@@ -380,20 +393,19 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Strict run_url mismatch", str(ctx.exception))
 
     def test_run_url_id_mismatch_confused_deputy_fails_closed(self) -> None:
         corrupted = dict(self.valid_receipt)
-        # run_id is SAMPLE_RUN_ID, but URL points to 111111
         corrupted["run_url"] = "https://github.com/yanpenalva/starter-kit-api/actions/runs/111111"
         self.receipt_path.write_text(json.dumps(corrupted), encoding="utf-8")
         with self.assertRaises(ProvenanceVerificationError) as ctx:
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Strict run_url mismatch", str(ctx.exception))
 
@@ -407,7 +419,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
                     verify_provenance(
                         artifact_path=self.artifact_path,
                         receipt_path=self.receipt_path,
-                        expected_sha=SAMPLE_SHA,
+                        policy=self.default_policy,
                     )
                 self.assertIn("must be a strict integer, got bool", str(ctx.exception))
 
@@ -419,7 +431,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("must be a strict integer, got float", str(ctx.exception))
 
@@ -431,7 +443,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("must be a strict integer, got str", str(ctx.exception))
 
@@ -445,7 +457,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
                     verify_provenance(
                         artifact_path=self.artifact_path,
                         receipt_path=self.receipt_path,
-                        expected_sha=SAMPLE_SHA,
+                        policy=self.default_policy,
                     )
                 self.assertIn("must be a positive integer", str(ctx.exception))
 
@@ -456,17 +468,16 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=oversized,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("exceeds nominal limit", str(ctx.exception))
 
     def test_artifact_file_exceeds_max_bytes_fails_closed(self) -> None:
         oversized = self.root / "oversized-artifact.json"
-        oversized.write_bytes(b"{\"openapi\": \"3.1.0\"}")
+        oversized.write_bytes(b'{"openapi": "3.1.0"}')
         with self.assertRaises(ProvenanceVerificationError) as ctx:
             read_bounded_bytes(oversized, 5, "Artifact")
         self.assertIn("exceeds nominal limit of 5 bytes", str(ctx.exception))
-
 
     def test_future_created_at_in_download_fresh_mode_fails_closed(self) -> None:
         future_dt = datetime.now(timezone.utc) + timedelta(minutes=10)
@@ -477,7 +488,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
                 mode=MODE_DOWNLOAD_FRESH,
             )
         self.assertIn("is in the future beyond", str(ctx.exception))
@@ -491,7 +502,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
                 mode=MODE_DOWNLOAD_FRESH,
             )
         self.assertIn("Artifact expired", str(ctx.exception))
@@ -504,7 +515,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
         result = verify_provenance(
             artifact_path=self.artifact_path,
             receipt_path=self.receipt_path,
-            expected_sha=SAMPLE_SHA,
+            policy=self.default_policy,
             mode=MODE_VERIFY_COMMITTED,
         )
         self.assertEqual(result["status"], "verified")
@@ -515,7 +526,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("Artifact file digest mismatch", str(ctx.exception))
 
@@ -527,7 +538,7 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("must be exact 64-character hexadecimal SHA256 digest", str(ctx.exception))
 
@@ -539,31 +550,27 @@ class VerifyContractArtifactTests(unittest.TestCase):
             verify_provenance(
                 artifact_path=self.artifact_path,
                 receipt_path=self.receipt_path,
-                expected_sha=SAMPLE_SHA,
+                policy=self.default_policy,
             )
         self.assertIn("must be exact 64-character hexadecimal SHA256 digest", str(ctx.exception))
 
     def test_build_receipt_helper(self) -> None:
-        receipt = build_receipt(
-            workflow_name=SAMPLE_WORKFLOW_NAME,
-            workflow_path=SAMPLE_WORKFLOW_PATH,
-            workflow_id=SAMPLE_WORKFLOW_ID,
-            run_id=SAMPLE_RUN_ID,
-            run_url=SAMPLE_RUN_URL,
-            artifact_id=SAMPLE_ARTIFACT_ID,
-            artifact_name=SAMPLE_ARTIFACT_NAME,
-            commit_sha=SAMPLE_SHA,
-            head_branch="main",
-            event=SAMPLE_EVENT,
-            created_at=SAMPLE_CREATED_AT,
-            archive_sha256=SAMPLE_ARCHIVE_SHA256,
-            artifact_file_sha256=self.artifact_file_sha256,
-        )
+        record = make_sample_record(self.artifact_file_sha256)
+        receipt = build_receipt(record)
         self.assertEqual(receipt["workflow_name"], SAMPLE_WORKFLOW_NAME)
         self.assertEqual(receipt["workflow_path"], SAMPLE_WORKFLOW_PATH)
         self.assertEqual(receipt["workflow_id"], SAMPLE_WORKFLOW_ID)
         self.assertEqual(receipt["archive_sha256"], SAMPLE_ARCHIVE_SHA256)
         self.assertEqual(receipt["artifact_file_sha256"], self.artifact_file_sha256)
+
+    def test_validate_receipt_identity_direct_call_passes(self) -> None:
+        validate_receipt_identity(self.valid_receipt, self.default_policy)
+
+    def test_frozen_policy_and_receipt_record_immutability(self) -> None:
+        with self.assertRaises(FrozenInstanceError):
+            self.default_policy.expected_sha = "0" * 40  # type: ignore[misc]
+        with self.assertRaises(FrozenInstanceError):
+            self.sample_record.workflow_name = "Mutated"  # type: ignore[misc]
 
     def test_cli_success_committed_mode(self) -> None:
         argv = [
@@ -638,21 +645,7 @@ class ContractLoadingAndCliProcessTests(unittest.TestCase):
         self.artifact_path.write_bytes(self.artifact_content)
         self.artifact_file_sha256 = hashlib.sha256(self.artifact_content).hexdigest()
         self.receipt_path = self.root / "provenance.json"
-        self.valid_receipt = build_receipt(
-            workflow_name=SAMPLE_WORKFLOW_NAME,
-            workflow_path=SAMPLE_WORKFLOW_PATH,
-            workflow_id=SAMPLE_WORKFLOW_ID,
-            run_id=SAMPLE_RUN_ID,
-            run_url=SAMPLE_RUN_URL,
-            artifact_id=SAMPLE_ARTIFACT_ID,
-            artifact_name=SAMPLE_ARTIFACT_NAME,
-            commit_sha=SAMPLE_SHA,
-            head_branch="main",
-            event=SAMPLE_EVENT,
-            created_at=SAMPLE_CREATED_AT,
-            archive_sha256=SAMPLE_ARCHIVE_SHA256,
-            artifact_file_sha256=self.artifact_file_sha256,
-        )
+        self.valid_receipt = build_receipt(make_sample_record(self.artifact_file_sha256))
         self.receipt_path.write_text(json.dumps(self.valid_receipt), encoding="utf-8")
         self.repo_root = Path(__file__).resolve().parents[2]
         self.vca_script = self.repo_root / "scripts" / "verify_contract_artifact.py"
@@ -732,12 +725,15 @@ class ContractLoadingAndCliProcessTests(unittest.TestCase):
             self.assertIn("SUCCESS: Artifact provenance verified", res.stdout)
 
     def test_direct_sibling_imports_and_loading_order(self) -> None:
-        from scripts.contract_receipt import build_receipt as br
+        from scripts.contract_receipt import build_receipt as br, ReceiptRecord as rr
         from scripts.contract_cli import run_cli as rc, parse_args as pa, main as mn
+        from scripts.contract_core import VerificationPolicy as vp
         self.assertTrue(callable(br))
         self.assertTrue(callable(rc))
         self.assertTrue(callable(pa))
         self.assertTrue(callable(mn))
+        self.assertTrue(isinstance(rr, type))
+        self.assertTrue(isinstance(vp, type))
 
         code_order_receipt_first = (
             "import sys; "
@@ -800,6 +796,8 @@ class ContractLoadingAndCliProcessTests(unittest.TestCase):
                 "assert hasattr(mod, 'build_receipt')\n"
                 "assert hasattr(mod, 'run_cli')\n"
                 "assert hasattr(mod, 'ProvenanceVerificationError')\n"
+                "assert hasattr(mod, 'VerificationPolicy')\n"
+                "assert hasattr(mod, 'ReceiptRecord')\n"
                 "print('ISOLATED_LOAD_OK')\n"
             )
             res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=isolated_cwd)

@@ -8,6 +8,7 @@ This module is a foundation layer with zero sibling dependencies.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
@@ -54,6 +55,21 @@ REQUIRED_RECEIPT_FIELDS: tuple[str, ...] = (
 
 class ProvenanceVerificationError(Exception):
     """Raised when artifact provenance verification fails closed."""
+
+
+@dataclass(frozen=True)
+class VerificationPolicy:
+    """Policy grouping trusted repository, workflow, and commit identity expectations."""
+
+    expected_sha: str
+    expected_branch: str = DEFAULT_BRANCH
+    expected_workflow_name: str = DEFAULT_WORKFLOW_NAME
+    expected_workflow_path: str = DEFAULT_WORKFLOW_PATH
+    expected_artifact_name: str | None = None
+    expected_workflow_id: int | None = None
+    allowed_events: frozenset[str] = DEFAULT_ALLOWED_EVENTS
+    owner: str = DEFAULT_OWNER
+    repo: str = DEFAULT_REPO
 
 
 def check_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -204,16 +220,10 @@ def validate_receipt_structure(receipt: dict[str, Any]) -> None:
 
 def validate_receipt_identity(
     receipt: dict[str, Any],
-    expected_sha: str,
-    expected_branch: str,
-    expected_workflow_name: str,
-    expected_workflow_path: str,
-    expected_artifact_name: str,
-    allowed_events: frozenset[str],
-    expected_workflow_id: int | None = None,
+    policy: VerificationPolicy,
 ) -> None:
-    """Validate exact identity constraints in the receipt."""
-    expected_norm_sha = validate_commit_sha(expected_sha, field_name="expected_sha")
+    """Validate exact identity constraints in the receipt against verification policy."""
+    expected_norm_sha = validate_commit_sha(policy.expected_sha, field_name="expected_sha")
     receipt_sha = validate_commit_sha(receipt["commit_sha"], field_name="receipt commit_sha")
     if receipt_sha != expected_norm_sha:
         raise ProvenanceVerificationError(
@@ -221,42 +231,46 @@ def validate_receipt_identity(
         )
 
     receipt_branch = str(receipt["head_branch"]).strip()
-    if receipt_branch != expected_branch:
+    if receipt_branch != policy.expected_branch:
         raise ProvenanceVerificationError(
-            f"Head branch mismatch: receipt artifact came from '{receipt_branch}', expected '{expected_branch}'"
+            f"Head branch mismatch: receipt artifact came from '{receipt_branch}', expected '{policy.expected_branch}'"
         )
 
     receipt_wf_name = str(receipt["workflow_name"]).strip()
-    if receipt_wf_name != expected_workflow_name:
+    if receipt_wf_name != policy.expected_workflow_name:
         raise ProvenanceVerificationError(
-            f"Workflow name mismatch: receipt has '{receipt_wf_name}', expected '{expected_workflow_name}'"
+            f"Workflow name mismatch: receipt has '{receipt_wf_name}', expected '{policy.expected_workflow_name}'"
         )
 
     receipt_wf_path = str(receipt["workflow_path"]).strip()
-    if receipt_wf_path != expected_workflow_path:
+    if receipt_wf_path != policy.expected_workflow_path:
         raise ProvenanceVerificationError(
-            f"Workflow path mismatch: receipt has '{receipt_wf_path}', expected '{expected_workflow_path}'"
+            f"Workflow path mismatch: receipt has '{receipt_wf_path}', expected '{policy.expected_workflow_path}'"
         )
 
     receipt_art_name = str(receipt["artifact_name"]).strip()
     if receipt_art_name == "latest":
         raise ProvenanceVerificationError("Artifact name cannot be 'latest'")
+
+    expected_artifact_name = policy.expected_artifact_name
+    if expected_artifact_name is None:
+        expected_artifact_name = f"openapi-{expected_norm_sha}"
     if receipt_art_name != expected_artifact_name:
         raise ProvenanceVerificationError(
             f"Artifact name mismatch: receipt has '{receipt_art_name}', expected '{expected_artifact_name}'"
         )
 
     receipt_event = str(receipt["event"]).strip()
-    if receipt_event not in allowed_events:
+    if receipt_event not in policy.allowed_events:
         raise ProvenanceVerificationError(
-            f"Event '{receipt_event}' not in allowed workflow events: {sorted(allowed_events)}"
+            f"Event '{receipt_event}' not in allowed workflow events: {sorted(policy.allowed_events)}"
         )
 
-    if expected_workflow_id is not None:
-        validate_strict_int_id(expected_workflow_id, "expected_workflow_id")
-        if receipt["workflow_id"] != expected_workflow_id:
+    if policy.expected_workflow_id is not None:
+        validate_strict_int_id(policy.expected_workflow_id, "expected_workflow_id")
+        if receipt["workflow_id"] != policy.expected_workflow_id:
             raise ProvenanceVerificationError(
-                f"Workflow ID mismatch: receipt has {receipt['workflow_id']}, expected {expected_workflow_id}"
+                f"Workflow ID mismatch: receipt has {receipt['workflow_id']}, expected {policy.expected_workflow_id}"
             )
 
 
@@ -273,22 +287,17 @@ def verify_artifact_file(artifact_path: Path, expected_digest: str) -> str:
 
 
 def verify_provenance(
-    artifact_path: Path,
-    receipt_path: Path,
-    expected_sha: str,
-    expected_branch: str = DEFAULT_BRANCH,
-    expected_workflow_name: str = DEFAULT_WORKFLOW_NAME,
-    expected_workflow_path: str = DEFAULT_WORKFLOW_PATH,
-    expected_artifact_name: str | None = None,
-    expected_workflow_id: int | None = None,
-    allowed_events: frozenset[str] = DEFAULT_ALLOWED_EVENTS,
-    owner: str = DEFAULT_OWNER,
-    repo: str = DEFAULT_REPO,
+    artifact_path: str | Path,
+    receipt_path: str | Path,
+    policy: VerificationPolicy,
     mode: str = MODE_VERIFY_COMMITTED,
     max_age_days: int = DEFAULT_MAX_AGE_DAYS,
 ) -> dict[str, Any]:
     """Execute complete fail-closed provenance verification."""
-    receipt_bytes = read_bounded_bytes(receipt_path, MAX_RECEIPT_BYTES, "Receipt")
+    art_path = Path(artifact_path)
+    rec_path = Path(receipt_path)
+
+    receipt_bytes = read_bounded_bytes(rec_path, MAX_RECEIPT_BYTES, "Receipt")
     try:
         receipt_data = json.loads(receipt_bytes.decode("utf-8"), object_pairs_hook=check_duplicate_keys)
     except json.JSONDecodeError as exc:
@@ -296,34 +305,34 @@ def verify_provenance(
 
     validate_receipt_structure(receipt_data)
 
-    norm_expected_sha = validate_commit_sha(expected_sha, "expected_sha")
-    art_name = expected_artifact_name
+    norm_expected_sha = validate_commit_sha(policy.expected_sha, "expected_sha")
+    art_name = policy.expected_artifact_name
     if art_name is None:
         art_name = f"openapi-{norm_expected_sha}"
 
+    effective_policy = replace(
+        policy,
+        expected_sha=norm_expected_sha,
+        expected_artifact_name=art_name,
+    )
+
     validate_receipt_identity(
         receipt=receipt_data,
-        expected_sha=norm_expected_sha,
-        expected_branch=expected_branch,
-        expected_workflow_name=expected_workflow_name,
-        expected_workflow_path=expected_workflow_path,
-        expected_artifact_name=art_name,
-        allowed_events=allowed_events,
-        expected_workflow_id=expected_workflow_id,
+        policy=effective_policy,
     )
 
     validate_run_url(
         run_url=receipt_data["run_url"],
         run_id=receipt_data["run_id"],
-        owner=owner,
-        repo=repo,
+        owner=effective_policy.owner,
+        repo=effective_policy.repo,
     )
 
     created_at_dt = parse_utc_timestamp(str(receipt_data["created_at"]))
     validate_expiration(created_at_dt=created_at_dt, mode=mode, max_age_days=max_age_days)
 
     computed_file_digest = verify_artifact_file(
-        artifact_path=artifact_path,
+        artifact_path=art_path,
         expected_digest=receipt_data["artifact_file_sha256"],
     )
 
@@ -363,6 +372,7 @@ __all__ = [
     "SHA40_PATTERN",
     "VALID_MODES",
     "ProvenanceVerificationError",
+    "VerificationPolicy",
     "check_duplicate_keys",
     "compute_file_sha256",
     "parse_utc_timestamp",

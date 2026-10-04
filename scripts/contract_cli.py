@@ -42,6 +42,7 @@ DEFAULT_WORKFLOW_PATH = _core.DEFAULT_WORKFLOW_PATH
 MODE_DOWNLOAD_FRESH = _core.MODE_DOWNLOAD_FRESH
 MODE_VERIFY_COMMITTED = _core.MODE_VERIFY_COMMITTED
 ProvenanceVerificationError = _core.ProvenanceVerificationError
+VerificationPolicy = _core.VerificationPolicy
 verify_provenance = _core.verify_provenance
 
 
@@ -141,9 +142,7 @@ def run_cli(argv: list[str]) -> int:
         if not allowed_events:
             raise ProvenanceVerificationError("Allowed events allowlist cannot be empty")
 
-        result = verify_provenance(
-            artifact_path=args.artifact_file,
-            receipt_path=args.receipt_file,
+        policy = VerificationPolicy(
             expected_sha=args.expected_sha,
             expected_branch=args.expected_branch,
             expected_workflow_name=args.expected_workflow_name,
@@ -153,6 +152,12 @@ def run_cli(argv: list[str]) -> int:
             allowed_events=allowed_events,
             owner=args.owner,
             repo=args.repo,
+        )
+
+        result = verify_provenance(
+            artifact_path=args.artifact_file,
+            receipt_path=args.receipt_file,
+            policy=policy,
             mode=args.mode,
             max_age_days=args.max_age_days,
         )
