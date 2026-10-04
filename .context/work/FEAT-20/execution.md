@@ -1,0 +1,51 @@
+# Execução — FEAT-20
+
+Fase: `verify` (após execução completa e correções F1–F4) · Branch de entrega: `feat/wave-2-async-recovery` (persistent recovery root `/home/hiyan/Development/github/personal/starter-kit-api-wave2-async-worktree`) → alvo `main` (remote `origin`), EXC-0001. Branch anterior `feat/wave-2-async` nunca recebeu commit de fonte (apontava para `065ff90`); seu worktree temporário em `/tmp/opencode` foi perdido.
+
+## Registro de recuperação (2026-10-03)
+
+- O worktree temporário original (`/tmp/opencode/starter-kit-api-wave2-async`) desapareceu do filesystem, confirmado (`No such file or directory`), junto com vendor/instalações e artefatos não commitados.
+- NENHUM commit de fonte único existia na branch antiga — `feat/wave-2-async` continha apenas a referência de criação `065ff90`; portanto **nada foi recuperado do Git**.
+- A versão FINAL pós-correções (F1–F4) foi **reconstruída a partir do contexto retido do implementador** (especificações, fontes finais e comandos da conversa), no novo root persistente. Nenhum comando histórico foi reexecutado às cegas; o usuário autorizou continuar o escopo FEAT-20 aprovado.
+- Nenhuma edição no primário/core; sem alterações de roles/catálogo/auth; User/Core PR #33 (head `011d72d`) é lane separada do parent — não bloqueia esta recuperação.
+
+## Veredito de preflight real (pré-código, 2026-10-03)
+
+`READY` para execução, sob as condições obrigatórias abaixo — gate real = Oracle PASS independente pré-código (ver preflight.md, adendo F4). Nenhum passo de build/teste havia sido executado antes dessa data no worktree original.
+
+## Condições de execução (vinculantes)
+
+1. Todo comando Docker usa `-p starter-wave2-async`; imagem da API desta frente: `starter-wave2-async-api:local` via `API_DEV_IMAGE`. Nunca tocar imagens/volumes/containers do projeto primário (`starter-kit-api`) nem de outras lanes (`starter-wave2-core-*`).
+2. `.env` primário usado SOMENTE como `--env-file` em runtime de containers; nunca lido/copiado/impresso no contexto. Portas dev desta frente: `HTTP_PORT=18080`, `MAILPIT_PORT=18025` (127.0.0.1).
+3. phpredis pin `6.3.0` (PECL estável verificado); prova real = build da imagem com `php -m`/`phpversion('redis')` dentro dela. Falha de compilação = PARAR; sem troca de cliente (nada de Predis).
+4. `composer install` NÃO altera `composer.json`/`composer.lock` (dono: núcleo).
+5. Testes: worker real efêmero `queue:work redis --queue=testqueue --stop-when-empty --max-jobs` — só redis-test/mailpit-test; dados sintéticos (`recipient@example.test`, assunto `[infra-smoke] <uuid>`); Mailpit via HTTP API com metadados mínimos; limpeza da caixa ao fim.
+6. Sem Horizon/Telescope/Pulse, sem pacote novo, sem API pública de #14/#15, sem arquivos do núcleo (User, bootstrap, providers, logging, migrations 000002/000003, composer) — exceto a ÚNICA linha guardada em `routes/console.php`, com consentimento explícito do parent para coordenação (core writer não edita esse arquivo).
+7. Falha visível: testes falham com mensagem real; sem skip silencioso.
+8. Git: local commit permitido como checkpoint após gates; push da branch de recuperação permitido sob EXC-0001; PR/merge/integração = parent apenas.
+
+## Correções pós-revisão independente (F1–F4)
+
+1. **F1 — guardas de ambiente**: `routes/console.php` registra `infra:probe` SOMENTE em `local/testing` (linha única guardada, consentida). `InfraProbeCommand::handle()` retorna SUCCESS sem tocar Redis fora de `local/testing`. Evidência: `InfraProdEnvGuardTest` — prod SIMULADO (container de teste; nenhum deploy real): `schedule:list` sem probe; invocação com Redis em porta fechada sai 0 sem conectar/criar chaves.
+2. **F2 — after_commit default FALSE**: `config/queue.php` default `env('QUEUE_AFTER_COMMIT', false)`; `true` explícito somente na fatia async (worker/scheduler/test no compose). Evidência: subprocesso sem a variável mostra `after_commit … false`; com a variável, true.
+3. **F3 — defaults seguros fora do async**: anchor Compose sem `REDIS_HOST/REDIS_PORT/REDIS_QUEUE/MAIL_HOST/MAIL_PORT`; `MAIL_MAILER: log`. Stack default sobe saudável, `/up` 200, `after_commit=false` — zero dependência Redis/Mailpit. `.env.example` com `MAIL_MAILER=log` (baseline) e `QUEUE_AFTER_COMMIT=false`; async sobrescreve explicitamente. Smoke dev despacha via container `worker` (caminho real de fila).
+4. **F4 — provenância do preflight**: adendo em preflight.md registrando o Oracle PASS pré-código e corrigindo a autodeclaração anterior; sem aprovação retroativa.
+
+## Evidência de execução
+
+Registro histórico (worktree original, antes da perda): build phpredis 6.3.0/PHP 8.5.11 ✔; Pest 30 passed/115 assertions ✔; Pint 40 files ✔; Larastan 10 "No errors" ✔; audit limpo ✔; CSD strict/--examples/unittest/doctor ✔; smoke worker/scheduler com entrega sintética ✔; cleanup com primário intacto ✔.
+
+Registro de RECUPERAÇÃO (novo root persistente): reexecução completa obrigatória pós-reconstrução — resultados em verification.md após os gates frescos. Evidência histórica NÃO conta como prova fresca da recuperação.
+
+## Fresh recovery gates (root persistente, 2026-10-03)
+
+| Gate | Comando | Resultado |
+| --- | --- | --- |
+| Build | `docker build -t starter-wave2-async-api:local .` + `phpversion('redis')` | ✔ `bool(true)`, `6.3.0`, PHP 8.5.11 |
+| Vendor | `composer install` (imagem própria) | ✔ composer.json/lock intocados (git status: 0 mudanças) |
+| Static | Pint `PASS 40 files` / Larastan `[OK] No errors` / validate `valid` / audit `No security vulnerability advisories` | ✔ |
+| Pest real | `--profile test run --rm test` (PG tmpfs + redis-test + mailpit-test) | ✔ **30 passed, 0 failed, 115 assertions** |
+| Smoke async | `--profile async up -d --wait` (portas 127.0.0.1:18080/18025) + `infra:probe`/`infra:smoke-mail` via worker | ✔ probe ok; entrega sintética `[infra-smoke] <uuid>` no Mailpit; scheduler healthy; cleanup `down -v` sem leftovers |
+| CSD | strict / strict --examples / unittest / doctor | ✔ passed / passed / OK / "CSD is healthy (1.2.1)" |
+
+Checkpoint Git: commit local na branch de recuperação (conventional commit, arquivos FEAT-20 apenas) + push da branch sob EXC-0001; PR/merge = parent. Observação fora desta lane: containers do projeto primário `starter-kit-api` não estavam presentes no daemon durante o cleanup (nenhum comando desta frente os tocou; todas as operações usaram `-p starter-wave2-async`).

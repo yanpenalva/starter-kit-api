@@ -115,4 +115,19 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Infrastructure Smoke Settings
+    |--------------------------------------------------------------------------
+    |
+    | Recipient used by the dev-only synthetic infrastructure smoke commands.
+    | Restricted to reserved `.test` domains: never real recipients, no
+    | credentials, no PII.
+    */
+
+    'infra_smoke' => [
+        'recipient' => env('INFRA_SMOKE_RECIPIENT', 'recipient@example.test'),
+        'mailpit_api_url' => env('MAILPIT_API_URL', 'http://mailpit-test:8025'),
+    ],
+
 ];
