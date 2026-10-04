@@ -26,3 +26,5 @@ Segunda fatia sob a [decisão da wave 2](../FEAT-6/approval.md): coordenar e exe
 ## Fatia 3 — wave 2: seed default idempotente (consolidação, 2026-10-04)
 
 Critério de gate da onda 2 ("seed idempotente no caminho default", issue #9) sem `DatabaseSeeder.php` em `main` @ `44aa89a` (evidência explorer). Correção produzida pela **lane seed separada** (`fix/wave-2-default-seeder`, commit fonte `2445e44eb51a24510538f300fb030d1130669c0f`: `DatabaseSeeder.php` + `DefaultDatabaseSeederTest.php`, somente esses 2 arquivos) e consolidada nesta branch via cherry-pick `-x` (registro da fonte preservado no commit `2399fde`). Branch de entrega: `docs/wave-2-gate` → `main` (remote `origin`), EXC-0001; sem alteração de código além do pick; revisão independente em curso.
+
+**Follow-up da correção de revisão (2026-10-04):** guardas de isolamento endurecidos pela lane seed em `f796ed32d5366d59c1686b69b9c5713491bd5b78` (1 arquivo de teste) — cherry-pick `-x` como `5aa7380`. Mesma branch/alvo/EXC-0001; codeeq provada; ver [verification](verification.md).
