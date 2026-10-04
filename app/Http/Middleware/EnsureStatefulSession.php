@@ -14,8 +14,6 @@ final class EnsureStatefulSession
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Enforces that stateful session pipeline ran for this request.
-        // Bypassing stateful Origin/Referer is rejected with 419 instead of crashing or skipping CSRF.
         if (! $request->hasSession()) {
             abort(419, ApiMessage::CSRF);
         }

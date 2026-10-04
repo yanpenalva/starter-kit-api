@@ -33,11 +33,11 @@ final class PromoteAdmin extends Command
             return self::FAILURE;
         }
 
-        if ($result['already_admin']) {
-            $this->info('A conta já possui o papel de administrador; nada foi alterado.');
-        } else {
-            $this->info('Papel de administrador concedido e auditado.');
-        }
+        $alreadyAdmin = (bool) $result['already_admin'];
+
+        $this->info($alreadyAdmin
+            ? 'A conta já possui o papel de administrador; nada foi alterado.'
+            : 'Papel de administrador concedido e auditado.');
 
         return self::SUCCESS;
     }

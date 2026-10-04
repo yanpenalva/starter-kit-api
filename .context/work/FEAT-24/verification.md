@@ -78,3 +78,10 @@ file_get_contents(/var/www/html/.env): Failed to open stream: No such file or di
 Gates re-executados na mesma sessão (exit 0): `composer validate --strict`; `composer check-platform-reqs`; `composer audit`; `composer lint` (Pint PASS, 79 arquivos); `composer analyse` (Larastan 10, 52 arquivos, no errors); `validate_context.py --strict`; `validate_context.py --strict --examples`; `python3 -m unittest discover -s tests -v` (7 OK); `doctor --scope project` (CSD healthy 1.2.1).
 
 Aceite do gate 6 desta lane: **sucesso com ZERO warnings** — "success with warnings" não é mais o estado da suíte. Os 93 warnings da linha "antes" são o mesmo mecanismo (93 testes hoje vs 89 em `main`); o acréscimo de 4 testes/28 assertions pertence ao delta de pt-BR registrado em [FEAT-10](../FEAT-10/verification.md).
+
+## Delta pós-integração do PR #39 (2026-10-04/05) — merge 21fc960 na branch; producer self-check
+
+- **PASS histórico:** SHA `9334e2d602256a40ada9efd6a2501b1602f53e0f` (PR #40; inclui `touch .env` da causa raiz documentada acima) revisado independentemente via revisão GLM nativa na sessão `ses_ef6c9e6b8ffev3xi7l4q6S65yV`. **O delta atual AGUARDA nova revisão independente.**
+- Merge ordinário de `21fc960` preservou AMBOS os lados do `quality.yml`: o passo `touch .env` (comentário reduzido a um ponteiro para esta página) e os jobs de contrato da lane contrato (resolvedor dinâmico de baseline + instalador oasdiff com hash pinado + gate determinístico 2x). Zero conflitos.
+- Pest completo pós-merge na branch combinada: **105 passed / 901 assertions / 0 warnings** — o mecanismo FEAT-24 segue eliminado na fonte (não há warning por teste).
+- Comentário narrativo do CI removido por higiene (política de comentários); o racionail integral permanece nesta página e o invariante foi registrado em `.context/project/security.md` (seção "Error-body negative space"). FEAT-24 permanece em review, não Done.

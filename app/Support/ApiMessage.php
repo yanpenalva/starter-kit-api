@@ -6,10 +6,6 @@ namespace App\Support;
 
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
-/**
- * Single owner of every human-facing API message (pt-BR language policy).
- * Machine interfaces (HTTP status codes, JSON keys, routes) stay unchanged.
- */
 final class ApiMessage
 {
     public const INVALID_CREDENTIALS = 'Credenciais inválidas.';
@@ -30,13 +26,8 @@ final class ApiMessage
 
     public const SERVER_ERROR = 'Erro interno do servidor.';
 
-    /**
-     * Messages this application deliberately aborts with. Only these are
-     * trusted verbatim; any other upstream exception text (framework
-     * defaults like "This action is unauthorized." or "CSRF token
-     * mismatch.", model-binding details) is replaced by the localized
-     * status message so English internals never leak into API bodies.
-     */
+    public const REQUEST_FAILED = 'Não foi possível concluir a requisição.';
+
     private const OWNED = [
         self::INVALID_CREDENTIALS,
         self::UNAUTHENTICATED,
@@ -56,10 +47,10 @@ final class ApiMessage
             return $message;
         }
 
-        return self::forStatus($exception->getStatusCode(), $message);
+        return self::forStatus($exception->getStatusCode());
     }
 
-    public static function forStatus(int $status, string $fallback = ''): string
+    public static function forStatus(int $status): string
     {
         return match ($status) {
             401 => self::UNAUTHENTICATED,
@@ -68,7 +59,7 @@ final class ApiMessage
             405 => self::METHOD_NOT_ALLOWED,
             419 => self::CSRF,
             429 => self::THROTTLED,
-            default => $fallback !== '' ? $fallback : self::SERVER_ERROR,
+            default => self::REQUEST_FAILED,
         };
     }
 }

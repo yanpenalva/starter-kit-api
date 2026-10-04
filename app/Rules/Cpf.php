@@ -7,11 +7,6 @@ namespace App\Rules;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
-/**
- * Validates an optional CPF provided as a normalized 11-digit string.
- * Leading zeros are preserved by storing the value as a string; the
- * caller normalizes (digits only) before or after validation.
- */
 final class Cpf implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -26,6 +21,11 @@ final class Cpf implements ValidationRule
             return;
         }
 
+        $this->validateNormalizedDigits($attribute, $value, $fail);
+    }
+
+    private function validateNormalizedDigits(string $attribute, string $value, Closure $fail): void
+    {
         $digits = preg_replace('/\D/', '', $value) ?? '';
 
         if (strlen($digits) !== 11) {

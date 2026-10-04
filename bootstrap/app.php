@@ -52,15 +52,6 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json(['message' => ApiMessage::UNAUTHENTICATED], 401);
         });
 
-        // HTTP exceptions flow through ApiMessage::forHttpException: the
-        // application's own abort() texts (owned constants) pass verbatim,
-        // while upstream framework defaults ("This action is unauthorized.",
-        // "CSRF token mismatch.", model-binding details) are replaced by the
-        // localized status message so English internals never reach bodies.
-        // ValidationException and HttpResponseException own their rendering;
-        // debug mode and non-JSON contexts fall through to the framework.
-        // Rate-limit headers (Retry-After, X-RateLimit-*) are machine data
-        // and are preserved alongside the localized message.
         $exceptions->render(function (Throwable $e, Request $request): ?JsonResponse {
             if ((bool) config('app.debug')
                 || $e instanceof ValidationException

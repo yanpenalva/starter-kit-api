@@ -88,22 +88,11 @@ jobs:
       MAILPIT_API_URL: http://127.0.0.1:8025
     steps:
       - uses: actions/checkout@v4
-      # FEAT-24 (warning root cause): phpdotenv reads the base .env through
-      # @file_get_contents in vendor/vlucas/phpdotenv Reader.php:73. When the
-      # file is absent, the E_WARNING still reaches PHPUnit's error handler;
-      # PHPUnit itself ignores suppressed warnings, but the Pest/Collision
-      # printer counts every triggered warning, so CI reported one warning
-      # per test (89 warnings / 89 tests). All test configuration is already
-      # forced by phpunit.xml and the job env; this empty file only gives the
-      # Dotenv reader a file that exists, eliminating the warning at source.
-      # No warning is suppressed anywhere.
+      # FEAT-24: racional em .context/work/FEAT-24/verification.md
       - run: touch .env
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          # ext-redis (phpredis) is required by the real-queue integration
-          # tests; the Docker dev image pins phpredis 6.3.0, setup-php
-          # provides the latest compatible build on the runner.
           extensions: mbstring, pdo_pgsql, redis
           coverage: none
           tools: composer:v2

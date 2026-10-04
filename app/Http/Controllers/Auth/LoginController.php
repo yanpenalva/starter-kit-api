@@ -30,7 +30,6 @@ final class LoginController
             ->first();
 
         if ($user === null) {
-            // Mitigate timing side-channels by performing a dummy hash computation
             Hash::check($password, self::DUMMY_HASH);
 
             abort(401, ApiMessage::INVALID_CREDENTIALS);
