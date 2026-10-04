@@ -26,10 +26,47 @@ final class EmailUniquenessConstraintTest extends TestCase
     {
         parent::setUp();
 
-        // Guarded destructive operations target the isolated test database only.
+        $this->assertTrue(
+            app()->environment('testing'),
+            'Constraint tests require the testing environment.',
+        );
+
+        $this->assertSame(
+            'pgsql',
+            config('database.default'),
+            'Default database connection must be pgsql.',
+        );
+
         $database = config('database.connections.pgsql.database');
         $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        $this->assertSame(
+            'starter_api_test',
+            $database,
+            'Constraint tests must target the dedicated starter_api_test database.',
+        );
+
+        $this->assertNull(
+            config('database.connections.pgsql.url'),
+            'Refusing to run: pgsql config has a database URL configured.',
+        );
+
+        $rawDbUrl = getenv('DB_URL');
+        $this->assertTrue(
+            $rawDbUrl === false || $rawDbUrl === '',
+            'Refusing to run: inherited DB_URL environment variable is present.',
+        );
+
+        $rawDatabaseUrl = getenv('DATABASE_URL');
+        $this->assertTrue(
+            $rawDatabaseUrl === false || $rawDatabaseUrl === '',
+            'Refusing to run: inherited DATABASE_URL environment variable is present.',
+        );
+
+        $this->assertSame(
+            '',
+            (string) getenv('TEST_TOKEN'),
+            'Refusing to run under parallel runner (TEST_TOKEN present).',
+        );
     }
 
     public function test_duplicate_case_variant_email_is_rejected_by_the_database(): void

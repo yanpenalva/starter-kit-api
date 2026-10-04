@@ -13,9 +13,11 @@ use Tests\TestCase;
 
 /**
  * Real HTTP cookie-jar smoke test against an ephemeral single-process php -S instance
- * running with APP_ENV=local. Verifies real browser-like session cookies, SameSite,
- * CSRF token enforcement (419 on missing/invalid), session fixation prevention,
- * credentialed CORS, and logout invalidation over actual HTTP sockets.
+ * running with APP_ENV=testing.
+ *
+ * NOTE: This is a socket-level HTTP and session-cookie boundary test verifying framework
+ * middleware, CSRF tokens, SameSite attributes, anti-fixation session migration, and
+ * invalidation. It is NOT a full browser/SPA end-to-end test.
  */
 final class HttpAuthSmokeTest extends TestCase
 {
@@ -25,28 +27,32 @@ final class HttpAuthSmokeTest extends TestCase
 
     private const SMOKE_EMAIL = 'smoke.user@example.test';
 
+    private const DEACTIVATED_EMAIL = 'smoke.deactivated@example.test';
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        $database = config('database.connections.pgsql.database');
-        $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        $this->assertIsolatedTestingRuntime();
 
-        User::query()->where('email', self::SMOKE_EMAIL)->delete();
+        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL])->delete();
     }
 
     protected function tearDown(): void
     {
-        User::query()->where('email', self::SMOKE_EMAIL)->delete();
+        $this->assertIsolatedTestingRuntime();
+
+        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL])->delete();
 
         parent::tearDown();
     }
 
     public function test_real_http_session_cookie_csrf_fixation_and_cors_lifecycle(): void
     {
+        $this->assertIsolatedTestingRuntime();
+
         $user = User::factory()->create([
-            'email' => 'smoke.user@example.test',
+            'email' => self::SMOKE_EMAIL,
             'password' => 'secret123',
         ]);
 
@@ -63,14 +69,28 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(204, $csrfResponse->getStatusCode());
 
+            // Prove SameSite attribute on raw response headers
+            $rawSetCookies = $csrfResponse->getHeader('Set-Cookie');
+            $this->assertNotEmpty($rawSetCookies);
+            $hasSameSite = false;
+            foreach ($rawSetCookies as $rawCookie) {
+                if (preg_match('/samesite=lax/i', $rawCookie) === 1) {
+                    $hasSameSite = true;
+                    break;
+                }
+            }
+            $this->assertTrue($hasSameSite, 'Cookies emitted by sanctum/csrf-cookie must include SameSite=Lax');
+
             $xsrfCookie = $jar->getCookieByName('XSRF-TOKEN');
             $this->assertInstanceOf(SetCookie::class, $xsrfCookie, 'XSRF-TOKEN cookie must be set');
-            $xsrfToken = rawurldecode((string) $xsrfCookie->getValue());
+            $preLoginXsrfToken = rawurldecode((string) $xsrfCookie->getValue());
 
             $sessionCookie = $this->findSessionCookie($jar);
             $this->assertInstanceOf(SetCookie::class, $sessionCookie, 'Session cookie must be set');
             $this->assertTrue($sessionCookie->getHttpOnly(), 'Session cookie must be HttpOnly');
-            $initialSessionId = (string) $sessionCookie->getValue();
+
+            // Snapshot the pre-login cookie jar for the session fixation proof
+            $preLoginJarSnapshot = clone $jar;
 
             // 2. Negative CSRF: POST /login without CSRF token returns 419
             $missingCsrfResponse = $client->post('/api/v1/login', [
@@ -79,7 +99,7 @@ final class HttpAuthSmokeTest extends TestCase
                     'Referer' => 'http://localhost:5173/',
                 ],
                 'json' => [
-                    'email' => 'smoke.user@example.test',
+                    'email' => self::SMOKE_EMAIL,
                     'password' => 'secret123',
                 ],
             ]);
@@ -93,7 +113,7 @@ final class HttpAuthSmokeTest extends TestCase
                     'X-XSRF-TOKEN' => 'forged-or-invalid-token',
                 ],
                 'json' => [
-                    'email' => 'smoke.user@example.test',
+                    'email' => self::SMOKE_EMAIL,
                     'password' => 'secret123',
                 ],
             ]);
@@ -104,10 +124,10 @@ final class HttpAuthSmokeTest extends TestCase
                 'headers' => [
                     'Origin' => 'http://evil.example',
                     'Referer' => 'http://evil.example/',
-                    'X-XSRF-TOKEN' => $xsrfToken,
+                    'X-XSRF-TOKEN' => $preLoginXsrfToken,
                 ],
                 'json' => [
-                    'email' => 'smoke.user@example.test',
+                    'email' => self::SMOKE_EMAIL,
                     'password' => 'secret123',
                 ],
             ]);
@@ -116,15 +136,28 @@ final class HttpAuthSmokeTest extends TestCase
                 $deniedOriginResponse->getHeaderLine('Access-Control-Allow-Origin'),
             );
 
-            // 5. Successful login with real cookie jar and valid XSRF token
+            // 5. Non-stateful bypass rejection: request without stateful origin/referer returns 419
+            $nonStatefulResponse = $client->post('/api/v1/login', [
+                'headers' => [
+                    'Origin' => 'http://unsupported-host.invalid',
+                    'X-XSRF-TOKEN' => $preLoginXsrfToken,
+                ],
+                'json' => [
+                    'email' => self::SMOKE_EMAIL,
+                    'password' => 'secret123',
+                ],
+            ]);
+            $this->assertSame(419, $nonStatefulResponse->getStatusCode(), 'Non-stateful request must be rejected with 419');
+
+            // 6. Successful login with real cookie jar and valid XSRF token
             $loginResponse = $client->post('/api/v1/login', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
                     'Referer' => 'http://localhost:5173/',
-                    'X-XSRF-TOKEN' => $xsrfToken,
+                    'X-XSRF-TOKEN' => $preLoginXsrfToken,
                 ],
                 'json' => [
-                    'email' => 'smoke.user@example.test',
+                    'email' => self::SMOKE_EMAIL,
                     'password' => 'secret123',
                 ],
             ]);
@@ -132,17 +165,21 @@ final class HttpAuthSmokeTest extends TestCase
             $this->assertSame('http://localhost:5173', $loginResponse->getHeaderLine('Access-Control-Allow-Origin'));
             $this->assertSame('true', $loginResponse->getHeaderLine('Access-Control-Allow-Credentials'));
 
-            // 6. Session fixation proof: session cookie value changed after login
-            $newSessionCookie = $this->findSessionCookie($jar);
-            $this->assertInstanceOf(SetCookie::class, $newSessionCookie);
-            $newSessionId = (string) $newSessionCookie->getValue();
-            $this->assertNotSame(
-                $initialSessionId,
-                $newSessionId,
-                'Session ID must be regenerated on login to prevent fixation',
+            // 7. Genuine session fixation proof: replay pre-login cookie snapshot -> 401; current jar -> 200
+            $preLoginReplayClient = $this->createClient($preLoginJarSnapshot);
+            $replayedPreLoginResponse = $preLoginReplayClient->get('/api/v1/auth/my-profile', [
+                'headers' => [
+                    'Origin' => 'http://localhost:5173',
+                    'Referer' => 'http://localhost:5173/',
+                ],
+            ]);
+            $this->assertSame(
+                401,
+                $replayedPreLoginResponse->getStatusCode(),
+                'Replaying pre-login session cookie must return 401 unauthenticated (proves session fixation prevention)',
             );
 
-            // 7. GET /api/v1/auth/my-profile with authenticated cookie jar
+            // 8. GET /api/v1/auth/my-profile with authenticated cookie jar returns 200
             $profileResponse = $client->get('/api/v1/auth/my-profile', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
@@ -153,38 +190,178 @@ final class HttpAuthSmokeTest extends TestCase
             /** @var array{data: array{id: int, email: string}} $profileData */
             $profileData = json_decode((string) $profileResponse->getBody(), true);
             $this->assertSame($user->id, $profileData['data']['id']);
-            $this->assertSame('smoke.user@example.test', $profileData['data']['email']);
+            $this->assertSame(self::SMOKE_EMAIL, $profileData['data']['email']);
 
-            // 8. POST /api/v1/logout with active session and fresh XSRF token
-            $latestXsrfCookie = $jar->getCookieByName('XSRF-TOKEN');
-            $latestXsrfToken = $latestXsrfCookie instanceof SetCookie
-                ? rawurldecode((string) $latestXsrfCookie->getValue())
-                : $xsrfToken;
+            // 9. Existing-session deactivation interception: active session receives 403 once account is deactivated
+            User::factory()->create([
+                'email' => self::DEACTIVATED_EMAIL,
+                'password' => 'secret123',
+            ]);
+            $deactivatedJar = new CookieJar;
+            $deactivatedClient = $this->createClient($deactivatedJar);
+            $deactivatedCsrf = $deactivatedClient->get('/sanctum/csrf-cookie', [
+                'headers' => ['Origin' => 'http://localhost:5173'],
+            ]);
+            $this->assertSame(204, $deactivatedCsrf->getStatusCode());
+            $deactivatedXsrfCookie = $deactivatedJar->getCookieByName('XSRF-TOKEN');
+            $this->assertInstanceOf(SetCookie::class, $deactivatedXsrfCookie);
+            $deactivatedXsrfToken = rawurldecode((string) $deactivatedXsrfCookie->getValue());
+
+            $deactivatedLogin = $deactivatedClient->post('/api/v1/login', [
+                'headers' => [
+                    'Origin' => 'http://localhost:5173',
+                    'Referer' => 'http://localhost:5173/',
+                    'X-XSRF-TOKEN' => $deactivatedXsrfToken,
+                ],
+                'json' => [
+                    'email' => self::DEACTIVATED_EMAIL,
+                    'password' => 'secret123',
+                ],
+            ]);
+            $this->assertSame(204, $deactivatedLogin->getStatusCode());
+
+            // Deactivate account in database while session remains open
+            User::query()->where('email', self::DEACTIVATED_EMAIL)->update(['deactivated_at' => now()]);
+
+            $blockedResponse = $deactivatedClient->get('/api/v1/auth/my-profile', [
+                'headers' => [
+                    'Origin' => 'http://localhost:5173',
+                    'Referer' => 'http://localhost:5173/',
+                ],
+            ]);
+            $this->assertSame(403, $blockedResponse->getStatusCode());
+            /** @var array{message: string} $blockedBody */
+            $blockedBody = json_decode((string) $blockedResponse->getBody(), true);
+            $this->assertSame('This account has been deactivated.', $blockedBody['message']);
+
+            // 10. Logout and invalidation proof
+            $authenticatedXsrfCookie = $jar->getCookieByName('XSRF-TOKEN');
+            $this->assertInstanceOf(SetCookie::class, $authenticatedXsrfCookie);
+            $authenticatedXsrfToken = rawurldecode((string) $authenticatedXsrfCookie->getValue());
+
+            // Snapshot the authenticated cookie jar BEFORE logout
+            $authenticatedJarSnapshot = clone $jar;
 
             $logoutResponse = $client->post('/api/v1/logout', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
                     'Referer' => 'http://localhost:5173/',
-                    'X-XSRF-TOKEN' => $latestXsrfToken,
+                    'X-XSRF-TOKEN' => $authenticatedXsrfToken,
                 ],
             ]);
             $this->assertSame(204, $logoutResponse->getStatusCode());
 
-            // 9. Subsequent profile request with prior cookie now returns 401
-            $staleProfileResponse = $client->get('/api/v1/auth/my-profile', [
+            // Replay the pre-logout authenticated cookie jar -> must return 401 (server-side invalidation)
+            $replayedAuthClient = $this->createClient($authenticatedJarSnapshot);
+            $staleProfileResponse = $replayedAuthClient->get('/api/v1/auth/my-profile', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
                     'Referer' => 'http://localhost:5173/',
                 ],
             ]);
-            $this->assertSame(401, $staleProfileResponse->getStatusCode(), 'Profile after logout must return 401');
+            $this->assertSame(
+                401,
+                $staleProfileResponse->getStatusCode(),
+                'Replaying pre-logout authenticated session cookie must return 401 (proves session invalidation)',
+            );
+
+            // 11. Stale CSRF token rejection: state-changing POST with old CSRF token returns 419
+            $staleCsrfResponse = $replayedAuthClient->post('/api/v1/logout', [
+                'headers' => [
+                    'Origin' => 'http://localhost:5173',
+                    'Referer' => 'http://localhost:5173/',
+                    'X-XSRF-TOKEN' => $authenticatedXsrfToken,
+                ],
+            ]);
+            $this->assertSame(419, $staleCsrfResponse->getStatusCode(), 'Stale CSRF token must return 419');
+
+            // 12. Fresh CSRF token supported: fresh token with bad credentials returns 401 (not 419)
+            $freshJar = new CookieJar;
+            $freshClient = $this->createClient($freshJar);
+            $freshCsrfResponse = $freshClient->get('/sanctum/csrf-cookie', [
+                'headers' => ['Origin' => 'http://localhost:5173'],
+            ]);
+            $this->assertSame(204, $freshCsrfResponse->getStatusCode());
+            $freshXsrfCookie = $freshJar->getCookieByName('XSRF-TOKEN');
+            $this->assertInstanceOf(SetCookie::class, $freshXsrfCookie);
+            $freshXsrfToken = rawurldecode((string) $freshXsrfCookie->getValue());
+
+            $freshPostResponse = $freshClient->post('/api/v1/login', [
+                'headers' => [
+                    'Origin' => 'http://localhost:5173',
+                    'Referer' => 'http://localhost:5173/',
+                    'X-XSRF-TOKEN' => $freshXsrfToken,
+                ],
+                'json' => [
+                    'email' => self::SMOKE_EMAIL,
+                    'password' => 'wrong-password',
+                ],
+            ]);
+            $this->assertSame(401, $freshPostResponse->getStatusCode(), 'Fresh CSRF token is accepted and reaches credential validation');
         } finally {
             $server->stop(0);
         }
     }
 
     /**
-     * @param  array<string, string>  $environment
+     * Fails closed before any database query or process start.
+     */
+    private function assertIsolatedTestingRuntime(): void
+    {
+        $this->assertTrue(
+            app()->environment('testing'),
+            'Smoke tests require the testing environment.',
+        );
+
+        $this->assertSame(
+            'pgsql',
+            config('database.default'),
+            'Default database connection must be pgsql.',
+        );
+
+        $database = config('database.connections.pgsql.database');
+        $this->assertIsString($database);
+        $this->assertSame(
+            'starter_api_test',
+            $database,
+            'Smoke tests must target the dedicated starter_api_test database.',
+        );
+
+        $host = config('database.connections.pgsql.host');
+        $this->assertIsString($host);
+        $expectedHost = (string) (getenv('DB_HOST') ?: 'postgres-test');
+        $this->assertSame(
+            $expectedHost,
+            $host,
+            'Smoke tests must target the expected isolated postgres host.',
+        );
+
+        $this->assertNull(
+            config('database.connections.pgsql.url'),
+            'Refusing to run: pgsql config has a database URL configured.',
+        );
+
+        $rawDbUrl = getenv('DB_URL');
+        $this->assertTrue(
+            $rawDbUrl === false || $rawDbUrl === '',
+            'Refusing to run: inherited DB_URL environment variable is present.',
+        );
+
+        $rawDatabaseUrl = getenv('DATABASE_URL');
+        $this->assertTrue(
+            $rawDatabaseUrl === false || $rawDatabaseUrl === '',
+            'Refusing to run: inherited DATABASE_URL environment variable is present.',
+        );
+
+        $this->assertSame(
+            '',
+            (string) getenv('TEST_TOKEN'),
+            'Refusing to run under parallel runner (TEST_TOKEN present).',
+        );
+    }
+
+    /**
+     * @param  array<string, string|false>  $environment
      */
     private function startServer(string $port, array $environment): Process
     {
@@ -255,26 +432,33 @@ final class HttpAuthSmokeTest extends TestCase
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, string|false>
      */
     private function serverEnvironment(): array
     {
-        $inherited = static fn (string $key): string => (string) getenv($key);
+        $dbHost = (string) (getenv('DB_HOST') ?: 'postgres-test');
+        $dbPort = (string) (getenv('DB_PORT') ?: '5432');
+        $dbPassword = (string) (getenv('TEST_DB_PASSWORD') ?: getenv('DB_PASSWORD'));
 
         return [
-            'APP_ENV' => 'local',
+            'APP_ENV' => 'testing',
             'APP_DEBUG' => 'false',
             'APP_KEY' => 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
             'APP_URL' => 'http://'.self::SERVER_HOST.':'.self::SERVER_PORT,
             'DB_CONNECTION' => 'pgsql',
-            'DB_HOST' => $inherited('DB_HOST') ?: 'postgres-test',
-            'DB_PORT' => $inherited('DB_PORT') ?: '5432',
+            'DB_HOST' => $dbHost,
+            'DB_PORT' => $dbPort,
             'DB_DATABASE' => 'starter_api_test',
             'DB_USERNAME' => 'starter_api_test',
-            'DB_PASSWORD' => $inherited('DB_PASSWORD'),
+            'DB_PASSWORD' => $dbPassword,
+            'DB_URL' => false,
+            'DATABASE_URL' => false,
+            'TEST_TOKEN' => false,
             'SESSION_DRIVER' => 'file',
             'SESSION_SECURE_COOKIE' => 'false',
             'CACHE_STORE' => 'file',
+            'SANCTUM_STATEFUL_DOMAINS' => 'localhost,localhost:5173,127.0.0.1,127.0.0.1:8099',
+            'LOG_CHANNEL' => 'stderr',
         ];
     }
 }

@@ -18,10 +18,28 @@
   - **Rate Limiter:** `app/Providers/AppServiceProvider.php` registers `login` rate limiter (5 attempts per minute) keyed by `hash('sha256', normalizedEmail . '|' . ip)` to protect against brute-force attacks without logging or caching raw email PII.
   - **Routing:** `routes/api.php` registers `/login` (`throttle:login`, `EnsureStatefulSession`), `/auth/my-profile` (`auth:sanctum`, `EnsureAccountNotDeactivated`), and `/logout` (`auth:sanctum`).
   - **Bootstrap & Routing Safety:** `bootstrap/app.php` sets `$middleware->redirectGuestsTo(fn (): ?string => null)` to return 401 instead of RouteNotFoundException on headless API endpoints; preserves `EnsureFrontendRequestsAreStateful` in `api` group.
-  - **Surface Test:** `tests/Feature/ScaffoldTest.php` line 57 updated to include the newly approved endpoints (`api/v1/auth/my-profile`, `api/v1/login`, `api/v1/logout`).
-  - **Test Coverage:** All 25 new tests across 5 test suites pass cleanly:
-    - `tests/Feature/Auth/EmailUniquenessConstraintTest.php` (4 passed, 18 assertions)
+  - **Surface Test & Ownership Boundary Resolution:**
+    - `tests/Feature/ScaffoldTest.php` line 57 was modified in pushed candidate `c4eacbfbad11b909bcb0259772f622c0c8f9bdf7` to update the public surface assertion from `['api/v1', 'sanctum/csrf-cookie', 'up']` to `['api/v1', 'api/v1/auth/my-profile', 'api/v1/login', 'api/v1/logout', 'sanctum/csrf-cookie', 'up']`.
+    - **Historical Timeline & Blocker:** This edit was initially flagged as an ownership BLOCKER because `tests/Feature/ScaffoldTest.php` is outside the default allowance `tests/Feature/Auth/**`.
+    - **Parent Ownership Resolution:** Explicit parent authorization was subsequently granted to add EXACTLY THREE real API #13 routes (`api/v1/login`, `api/v1/auth/my-profile`, `api/v1/logout`) to the existing public-surface assertion. Inspection against base commit `5d8c198296949b7f3c66b2bd56f086cb8f9ceafe` confirmed the diff contains strictly those three additions with no removals, weakening, or unrelated changes. This is recorded as a parent-authorized relevant API #13 ownership resolution (not a broad waiver or new exception). The previously recorded ownership BLOCKER is thereby **RESOLVED**. No further edits were made to `ScaffoldTest.php`.
+    - **Review Status:** Independent technical oracle/parent review remains **PENDING** (never AGY self-approved). FEAT-13 remains an active implementation/verification candidate; browser-driven SPA E2E is not covered and wave-3 gate is not claimed PASS.
+  - **Smoke Test & Isolation Hardening (Local Working Tree Corrections):**
+    - `tests/Feature/Auth/HttpAuthSmokeTest.php`:
+      - Switched child `php -S` server to `APP_ENV=testing` (testing-only runtime). Under `php -S`, `PHP_SAPI === 'cli-server'` so `$app->runningInConsole()` is false; `PreventRequestForgery::runningUnitTests()` returns false and enforces full CSRF verification.
+      - Added comprehensive fail-closed isolation guards to `setUp()` and `tearDown()` checking: `app()->environment('testing')`, `pgsql` default connection, exact `starter_api_test` database, `postgres-test` host, `url === null`, `DB_URL` absent/empty, `DATABASE_URL` absent/empty, and `TEST_TOKEN` absent/empty.
+      - Explicitly passed `'DB_URL' => false`, `'DATABASE_URL' => false`, and `'TEST_TOKEN' => false` to Symfony `Process` to strip any inherited URL variables from the child environment.
+      - Replaced randomized encrypted cookie string comparison with genuine fixation proof: snapshot pre-login cookie jar before login, replay pre-login cookie snapshot after login -> 401 unauthenticated; current authenticated jar -> 200 OK.
+      - Replaced in-place logout test with genuine post-logout invalidation proof: snapshot authenticated cookie jar before logout, replay that snapshot after logout -> 401 unauthenticated.
+      - Added stale CSRF token rejection check: state-changing POST with pre-logout CSRF token -> 419.
+      - Added fresh CSRF token acceptance check: fresh token with incorrect credentials -> 401 (reaches credential validation, not 419).
+      - Added `SameSite=Lax` attribute check on raw `Set-Cookie` response headers.
+      - Added existing-session deactivation interception: active session receives HTTP 403 once account is deactivated in the database.
+      - Added non-stateful bypass rejection: non-stateful origin receives HTTP 419.
+    - `tests/Feature/Auth/EmailUniquenessConstraintTest.php`:
+      - Added comprehensive fail-closed isolation guards in `setUp()` ensuring testing environment and preventing execution with parallel runner tokens or database URL overrides.
+  - **Test Coverage (Current State):** All 25 new tests across 5 test suites pass cleanly (82 tests / 526 assertions total in suite):
+    - `tests/Feature/Auth/EmailUniquenessConstraintTest.php` (4 passed, 42 assertions)
     - `tests/Feature/Auth/LoginTest.php` (10 passed, 62 assertions)
     - `tests/Feature/Auth/ProfileTest.php` (6 passed, 47 assertions)
     - `tests/Feature/Auth/LogoutTest.php` (4 passed, 21 assertions)
-    - `tests/Feature/Auth/HttpAuthSmokeTest.php` (1 passed, 19 assertions)
+    - `tests/Feature/Auth/HttpAuthSmokeTest.php` (1 passed, 56 assertions)
