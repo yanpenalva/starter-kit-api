@@ -11,7 +11,7 @@ Scaffold runtime/dependency versions are resolved in composer.lock and Docker im
 | Authentication | Laravel Sanctum | NOT FOUND | First-party SPA cookies/session/CSRF |
 | RBAC | Spatie Laravel Permission | NOT FOUND | Planned |
 | Audit | Spatie Laravel Activitylog | v5 | Accepted in ADR 0005; dependency resolution/installation pending |
-| OpenAPI | Scramble | NOT FOUND | Planned |
+| OpenAPI | Scramble | dedoc/scramble >=0.13.4 (target pin; not installed in stage A) | Planned for stage B after L1 auth freeze; contract transport uses local orchestrator with authorized gh CLI (private repos, no consumer PAT) |
 | Testing/quality | Pest, Pint, Larastan | composer.lock | Configured; Larastan level 10 without baseline |
 | Context kit | @owlcodium/context-spec-develop | 1.2.1 | Installed in project scope for Codex |
 | CSD installer | Node.js / npm | Node >=22 | Tooling only, not application runtime |
@@ -20,3 +20,6 @@ Scaffold runtime/dependency versions are resolved in composer.lock and Docker im
 Application package manager: Composer; composer.lock records resolved versions. Development image versions/digests: Dockerfile and compose.yaml. Production images, deployment platform and hosting: `NOT FOUND`.
 
 Resolved quality tools: Pest 4.7.8, Pint 1.32.1, Larastan 3.12.2 (level 10), Pest Laravel plugin 4.1.0. Optional Mailpit image: 1.28.0, pinned by digest. PHP includes mbstring/OPcache natively; Dockerfile adds pdo_pgsql and zip. Versions reflect actual runtime/lockfile verification, not production deployment.
+
+OpenAPI contract tooling: Stage A implements producer-side artifact provenance verification (`scripts/verify_contract_artifact.py`) and a guarded workflow draft (`.github/workflows/openapi.yml`). Contract transport uses the local orchestrator with existing authorized `gh` CLI for private repository synchronization; the consumer receives a durably committed spec, TypeScript types, and provenance receipt without requiring a cross-repository CI token or PAT. Scramble (`dedoc/scramble >=0.13.4`) installation is deferred to Stage B after L1 auth is frozen.
+

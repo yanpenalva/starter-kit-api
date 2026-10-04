@@ -66,20 +66,22 @@ yanpenalva approved this policy via the question tool ("Aprovar transporte") on 
 
 ### Synchronization and credentials
 
-- Synchronization uses a separate trusted default-branch `workflow_dispatch`, or the local orchestrator with the existing authorized `gh`. Never check out or run PR code with a secret present.
-- Conditional CI credential: a fine-grained PAT with Actions:read on the API repository only (Metadata is auto-granted). It is currently absent — `NOT FOUND`; human provision is deferred to wave 3. The built-in GitHub token is repo-scoped and cannot fetch cross-repo artifacts. Actions:read cannot dereference refs or commits; no hidden broader permission is assumed.
-- Out of scope: reading source contents, classic PATs, new identities, ruleset changes, auto tags and bot PR settings. A candidate contract output follows the normal branch commit/PR route by the orchestrator, not an automatic bot that would require new identities or permissions.
+- Synchronization uses the local orchestrator with the existing authorized `gh` CLI as the active transport path for private repositories; this avoids provisioning a new cross-repository PAT for the consumer. The consumer commits the OpenAPI spec, generated TypeScript types, and provenance receipt directly into its repository. Default CI builds (PR, forks, Dependabot) run entirely credential-free.
+- The built-in GitHub token (`GITHUB_TOKEN` `contents:read`) is repository-scoped and cannot cross repositories. Fine-grained PAT with `Actions:read` is not required under the local orchestrator transport route.
+- Out of scope: reading source contents, classic PATs, new identities, ruleset changes, auto tags and bot PR settings. Candidate contract outputs follow the normal branch commit/PR route by the orchestrator.
 
 ### Fail-closed verification and records
 
-- Caller inputs: the expected API SHA taken from a prior reviewed merge, and a logical contract version (not a Git tag). Verification fails closed unless: the run completed successfully; the head SHA matches exactly; the workflow and event are allowlisted and trusted; the artifact is not expired; the archive digest matches; and the OpenAPI file SHA-256 is recomputed independently. Absent or expired artifacts fail. Never use `latest`, never widen the check, never fall back to manually maintained DTOs.
-- Record per delivery: API repository SHA, workflow run id, path and workflow SHA, artifact id and archive digest, file hash, contract version, generator version, plus the SPA paired SHA and provenance. The archive digest proves transfer integrity, not authorship attestation.
-- Recovery is limited to an API-owner rerun (Actions:write via the API-authorized identity, never the SPA token) or a newly explicit reviewed SHA. Never pretend that a workflow dispatch can reproduce an old `main` historical SHA arbitrarily.
+- Caller inputs: the expected API SHA taken from a prior reviewed merge (exact 40-character hex SHA from `main`), not a Git tag or `latest`.
+- Implemented in `scripts/verify_contract_artifact.py`: fails closed unless the artifact originates from `main`, the commit SHA matches exactly, the triggering workflow event is in the allowlist (`workflow_dispatch`, `release`, `workflow_run`), all required receipt metadata fields are present and well-formed (`workflow_name`, `workflow_id`, `run_id`, `run_url`, `artifact_id`, `artifact_name`, `commit_sha`, `head_branch`, `event`, `created_at`, `artifact_sha256`), and the SHA-256 digest of the artifact file recomputed independently matches the receipt digest.
+- Receipt metadata authentication vs attestation: The receipt authenticates GitHub Actions workflow run and artifact metadata; it does NOT implement cryptographic attestation or signing (no signing/notary is implemented at Stage A).
+- Stage B deterministic export requirement: the producer export pipeline must execute under `LC_ALL=C` and enforce 2x idempotent export verification before generating the artifact hash.
+- Contract scope discipline: Stage A does not generate a fake live contract; `/up` is an operational liveness probe, not an application contract. When real controllers are implemented in Stage B, a transformer overlay will document real routes (with `/up` optional).
 
 ### Scope limits and current assumptions
 
 - Retention: the 90-day default is proposed as the technical default under existing policy; absent/expired artifacts fail the gate.
 - Production and backups are out of scope.
-- No producer workflow exists today. Verified 2026-10-03: both default branches are UNPROTECTED (rulesets empty; branch protection 404); a full SHA is immutable — never treat a branch or tag name as the pinned revision.
-- Actual Actions artifact upload/download behavior is re-verified against real implementation at wave 3; no workflow YAML is written by this documentation slice.
+- Guarded draft workflow: `.github/workflows/openapi.yml` exists as a guarded draft that fails explicitly if triggered before Stage B (awaiting L1 auth freeze and Scramble installation).
 - Sources: [fine-grained PAT permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), [GITHUB_TOKEN security](https://docs.github.com/en/actions/concepts/security/github_token), [security hardening](https://docs.github.com/en/actions/reference/security/secure-use), [workflow runs API](https://docs.github.com/en/rest/actions/workflow-runs), [artifact retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization), [gh run download](https://cli.github.com/manual/gh_run_download).
+

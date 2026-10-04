@@ -1,0 +1,35 @@
+name: OpenAPI Contract
+
+# Guarded draft workflow for OpenAPI contract generation and artifact publishing.
+# Stage A guard: this workflow rejects premature execution before Stage B is unlocked.
+# Stage B prerequisites:
+# 1. L1 authentication freeze (routes, session cookies, Sanctum SPA auth).
+# 2. Scramble package installation (dedoc/scramble >=0.13.4) and custom cookie securityScheme configuration.
+# 3. Deterministic export (LC_ALL=C, 2x idempotent export check).
+#
+# No secrets are required or provisioned in this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Execution trigger reason (stage B unlock verification)'
+        required: true
+        default: 'stage-b-verification'
+
+permissions:
+  contents: read
+
+jobs:
+  contract-draft:
+    name: Guarded Contract Export Draft
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Guard stage B unlock
+        run: |
+          echo "ERROR: Stage B is not unlocked yet: awaiting L1 auth freeze and Scramble installation (FEAT-11 stage B)." >&2
+          echo "Do not simulate false export success before controllers and Scramble are integrated." >&2
+          exit 1
