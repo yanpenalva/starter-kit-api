@@ -1,63 +1,61 @@
 # Execução — FEAT-11
 
-Fase: `plan` (Stage A — CONTRACT prep pós-revisão Oracle) · Branch de entrega: `feat/wave-3-openapi-prep` (worktree persistente `/home/hiyan/Development/github/personal/starter-kit-api-wave3-contract-worktree`) → alvo `main` (remote `origin`), EXC-0001. Base: `5d8c198296949b7f3c66b2bd56f086cb8f9ceafe` (PR #36 merge).
+Fase: `plan` (Stage A — CONTRACT prep pós-revisão Oracle e resolução R1) · Branch de entrega: `feat/wave-3-openapi-prep` (worktree persistente `/home/hiyan/Development/github/personal/starter-kit-api-wave3-contract-worktree`) → alvo `main` (remote `origin`), EXC-0001. Base: `5d8c198296949b7f3c66b2bd56f086cb8f9ceafe` (PR #36 merge).
 
 > **REGISTRO DE REVISÃO INDEPENDENTE:**
-> Oracle PASS WITH CONDITIONS em `883246c`; condições S1–S9 implementadas neste commit; re-review pendente; nenhuma autoaprovação.
-> A revisão independente foi realizada pelo oracle; o implementador apenas executa e evidencia as correções necessárias.
+> - Oracle PASS WITH CONDITIONS em `883246c`: condições S1–S9 implementadas em `f910f66`.
+> - Oracle PASS WITH CONDITIONS em `33cbcab55df28c4fa4cb4e8abc8b50cbae89c65b` (47 security/unit tests + 25 adversariais passaram, zero defeitos de lógica; único blocker remanescente: **R1** — `scripts/verify_contract_artifact.py` possuía 542 linhas físicas > teto CSD de 500 linhas).
+> - **R1 IMPLEMENTADO** neste commit via decomposição de responsabilidade coesa em módulos irmãos nomeados (`scripts/contract_receipt.py`, `scripts/contract_cli.py` e `scripts/verify_contract_artifact.py`).
+> - Re-review independente pendente; nenhuma autoaprovação; status permanece `active` / fase `plan`. O implementador apenas executa e evidencia as correções necessárias.
 
 ## Condições de execução e fronteira de lane
 
 1. **Execução exclusiva no worktree persistente**: Todas as operações são executadas com isolamento no diretório `/home/hiyan/Development/github/personal/starter-kit-api-wave3-contract-worktree`. Nenhuma operação toca o checkout primário, worktrees wave2, frontend ou worktree da lane auth.
-2. **Lane boundary estrita**: A lane auth é dona de `routes/`, `app/Models/User*`, `database/migrations/`, `app/Providers/AppServiceProvider.php`, `bootstrap/` e `FEAT-13`. Zero alterações em `composer.json`, `composer.lock`, `app/` ou `config/`. Nenhum pacote foi instalado hoje.
+2. **Lane boundary estrita**: A lane auth é dona de `routes/`, `app/Models/User*`, `database/migrations/`, `app/Providers/AppServiceProvider.php`, `bootstrap/` e `FEAT-13`. Zero alterações em `composer.json`, `composer.lock`, `app/` ou `config/`. Nenhum pacote instalado hoje (Scramble permanece não instalado).
 3. **Sem execução Docker**: Containers e banco de dados não foram iniciados (escopo restrito a ferramentas e documentação).
-4. **Sem simulação de export falso**: O workflow `.github/workflows/openapi.yml` foi mantido como um draft guardado com `name: OpenAPI Contract` que falha informativamente (`exit 1`) até o desbloqueio do Stage B.
+4. **Sem simulação de export falso**: O workflow `.github/workflows/openapi.yml` foi mantido byte a byte como um draft guardado com `name: OpenAPI Contract` que falha informativamente (`exit 1`) até o desbloqueio do Stage B.
 
-## Implementação das Condições S1–S9 (Stage A)
+## Decomposição de Responsabilidades e Resolução de R1
 
-1. **S1 — Workflow/artifact identity allowlist (`scripts/verify_contract_artifact.py`)**:
-   - Argumentos esperados implementados com defaults rigorosos: `expected_workflow_name` (`OpenAPI Contract`), `expected_workflow_path` (`.github/workflows/openapi.yml`), `expected_artifact_name` (`openapi-<expected_sha>`).
-   - Comparação por igualdade estrita: `workflow_name`, `workflow_path` e `artifact_name` devem ser exatamente iguais aos esperados; o nome do artefato jamais pode ser "latest".
-   - `workflow_id` validado como inteiro estrito associado ao workflow confiável resolvido via `gh` antes do fetch.
-   - `.github/workflows/openapi.yml` inclui `name: OpenAPI Contract` e comentário cobrindo o pin exato de Scramble (S9), guard exit-1 e proibição de falso sucesso.
-2. **S2 — Política de expiração explícita (fetch-time enforcement)**:
-   - Dois modos implementados: `--mode download-fresh` (aplica `max_age` default 90 dias com relógio confiável UTC; criados no futuro além de 300s de tolerância falham) e `--mode verify-committed` (sem checagem de idade, evitando expirações acidentais no CI do consumidor).
-   - Ausente ou expirado falha no primeiro fetch antes de qualquer commit no consumidor.
-3. **S3 — `run_url` estrita**:
-   - Exige formato estrito `https://github.com/{owner}/{repo}/actions/runs/{run_id}`: HTTPS obrigatório, host `github.com` exato, sem query params e sem fragment.
-   - O `run_id` na URL deve ser estritamente igual ao `run_id` do receipt (proteção contra confused-deputy).
-   - `owner` e `repo` validados com regex `^[A-Za-z0-9_.-]+$` sem `..`.
-4. **S4 — Rejeição de chaves JSON duplicadas**:
-   - `json.loads` configurado com `object_pairs_hook=check_duplicate_keys`, lançando `ProvenanceVerificationError` caso qualquer chave apareça duplicada no receipt.
-5. **S5 — Validação estrita de inteiros para IDs**:
-   - `run_id`, `artifact_id` e `workflow_id` aceitam somente JSON number inteiro positivo.
-   - Rejeição explícita de `bool` (`isinstance(x, bool)` verificado antes de `int`), `float` e string numérica (`"123"`).
-6. **S6 — Limites nominais de leitura e memória**:
-   - Constantes nominais documentadas: `MAX_RECEIPT_BYTES = 64 KiB` e `MAX_ARTIFACT_BYTES = 10 MiB`.
-   - Leitura limitada via `read_bounded_bytes` verificando tamanho antes do parsing e truncamento de stream para mitigar exaustão de memória.
-7. **S7 — Restauração do baseline e separação dual de digests**:
-   - Linhas históricas restauradas em `.context/project/api.md` ("Record per delivery:" e "Recovery is limited...").
-   - Separação mandatória no receipt entre `archive_sha256` (digest do ZIP do provider) e `artifact_file_sha256` (hash do arquivo OpenAPI extraído). Proibido copiar o hash do ZIP como hash do arquivo. O verificador recomputa o digest do arquivo de contrato independentemente.
-8. **S8 — Subtask Stage B: Extração e sanitização do archive**:
-   - Subtask `FEAT-11-STAGE-B-SANITIZE` adicionada em `.context/work/FEAT-11/plan.md` definindo que a futura descompactação do ZIP rejeitará symlinks/hardlinks, aplicará allowlist de arquivos e limites de tamanho/contagem. Nenhum ZIP é descompactado no Stage A.
-9. **S9 — Pin exato `dedoc/scramble 0.13.47`**:
-   - Versão corrigida para pin exato de 3 componentes (`dedoc/scramble 0.13.47`), sem `>=` ou `^`, em todos os documentos e comentários. Instalação estritamente bloqueada até o Stage B.
+Para satisfazer os limites estruturais normativos da CSD (máximo 500 linhas físicas por arquivo de produção, máximo 15 funções/métodos declarados por arquivo/classe, máximo 150 linhas e 3 retornos por função, zero `else`/`elif`), o verificador foi decomposto em três módulos irmãos coesos sob `scripts/`:
 
-## Suposições e integração futura — Stage B (assumptions/needs-integration)
+1. **`scripts/contract_receipt.py` (Construção de Receipt)**:
+   - **Responsabilidade**: Construção do dicionário de receipt de proveniência do lado do produtor contendo os metadados do workflow run e do artefato publicado.
+   - **Métricas estruturais**: 66 linhas físicas (<= 500), 1 função declarada (`build_receipt` <= 15), 51 linhas (<= 150), 1 retorno (<= 3), zero `else`/`elif`.
+   - **Compatibilidade de interface**: Assinatura histórica mantida com seus 13 parâmetros explícitos.
+   - **Dependências**: Importa helpers de validação sob demanda, sem dependência de CLI ou ciclos de importação.
 
-1. **Versões e compatibilidade do framework**:
-   - Laravel 13.34.0 sob PHP 8.5.11 (ambiente de runtime).
-   - Scramble (`dedoc/scramble 0.13.47` pin exato) suporta PHP 8.5 / Laravel 13. A instalação só deve ocorrer no Stage B após o congelamento da autenticação L1 (FEAT-13).
-2. **Mapeamento de autenticação Sanctum SPA no Scramble**:
-   - A documentação automática do Scramble para Sanctum mapeia por padrão autenticação do tipo `Bearer` (token de acesso pessoal), o que é **inadequado e incorreto** para a arquitetura aprovada deste projeto (ADR 0002 / ADR 0003).
-   - No Stage B, será obrigatório configurar manualmente o `securityScheme` tipo cookie (`starter-kit-api-session`, HttpOnly, stateful) associado à proteção CSRF (`X-XSRF-TOKEN`), sobrescrevendo a inferência padrão do Scramble.
-3. **Tratamento da rota de cookie CSRF**:
-   - A rota `/sanctum/csrf-cookie` é fornecida pelo pacote Laravel/Sanctum e é excluída por padrão pelo filtro de vendor do Scramble.
-   - No Stage B, será necessário registrar um transformer ou rota explícita para documentar formalmente o endpoint de CSRF no contrato OpenAPI publicado.
-4. **Exportação determinística**:
-   - No Stage B, o pipeline de exportação CLI deve ser executado sob `LC_ALL=C` e realizar a exportação 2x de forma idempotente, verificando que duas execuções sucessivas produzem bytes idênticos antes de calcular o digest SHA256 do artefato publicado.
-5. **Autenticação de metadados vs Attestation criptográfica**:
-   - O receipt de proveniência autentica os metadados do workflow run e do artefato via API do GitHub Actions; nenhuma assinatura digital (cosign/notary) é alegada ou necessária nesta fase.
-6. **Consumo sem segredos no Frontend**:
-   - O repositório frontend consumirá os artefatos de contrato (spec OpenAPI, tipos TypeScript e receipt) diretamente através de commit no repositório gerenciado pelo orquestrador local `gh`, preservando builds de PR no CI sem necessidade de PATs ou credenciais cruzadas.
+2. **`scripts/contract_cli.py` (Parsing e Orquestração de CLI)**:
+   - **Responsabilidade**: Análise de argumentos via `argparse`, orquestração da execução, formatação de saída e controle de códigos de saída de processo (0 = sucesso, 1 = falha de verificação / fail-closed, 2 = erro de sintaxe/argumentos).
+   - **Métricas estruturais**: 183 linhas físicas (<= 500), 3 funções declaradas (`parse_args`, `run_cli`, `main` <= 15), tamanho máximo de função 109 linhas (<= 150), máximo 3 retornos em `run_cli` (<= 3), zero `else`/`elif`.
+   - **Dependências**: Invoca `verify_provenance` e consome defaults e tipos de erro sem ciclos.
 
+3. **`scripts/verify_contract_artifact.py` (Core de Validação de Proveniência & Ponto de Entrada)**:
+   - **Responsabilidade**: Núcleo substantivo de regras de proveniência fail-closed (verificação de SHA, digests dual archive/file, allowlists de identidade de workflow/artefato, limites nominais de tamanho, janelas de expiração) e fachada de compatibilidade pública para reexportação e execução de script.
+   - **Métricas estruturais**: 433 linhas físicas (<= 500), 14 funções declaradas (<= 15), 1 classe de erro declarada (`ProvenanceVerificationError`, 0 métodos), tamanho máximo de função 73 linhas (`verify_provenance` <= 150), retornos por função todos <= 1 (<= 3), zero `else`/`elif`.
+   - **Resolução de importação e ausência de ciclos**: Arquitetura DAG sem ciclos; reexporta a API pública completa (`build_receipt`, `parse_args`, `run_cli`, `main`, constantes nominais e exceção) suportando invocação direta de script (`python3 scripts/verify_contract_artifact.py`), execução de módulo (`python3 -m scripts.verify_contract_artifact`), importação normal de pacote e execução a partir de CWDs externos arbitrários sem monkeypatch de `sys.path`.
+
+## Histórico das Condições S1–S9 (Implementadas e Verificadas)
+
+1. **S1 — Workflow/artifact identity allowlist**: defaults validados (`expected_workflow_name="OpenAPI Contract"`, `expected_workflow_path=".github/workflows/openapi.yml"`, `expected_artifact_name="openapi-<fullsha>"`), igualdade estrita, rejeição de "latest", `expected_workflow_id` validado como inteiro positivo.
+2. **S2 — Política de expiração explícita**: `--mode download-fresh` (enforce max_age default 90d via relógio UTC; futuro > 300s falha) vs `--mode verify-committed` (sem checagem de idade no CI consumidor).
+3. **S3 — `run_url` estrita**: HTTPS obrigatório, host exato `github.com`, sem query/fragment, `run_id` idêntico na URL e no receipt contra confused-deputy.
+4. **S4 — Rejeição de duplicatas JSON**: `object_pairs_hook=check_duplicate_keys` lançando em duplicatas.
+5. **S5 — Validação estrita de IDs**: Rejeição de bool, float e string numérica; aceita unicamente inteiros estritos positivos.
+6. **S6 — Limites nominais**: `MAX_RECEIPT_BYTES = 64 KiB`, `MAX_ARTIFACT_BYTES = 10 MiB` antes do parsing ou hash.
+7. **S7 — Dual-digest separation**: `archive_sha256` (provider ZIP) vs `artifact_file_sha256` (arquivo OpenAPI extraído recomputado independentemente).
+8. **S8 — Subtask Stage B sanitize**: Subtask `FEAT-11-STAGE-B-SANITIZE` registrada em `plan.md`.
+9. **S9 — Pin exato `dedoc/scramble 0.13.47`**: 3 componentes estritos sem `>=` ou `^`.
+
+## Condições e Limitações Remanescentes do Stage B (Aguardando Integração)
+
+1. **`expected_workflow_id` confiável**: No Stage B e na orquestração de produção, o chamador deve sempre resolver o `workflow_id` confiável via `gh api repos/{owner}/{repo}/actions/workflows` selecionando por path antes do fetch e passá-lo ao verificador.
+2. **Validação do archive ZIP real**: No Stage A, o verificador valida a sintaxe e o formato do `archive_sha256`, mas não descompacta ZIP real (nenhum artefato é baixado do Actions nesta fase). A revalidação completa do hash do ZIP contra a resposta da API do GitHub Actions será integrada no Stage B.
+3. **Extração segura de arquivo (`FEAT-11-STAGE-B-SANITIZE`)**: Extração restrita a arquivos na allowlist, normalização canônica de caminhos, rejeição estrita de symlinks e hardlinks, limites nominais de tamanho total e contagem de arquivos.
+4. **Mapeamento de campos da API do GitHub**: Validação contra o schema ao vivo dos endpoints `/actions/runs` e `/actions/artifacts` quando o workflow producer estiver gerando builds reais.
+5. **Nome estável do artefato**: Padrão imutável `openapi-<full_commit_sha>` (nunca "latest").
+6. **Instalação do Scramble**: Instalação de `dedoc/scramble 0.13.47` em `composer.json` estritamente bloqueada até que a lane auth congele a autenticação L1 (FEAT-13).
+7. **Mapeamento de autenticação Sanctum SPA no Scramble**: No Stage B, o Scramble deverá ser configurado para emitir `securityScheme` tipo cookie (`starter-kit-api-session` HttpOnly) + token CSRF (`X-XSRF-TOKEN`), sobrescrevendo a emissão padrão incorreta de `Bearer`.
+8. **Rota de cookie CSRF (`/sanctum/csrf-cookie`)**: Fornecida pelo Sanctum e excluída por default pelo filtro de vendor do Scramble; exigirá inclusão via transformer no Stage B.
+9. **Exportação determinística**: Execução sob `LC_ALL=C` com verificação de idempotência 2x sucessiva antes da geração do digest.
+10. **Autenticação de metadados sem attestation**: O receipt atesta proveniência de metadados do GitHub Actions; nenhuma assinatura digital / cosign / notary é reivindicada ou requerida.

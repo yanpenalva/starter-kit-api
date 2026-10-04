@@ -22,6 +22,8 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -613,6 +615,149 @@ class VerifyContractArtifactTests(unittest.TestCase):
             exit_code = run_cli(argv)
         self.assertEqual(exit_code, 1)
         self.assertIn("FAIL CLOSED: Provenance verification failed: Invalid expected_sha", fake_err.getvalue())
+
+
+class ContractLoadingAndCliProcessTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp_dir.name)
+        self.artifact_path = self.root / "openapi.json"
+        self.artifact_content = b'{"openapi": "3.1.0", "info": {"title": "Test", "version": "1.0"}}'
+        self.artifact_path.write_bytes(self.artifact_content)
+        self.artifact_file_sha256 = hashlib.sha256(self.artifact_content).hexdigest()
+        self.receipt_path = self.root / "provenance.json"
+        self.valid_receipt = build_receipt(
+            workflow_name=SAMPLE_WORKFLOW_NAME,
+            workflow_path=SAMPLE_WORKFLOW_PATH,
+            workflow_id=SAMPLE_WORKFLOW_ID,
+            run_id=SAMPLE_RUN_ID,
+            run_url=SAMPLE_RUN_URL,
+            artifact_id=SAMPLE_ARTIFACT_ID,
+            artifact_name=SAMPLE_ARTIFACT_NAME,
+            commit_sha=SAMPLE_SHA,
+            head_branch="main",
+            event=SAMPLE_EVENT,
+            created_at=SAMPLE_CREATED_AT,
+            archive_sha256=SAMPLE_ARCHIVE_SHA256,
+            artifact_file_sha256=self.artifact_file_sha256,
+        )
+        self.receipt_path.write_text(json.dumps(self.valid_receipt), encoding="utf-8")
+        self.repo_root = Path(__file__).resolve().parents[2]
+        self.vca_script = self.repo_root / "scripts" / "verify_contract_artifact.py"
+        self.cli_script = self.repo_root / "scripts" / "contract_cli.py"
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def test_direct_script_process_exit_0_across_unrelated_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as unrelated_cwd:
+            cmd = [
+                sys.executable,
+                str(self.vca_script),
+                "--artifact-file", str(self.artifact_path),
+                "--receipt-file", str(self.receipt_path),
+                "--expected-sha", SAMPLE_SHA,
+                "--mode", MODE_VERIFY_COMMITTED,
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, cwd=unrelated_cwd)
+            self.assertEqual(res.returncode, 0)
+            self.assertIn("SUCCESS: Artifact provenance verified", res.stdout)
+
+    def test_direct_script_process_exit_1_on_verification_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as unrelated_cwd:
+            cmd = [
+                sys.executable,
+                str(self.vca_script),
+                "--artifact-file", str(self.artifact_path),
+                "--receipt-file", str(self.receipt_path),
+                "--expected-sha", "0" * 40,
+                "--mode", MODE_VERIFY_COMMITTED,
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, cwd=unrelated_cwd)
+            self.assertEqual(res.returncode, 1)
+            self.assertIn("FAIL CLOSED: Provenance verification failed:", res.stderr)
+
+    def test_direct_script_process_exit_2_on_invalid_arguments(self) -> None:
+        with tempfile.TemporaryDirectory() as unrelated_cwd:
+            cmd = [
+                sys.executable,
+                str(self.vca_script),
+                "--artifact-file", str(self.artifact_path),
+                "--receipt-file", str(self.receipt_path),
+                "--expected-sha", SAMPLE_SHA,
+                "--unrecognized-flag",
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, cwd=unrelated_cwd)
+            self.assertEqual(res.returncode, 2)
+            self.assertIn("unrecognized arguments", res.stderr)
+
+    def test_module_execution_m_flag_exit_0(self) -> None:
+        cmd = [
+            sys.executable,
+            "-m",
+            "scripts.verify_contract_artifact",
+            "--artifact-file", str(self.artifact_path),
+            "--receipt-file", str(self.receipt_path),
+            "--expected-sha", SAMPLE_SHA,
+            "--mode", MODE_VERIFY_COMMITTED,
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, cwd=str(self.repo_root))
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("SUCCESS: Artifact provenance verified", res.stdout)
+
+    def test_contract_cli_script_process_exit_0(self) -> None:
+        with tempfile.TemporaryDirectory() as unrelated_cwd:
+            cmd = [
+                sys.executable,
+                str(self.cli_script),
+                "--artifact-file", str(self.artifact_path),
+                "--receipt-file", str(self.receipt_path),
+                "--expected-sha", SAMPLE_SHA,
+                "--mode", MODE_VERIFY_COMMITTED,
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, cwd=unrelated_cwd)
+            self.assertEqual(res.returncode, 0)
+            self.assertIn("SUCCESS: Artifact provenance verified", res.stdout)
+
+    def test_direct_sibling_imports_and_loading_order(self) -> None:
+        from scripts.contract_receipt import build_receipt as br
+        from scripts.contract_cli import run_cli as rc, parse_args as pa, main as mn
+        self.assertTrue(callable(br))
+        self.assertTrue(callable(rc))
+        self.assertTrue(callable(pa))
+        self.assertTrue(callable(mn))
+
+        code_order_receipt_first = (
+            "import sys; "
+            "import scripts.contract_receipt; "
+            "import scripts.verify_contract_artifact; "
+            "import scripts.contract_cli; "
+            "print('ORDER_OK')"
+        )
+        res1 = subprocess.run(
+            [sys.executable, "-c", code_order_receipt_first],
+            capture_output=True,
+            text=True,
+            cwd=str(self.repo_root),
+        )
+        self.assertEqual(res1.returncode, 0)
+        self.assertIn("ORDER_OK", res1.stdout)
+
+        code_order_cli_first = (
+            "import sys; "
+            "import scripts.contract_cli; "
+            "import scripts.contract_receipt; "
+            "import scripts.verify_contract_artifact; "
+            "print('ORDER_OK')"
+        )
+        res2 = subprocess.run(
+            [sys.executable, "-c", code_order_cli_first],
+            capture_output=True,
+            text=True,
+            cwd=str(self.repo_root),
+        )
+        self.assertEqual(res2.returncode, 0)
+        self.assertIn("ORDER_OK", res2.stdout)
 
 
 if __name__ == "__main__":
