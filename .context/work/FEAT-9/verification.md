@@ -31,3 +31,7 @@
 ## Re-run delta — fixes F1–F4 implementadas (2026-10-03)
 
 Comandos re-executados após as correções: `composer validate --strict` (válido); `composer check-platform-reqs` (success, PHP 8.5.11); `composer audit` (sem advisories); `composer lint` (PASS, 28 arquivos); `composer analyse` (Larastan 10, no errors); `docker compose --profile test run --rm test` → **17 passed, 74 assertions** (inclui regressões novas: fixture 404 em APP_ENV=production com flag presente, normalização `529.982.247-25`→`52998224725`, serialização sem cpf); smoke HTTP real (csrf-cookie/419/204, CORS, throttle 429) dentro da suite; CSD strict `--examples` exit 0; unittest 7 OK; doctor healthy 1.2.1; `git diff --check` clean. Conflito de estabilidade do throttle resolvido com cache `file` + limpeza guardada de `storage/framework/cache/data` antes da janela (servers efêmeros `php -S` de processo único, sem orfãos).
+
+## Fatia 2 — wave 2 (schema RBAC/audit, 2026-10-03)
+
+Executada após a integração da fatia 1: migrations coordenadas `_000002_permission_tables` (Spatie 8.3) e `_000003_activity_log` (Activitylog 5.1.1) + seeders idempotentes, cobertas pelas suítes de [FEAT-16](../FEAT-16/verification.md) e [FEAT-19](../FEAT-19/verification.md) (33 passed na fatia; 38 passed no total da wave-2 core). `_000004_failed_jobs` permanece da lane async. Histórico da fatia 1 acima preservado.
