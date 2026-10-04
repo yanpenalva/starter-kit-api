@@ -1,0 +1,81 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Database\Seeders;
+
+use App\Enums\Permission;
+use App\Enums\Role;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
+use Spatie\Permission\Models\Permission as PermissionModel;
+use Spatie\Permission\Models\Role as RoleModel;
+use Spatie\Permission\PermissionRegistrar;
+
+final class RbacCatalogueSeeder extends Seeder
+{
+    public const GUARD = 'web';
+
+    public function run(): void
+    {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        foreach (Permission::cases() as $permission) {
+            PermissionModel::firstOrCreate(
+                ['name' => $permission->value, 'guard_name' => self::GUARD],
+                ['created_at' => now(), 'updated_at' => now()],
+            );
+        }
+
+        $admin = RoleModel::firstOrCreate(
+            ['name' => Role::Admin->value, 'guard_name' => self::GUARD],
+            ['created_at' => now(), 'updated_at' => now()],
+        );
+        RoleModel::firstOrCreate(
+            ['name' => Role::User->value, 'guard_name' => self::GUARD],
+            ['created_at' => now(), 'updated_at' => now()],
+        );
+
+        $admin->syncPermissions(array_map(
+            static fn (Permission $permission): string => $permission->value,
+            Permission::cases(),
+        ));
+
+        // Idempotency contract: a second run keeps exactly the approved set.
+        $this->assertCatalogueIntegrity();
+
+        // No user accounts are created, promoted or granted roles here.
+        $this->assertNoUserAssignments();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function assertCatalogueIntegrity(): void
+    {
+        $permissionCount = (int) DB::table('permissions')
+            ->where('guard_name', self::GUARD)
+            ->count();
+
+        if ($permissionCount !== count(Permission::cases())) {
+            throw new RuntimeException('Permission catalogue diverged from the approved set.');
+        }
+
+        $roleCount = (int) DB::table('roles')
+            ->where('guard_name', self::GUARD)
+            ->count();
+
+        if ($roleCount !== count(Role::cases())) {
+            throw new RuntimeException('Role catalogue diverged from the approved set.');
+        }
+    }
+
+    private function assertNoUserAssignments(): void
+    {
+        $assignedRoles = (int) DB::table('model_has_roles')->count();
+
+        if ($assignedRoles !== 0) {
+            throw new RuntimeException('Seeders must never assign roles to accounts.');
+        }
+    }
+}

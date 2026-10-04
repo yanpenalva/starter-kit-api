@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-16",
+  "title": "Implementar catálogo RBAC, seeders, Policies e Gates",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "high",
+    "impact": "system",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing"
+    ],
+    "deferred": [
+      "release",
+      "incident"
+    ],
+    "triggers": [
+      "API issue #16; wave-2 first slice: Spatie permission 8.3.0 catalogue (guard web), 8 permissions, admin/user roles, idempotent seeders, privilege policies; human package approval in FEAT-6 approval.md"
+    ]
+  },
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "last_updated": "2026-10-03",
+  "policy_exceptions": [
+    "EXC-0001"
+  ]
+}

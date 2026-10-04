@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\CorrelateRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trusted proxies stay EMPTY by ruling: no RFC1918/localhost ranges are
         // trusted. A concrete proxy list may be added later, only if needed.
         $middleware->statefulApi();
+
+        $middleware->prepend(CorrelateRequest::class);
 
         $middleware->group('api', [
             ThrottleRequests::class.':api',

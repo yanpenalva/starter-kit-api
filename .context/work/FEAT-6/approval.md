@@ -1,5 +1,13 @@
 # Autorização humana — entrega autônoma do Starter Kit
 
+## Decisão posterior — onda 2 e limpeza remota (2026-10-03)
+
+O usuário respondeu: "autorizo o pacote mas antes, limpe as branchs nao utilizadas no github deixando apenas a main e as atuais, atualize o quadro do projeto movendo o que precisa mover para done e siga".
+
+Pacote autorizado: roles `admin`/`user`; permissões `users.view`, `users.update`, `users.set-status`, `users.assign-roles`, `users.read-cpf`, `roles.view`, `roles.update-permissions`, `logs.view`; admin protegido, último administrador preservado, sem autoelevação/autodesativação administrativa; user sem permissões administrativas e atribuição básica após verificação somente na onda 4. Auditoria inicial: `cli.bootstrap`/`privileged.change`, envelope mínimo de IDs/ator/correlação/data, sem CPF/email/credenciais/payload, diffs vazios. Bootstrap seleciona conta verificada/ativa, idempotente e transacional, com rollback por falha de auditoria; produção default-deny e nenhuma promoção real nesta onda. Exclusão de usuários e permissões adicionais de CRUD ficam para definição na onda 5.
+
+Limpeza específica autorizada e executada: dez branches remotas comprovadamente ancestrais de main (cinco em cada repo), nenhuma PR aberta, main/branches atuais preservadas. Nenhuma branch local, tag, commit ou volume foi removido. Essa decisão não concede autorização genérica para apagar branches futuras com trabalho não integrado. Quadro completo reconciliado: dez dos 47 itens Done; issues progressivas continuam abertas. Detalhes em cleanup-branches.md.
+
 Owner e aprovador: yanpenalva. Data: 2026-10-02. Origem: instrução explícita nesta conversa para o orquestrador mover o quadro, atualizar cada entrega, realizar commits com ou sem PR e aprovar/integrar, conduzindo o fluxo ponta a ponta até o projeto pronto.
 
 ## Escopo aprovado
