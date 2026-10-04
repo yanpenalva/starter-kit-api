@@ -36,7 +36,8 @@
 2. **Reconciliação e Prova de Asserções (Finding 2 — MED)**:
    - Causa da discrepância histórica de 621 asserções permanece **HISTORICAL CAUSE NOT VERIFIED**; nenhuma especulação causal é alegada.
    - Observação ANTIGA registrada (CI sobre `35f6ae82`): 96 testes, WARNINGS, 644 asserções, exit 0.
-   - Observação ATUAL desta submissão (2026-10-04, duas execuções): **96 passed, 645 asserções, 0 warnings**, exit 0; o aviso `file_get_contents` de runs antigas não foi observado nesta árvore.
+   - Observação ATUAL local desta submissão (2026-10-04, duas execuções): **96 passed, 645 asserções, 0 warnings**, exit 0.
+   - Observação ATUAL de CI (run 37240902731, job `application`, sobre `e73f993`): 96 testes, 96 warnings, 645 asserções, exit 0 — todos da classe `file_get_contents(/home/runner/...)` (issue pré-existente API-24 da lane de auth, fora do escopo daqui).
    - As observações permanecem estritamente separadas, sem reconciliação causal.
 
 3. **Alinhamento do Work Item e Fases Canônicas CSD (Finding 3 — MED)**:

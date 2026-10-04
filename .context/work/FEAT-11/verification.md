@@ -92,8 +92,9 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 ## Observações de Asserções Pest — Fatos Observados Apenas
 
 - **Observação ANTIGA (CI run sobre o source remoto `35f6ae82`)**: registrada pela revisão independente anterior do parent — **96 testes, com WARNINGS, 644 asserções, exit 0**. Nenhuma causa para a divergência histórica de contagens (621 vs 625 em relatos anteriores) foi verificada; nenhuma explicação causal é alegada.
-- **Observação ATUAL (execução local desta verificação, 2026-10-04, duas execuções consecutivas)**: **96 passed, 645 asserções, 0 warnings**, exit 0. O aviso `file_get_contents` citado em runs antigas de CI **não** foi observado nesta árvore atual (main `f5dce81` já integrada).
-- As duas observações acima são mantidas separadas e nenhuma reconciliação causal entre elas é alegada. Qualquer diff de contagens entre observações permanece fato bruto registrado, sem história reconstruída.
+- **Observação ATUAL local (execução local desta verificação, 2026-10-04, duas execuções consecutivas)**: **96 passed, 645 asserções, 0 warnings**, exit 0, no Docker pinado PHP 8.5 com PostgreSQL + Redis + Mailpit reais.
+- **Observação ATUAL de CI (workflow Quality, run 37240902731, job `application`, sobre `e73f993`)**: **96 testes, 96 warnings, 645 asserções, exit 0**. Todos os warnings observados pertencem à mesma classe `file_get_contents(/home/runner/...)` em testes da lane de autenticação (issue pré-existente, rastreada como API-24 na outra lane; fora do escopo deste work item).
+- As três observações acima são mantidas separadas e nenhuma reconciliação causal entre ambientes (Docker local vs runner GitHub) é alegada. Qualquer diff de contagens entre observações permanece fato bruto registrado, sem história reconstruída.
 
 ---
 
