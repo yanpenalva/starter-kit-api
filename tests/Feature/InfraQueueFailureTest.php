@@ -47,6 +47,8 @@ final class InfraQueueFailureTest extends TestCase
         $retryWorker = $this->runBoundedWorker(tries: 2, extra: ['--backoff=1']);
         $this->assertTrue($retryWorker->isSuccessful(), $retryWorker->getErrorOutput());
 
+        $this->assertSame(1, (int) DB::table('failed_jobs')->count());
+
         $record = DB::table('failed_jobs')->first();
         $this->assertNotNull($record, 'exactly one failed_jobs record expected');
         $this->assertNotEmpty($record->uuid);
