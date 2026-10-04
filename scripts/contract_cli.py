@@ -3,42 +3,50 @@
 Responsibility:
 Handles CLI argument parsing, input normalization, error formatting,
 process exit code signaling, and terminal output orchestration.
+Depends only on the foundation contract_core module.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 from pathlib import Path
 import sys
+from typing import Any
+
+
+def _load_core() -> Any:
+    cached = sys.modules.get("contract_core") or sys.modules.get("scripts.contract_core")
+    if cached is not None:
+        return cached
+    if __package__:
+        return importlib.import_module(f"{__package__}.contract_core")
+    path = Path(__file__).resolve().parent / "contract_core.py"
+    spec = importlib.util.spec_from_file_location("contract_core", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load contract_core from '{path}'")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["contract_core"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_core = _load_core()
+DEFAULT_ALLOWED_EVENTS = _core.DEFAULT_ALLOWED_EVENTS
+DEFAULT_BRANCH = _core.DEFAULT_BRANCH
+DEFAULT_MAX_AGE_DAYS = _core.DEFAULT_MAX_AGE_DAYS
+DEFAULT_OWNER = _core.DEFAULT_OWNER
+DEFAULT_REPO = _core.DEFAULT_REPO
+DEFAULT_WORKFLOW_NAME = _core.DEFAULT_WORKFLOW_NAME
+DEFAULT_WORKFLOW_PATH = _core.DEFAULT_WORKFLOW_PATH
+MODE_DOWNLOAD_FRESH = _core.MODE_DOWNLOAD_FRESH
+MODE_VERIFY_COMMITTED = _core.MODE_VERIFY_COMMITTED
+ProvenanceVerificationError = _core.ProvenanceVerificationError
+verify_provenance = _core.verify_provenance
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse and return command-line arguments."""
-    if __package__:
-        from scripts.verify_contract_artifact import (
-            DEFAULT_ALLOWED_EVENTS,
-            DEFAULT_BRANCH,
-            DEFAULT_MAX_AGE_DAYS,
-            DEFAULT_OWNER,
-            DEFAULT_REPO,
-            DEFAULT_WORKFLOW_NAME,
-            DEFAULT_WORKFLOW_PATH,
-            MODE_DOWNLOAD_FRESH,
-            MODE_VERIFY_COMMITTED,
-        )
-    if not __package__:
-        from verify_contract_artifact import (
-            DEFAULT_ALLOWED_EVENTS,
-            DEFAULT_BRANCH,
-            DEFAULT_MAX_AGE_DAYS,
-            DEFAULT_OWNER,
-            DEFAULT_REPO,
-            DEFAULT_WORKFLOW_NAME,
-            DEFAULT_WORKFLOW_PATH,
-            MODE_DOWNLOAD_FRESH,
-            MODE_VERIFY_COMMITTED,
-        )
-
     parser = argparse.ArgumentParser(
         description="Verify fail-closed OpenAPI contract artifact provenance."
     )
@@ -125,17 +133,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def run_cli(argv: list[str]) -> int:
     """Execute CLI orchestration returning standard exit codes (0=success, 1=verify fail, 2=unexpected)."""
-    if __package__:
-        from scripts.verify_contract_artifact import (
-            ProvenanceVerificationError,
-            verify_provenance,
-        )
-    if not __package__:
-        from verify_contract_artifact import (
-            ProvenanceVerificationError,
-            verify_provenance,
-        )
-
     try:
         args = parse_args(argv)
         allowed_events = frozenset(

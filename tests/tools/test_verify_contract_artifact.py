@@ -616,6 +616,18 @@ class VerifyContractArtifactTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertIn("FAIL CLOSED: Provenance verification failed: Invalid expected_sha", fake_err.getvalue())
 
+    def test_cli_failure_on_unexpected_error_exit_2(self) -> None:
+        self.receipt_path.write_bytes(b"\xff\xff\xff")
+        argv = [
+            "--artifact-file", str(self.artifact_path),
+            "--receipt-file", str(self.receipt_path),
+            "--expected-sha", SAMPLE_SHA,
+        ]
+        with patch("sys.stderr", new=io.StringIO()) as fake_err:
+            exit_code = run_cli(argv)
+        self.assertEqual(exit_code, 2)
+        self.assertIn("FAIL CLOSED: Unexpected error:", fake_err.getvalue())
+
 
 class ContractLoadingAndCliProcessTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -758,6 +770,56 @@ class ContractLoadingAndCliProcessTests(unittest.TestCase):
         )
         self.assertEqual(res2.returncode, 0)
         self.assertIn("ORDER_OK", res2.stdout)
+
+    def test_direct_script_process_exit_2_on_unexpected_error(self) -> None:
+        with tempfile.TemporaryDirectory() as unrelated_cwd:
+            bad_receipt = Path(unrelated_cwd) / "bad_receipt.json"
+            bad_receipt.write_bytes(b"\xff\xff\xff")
+            cmd = [
+                sys.executable,
+                str(self.vca_script),
+                "--artifact-file", str(self.artifact_path),
+                "--receipt-file", str(bad_receipt),
+                "--expected-sha", SAMPLE_SHA,
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, cwd=unrelated_cwd)
+            self.assertEqual(res.returncode, 2)
+            self.assertIn("FAIL CLOSED: Unexpected error:", res.stderr)
+
+    def test_spec_from_file_location_isolated_subprocess(self) -> None:
+        with tempfile.TemporaryDirectory() as isolated_cwd:
+            code = (
+                "import importlib.util, sys\n"
+                f"for p in list(sys.path):\n"
+                f"    if '{self.repo_root}' in p:\n"
+                f"        sys.path.remove(p)\n"
+                f"spec = importlib.util.spec_from_file_location('isolated_verifier', '{self.vca_script}')\n"
+                "mod = importlib.util.module_from_spec(spec)\n"
+                "spec.loader.exec_module(mod)\n"
+                "assert hasattr(mod, 'verify_provenance')\n"
+                "assert hasattr(mod, 'build_receipt')\n"
+                "assert hasattr(mod, 'run_cli')\n"
+                "assert hasattr(mod, 'ProvenanceVerificationError')\n"
+                "print('ISOLATED_LOAD_OK')\n"
+            )
+            res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=isolated_cwd)
+            self.assertEqual(res.returncode, 0)
+            self.assertIn("ISOLATED_LOAD_OK", res.stdout)
+
+    def test_no_double_module_execution_and_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as probe_cwd:
+            code = (
+                "import subprocess, sys\n"
+                f"res = subprocess.run([sys.executable, '{self.vca_script}', '--expected-sha', '0'*40, "
+                f"'--artifact-file', '{self.artifact_path}', '--receipt-file', '{self.receipt_path}'], "
+                "capture_output=True, text=True)\n"
+                "assert res.returncode == 1, f'Expected returncode 1, got {res.returncode}'\n"
+                "assert 'FAIL CLOSED: Provenance verification failed:' in res.stderr\n"
+                "print('IDENTITY_AND_SINGLE_EXEC_OK')\n"
+            )
+            res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=probe_cwd)
+            self.assertEqual(res.returncode, 0)
+            self.assertIn("IDENTITY_AND_SINGLE_EXEC_OK", res.stdout)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,15 @@ Fase: `plan` (Stage A — CONTRACT prep pós-revisão Oracle e resolução R1) �
 > **REGISTRO DE REVISÃO INDEPENDENTE:**
 > - Oracle PASS WITH CONDITIONS em `883246c`: condições S1–S9 implementadas em `f910f66`.
 > - Oracle PASS WITH CONDITIONS em `33cbcab55df28c4fa4cb4e8abc8b50cbae89c65b` (47 security/unit tests + 25 adversariais passaram, zero defeitos de lógica; único blocker remanescente: **R1** — `scripts/verify_contract_artifact.py` possuía 542 linhas físicas > teto CSD de 500 linhas).
-> - **R1 IMPLEMENTADO** neste commit via decomposição de responsabilidade coesa em módulos irmãos nomeados (`scripts/contract_receipt.py`, `scripts/contract_cli.py` e `scripts/verify_contract_artifact.py`).
+> - **Revisão Independente PASS WITH CONDITIONS em `af10a423c0f74e73b4a8943ab8d2f35ef614d73c`** (Relatório `66afdcbd-69b5-471e-af8f-32c072109b84`):
+>   - R1 (<=500 linhas físicas) confirmado atendido; 53 testes unittests e 25 testes adversariais passaram.
+>   - Condições de correção apontadas: (1) restaurar baseline de carregamento dinâmico via `importlib.util.spec_from_file_location` a partir de CWD externo arbitrário sem depender de `sys.path`; (2) estabelecer DAG acíclico genuíno eliminando ciclos mútuos entre fachada e módulos irmãos e eliminando dupla execução sob `__main__`; (3) teste automatizado para exit code 2 em erros inesperados (`except Exception:`) com mensagem `FAIL CLOSED: Unexpected error:`; (4) alinhamentos documentais (remover menção obsoleta a "signatures" no docstring e registrar contagens físicas e de testes exatas).
+> - **Remediações implementadas**:
+>   - Extração do módulo foundation `scripts/contract_core.py` (zero dependências irmãs).
+>   - Satélites `scripts/contract_receipt.py` e `scripts/contract_cli.py` dependem unicamente de `contract_core`, nunca da fachada `verify_contract_artifact.py`.
+>   - Fachada `scripts/verify_contract_artifact.py` consome os irmãos via importador isolado ancorado em `__file__`, resolvendo carregamento dinâmico via `spec_from_file_location` a partir de qualquer CWD sem mutação de `sys.path`.
+>   - Ausência de dupla execução sob `__main__` e estabilidade de identidade de `ProvenanceVerificationError`.
+>   - Adição de testes de erro inesperado com código 2 e teste de subprocesso com `spec_from_file_location`.
 > - Re-review independente pendente; nenhuma autoaprovação; status permanece `active` / fase `plan`. O implementador apenas executa e evidencia as correções necessárias.
 
 ## Condições de execução e fronteira de lane
@@ -15,25 +23,43 @@ Fase: `plan` (Stage A — CONTRACT prep pós-revisão Oracle e resolução R1) �
 3. **Sem execução Docker**: Containers e banco de dados não foram iniciados (escopo restrito a ferramentas e documentação).
 4. **Sem simulação de export falso**: O workflow `.github/workflows/openapi.yml` foi mantido byte a byte como um draft guardado com `name: OpenAPI Contract` que falha informativamente (`exit 1`) até o desbloqueio do Stage B.
 
-## Decomposição de Responsabilidades e Resolução de R1
+## Decomposição de Responsabilidades e Arquitetura DAG (Resolução R1 & Remediações)
 
-Para satisfazer os limites estruturais normativos da CSD (máximo 500 linhas físicas por arquivo de produção, máximo 15 funções/métodos declarados por arquivo/classe, máximo 150 linhas e 3 retornos por função, zero `else`/`elif`), o verificador foi decomposto em três módulos irmãos coesos sob `scripts/`:
+Para satisfazer os limites estruturais normativos da CSD (máximo 500 linhas físicas por arquivo de produção, máximo 15 funções/métodos declarados por arquivo/classe, máximo 150 linhas e 3 retornos por função, zero `else`/`elif`) e garantir um grafo de dependências verdadeiramente acíclico (DAG) com carregamento isolado dinâmico, o subsistema foi estruturado em quatro módulos coesos sob `scripts/`:
 
-1. **`scripts/contract_receipt.py` (Construção de Receipt)**:
+```
+          [ contract_core.py ]  (foundation: 0 dependências)
+              ^            ^
+             /              \
+[ contract_receipt.py ]   [ contract_cli.py ]  (satélites: dependem apenas de core)
+             \              /
+              v            v
+      [ verify_contract_artifact.py ]  (fachada pública e entrypoint __main__)
+```
+
+1. **`scripts/contract_core.py` (Fundação e Núcleo de Validação de Proveniência)**:
+   - **Responsabilidade**: Contém todas as 14 funções de validação fail-closed (`check_duplicate_keys`, `read_bounded_bytes`, `compute_file_sha256`, `validate_commit_sha`, `validate_sha256_digest`, `parse_utc_timestamp`, `validate_strict_int_id`, `validate_owner_repo`, `validate_run_url`, `validate_expiration`, `validate_receipt_structure`, `validate_receipt_identity`, `verify_artifact_file`, `verify_provenance`), limites nominais (`MAX_RECEIPT_BYTES = 64 KiB`, `MAX_ARTIFACT_BYTES = 10 MiB`), padrões regex e a classe `ProvenanceVerificationError`.
+   - **Dependências**: Zero dependências de módulos irmãos.
+   - **Métricas estruturais**: 380 linhas físicas (<= 500), 14 funções declaradas + 1 classe de erro (15 declarações <= 15), tamanho máx. de função 70 linhas (<= 150), máx. 1 retorno por função (<= 3), zero `else`/`elif`.
+   - **Compatibilidade de interface**: Assinaturas históricas com > 7 parâmetros (`validate_receipt_identity` com 8, `verify_provenance` com 13) preservadas integralmente.
+
+2. **`scripts/contract_receipt.py` (Construção de Receipt)**:
    - **Responsabilidade**: Construção do dicionário de receipt de proveniência do lado do produtor contendo os metadados do workflow run e do artefato publicado.
-   - **Métricas estruturais**: 66 linhas físicas (<= 500), 1 função declarada (`build_receipt` <= 15), 51 linhas (<= 150), 1 retorno (<= 3), zero `else`/`elif`.
-   - **Compatibilidade de interface**: Assinatura histórica mantida com seus 13 parâmetros explícitos.
-   - **Dependências**: Importa helpers de validação sob demanda, sem dependência de CLI ou ciclos de importação.
+   - **Dependências**: Depende unicamente de `contract_core.py` (via importação direta ou carregamento ancorado no caminho sem mutação de `sys.path`). Não depende da fachada `verify_contract_artifact.py` nem de CLI.
+   - **Métricas estruturais**: 79 linhas físicas (<= 500), 2 funções declaradas (`_load_core`, `build_receipt` <= 15), tamanho máx. de função 36 linhas (<= 150), máx. 3 retornos (<= 3), zero `else`/`elif`.
+   - **Compatibilidade de interface**: Assinatura pública com 13 parâmetros e corpo 100% equivalente em AST ao baseline `33cbcab`.
 
-2. **`scripts/contract_cli.py` (Parsing e Orquestração de CLI)**:
-   - **Responsabilidade**: Análise de argumentos via `argparse`, orquestração da execução, formatação de saída e controle de códigos de saída de processo (0 = sucesso, 1 = falha de verificação / fail-closed, 2 = erro de sintaxe/argumentos).
-   - **Métricas estruturais**: 183 linhas físicas (<= 500), 3 funções declaradas (`parse_args`, `run_cli`, `main` <= 15), tamanho máximo de função 109 linhas (<= 150), máximo 3 retornos em `run_cli` (<= 3), zero `else`/`elif`.
-   - **Dependências**: Invoca `verify_provenance` e consome defaults e tipos de erro sem ciclos.
+3. **`scripts/contract_cli.py` (Parsing e Orquestração de CLI)**:
+   - **Responsabilidade**: Análise de argumentos via `argparse`, orquestração da execução, formatação de saída e controle de códigos de saída de processo (0 = sucesso, 1 = falha de verificação fail-closed, 2 = erro de sintaxe/argumentos ou erro inesperado capturado em `except Exception:` com `FAIL CLOSED: Unexpected error:`).
+   - **Dependências**: Depende unicamente de `contract_core.py`. Não depende da fachada `verify_contract_artifact.py`.
+   - **Métricas estruturais**: 180 linhas físicas (<= 500), 4 funções declaradas (`_load_core`, `parse_args`, `run_cli`, `main` <= 15), tamanho máx. de função 84 linhas (<= 150), máx. 3 retornos (<= 3), zero `else`/`elif`.
+   - **Compatibilidade de interface**: Flags CLI, argumentos, defaults e saídas 100% equivalentes em AST ao baseline `33cbcab`.
 
-3. **`scripts/verify_contract_artifact.py` (Core de Validação de Proveniência & Ponto de Entrada)**:
-   - **Responsabilidade**: Núcleo substantivo de regras de proveniência fail-closed (verificação de SHA, digests dual archive/file, allowlists de identidade de workflow/artefato, limites nominais de tamanho, janelas de expiração) e fachada de compatibilidade pública para reexportação e execução de script.
-   - **Métricas estruturais**: 433 linhas físicas (<= 500), 14 funções declaradas (<= 15), 1 classe de erro declarada (`ProvenanceVerificationError`, 0 métodos), tamanho máximo de função 73 linhas (`verify_provenance` <= 150), retornos por função todos <= 1 (<= 3), zero `else`/`elif`.
-   - **Resolução de importação e ausência de ciclos**: Arquitetura DAG sem ciclos; reexporta a API pública completa (`build_receipt`, `parse_args`, `run_cli`, `main`, constantes nominais e exceção) suportando invocação direta de script (`python3 scripts/verify_contract_artifact.py`), execução de módulo (`python3 -m scripts.verify_contract_artifact`), importação normal de pacote e execução a partir de CWDs externos arbitrários sem monkeypatch de `sys.path`.
+4. **`scripts/verify_contract_artifact.py` (Fachada Pública de Compatibilidade & Ponto de Entrada)**:
+   - **Responsabilidade**: Ponto de entrada canônico e fachada pública estável. Reexporta todas as 36 constantes, funções, exceções e helpers dos módulos irmãos (`contract_core`, `contract_receipt`, `contract_cli`).
+   - **Resolução de importação e isolamento**: Carrega os irmãos via mecanismo ancorado em `__file__`, sem poluir `sys.path`. Permite execução direta como script (`python3 scripts/verify_contract_artifact.py`), execução como módulo (`python3 -m scripts.verify_contract_artifact`), importação normal em pacotes Python e carregamento isolado via `importlib.util.spec_from_file_location` a partir de diretórios de trabalho externos arbitrários sem erros de `ModuleNotFoundError`.
+   - **Eliminação de dupla execução sob `__main__`**: Como `contract_cli` e `contract_receipt` não importam `verify_contract_artifact`, a execução direta executa a fachada exatamente uma vez, preservando a identidade estrita de `ProvenanceVerificationError`.
+   - **Métricas estruturais**: 156 linhas físicas (<= 500), 1 função declarada (`_load_sibling` <= 15), tamanho máx. de função 14 linhas (<= 150), máx. 3 retornos (<= 3), zero `else`/`elif`.
 
 ## Histórico das Condições S1–S9 (Implementadas e Verificadas)
 

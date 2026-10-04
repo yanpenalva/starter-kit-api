@@ -3,11 +3,39 @@
 Responsibility:
 Constructs and validates the producer-side provenance receipt dictionary
 containing GitHub Actions workflow run and artifact metadata.
+Depends only on the foundation contract_core module.
 """
 
 from __future__ import annotations
 
+import importlib.util
+from pathlib import Path
+import sys
 from typing import Any
+
+
+def _load_core() -> Any:
+    cached = sys.modules.get("contract_core") or sys.modules.get("scripts.contract_core")
+    if cached is not None:
+        return cached
+    if __package__:
+        return importlib.import_module(f"{__package__}.contract_core")
+    path = Path(__file__).resolve().parent / "contract_core.py"
+    spec = importlib.util.spec_from_file_location("contract_core", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load contract_core from '{path}'")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["contract_core"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_core = _load_core()
+ProvenanceVerificationError = _core.ProvenanceVerificationError
+validate_commit_sha = _core.validate_commit_sha
+validate_receipt_structure = _core.validate_receipt_structure
+validate_sha256_digest = _core.validate_sha256_digest
+validate_strict_int_id = _core.validate_strict_int_id
 
 
 def build_receipt(
@@ -29,21 +57,6 @@ def build_receipt(
 
     Legacy public interface constraint: 13 parameters preserved for compatibility.
     """
-    if __package__:
-        from scripts.verify_contract_artifact import (
-            validate_commit_sha,
-            validate_receipt_structure,
-            validate_sha256_digest,
-            validate_strict_int_id,
-        )
-    if not __package__:
-        from verify_contract_artifact import (
-            validate_commit_sha,
-            validate_receipt_structure,
-            validate_sha256_digest,
-            validate_strict_int_id,
-        )
-
     receipt = {
         "workflow_name": str(workflow_name).strip(),
         "workflow_path": str(workflow_path).strip(),
