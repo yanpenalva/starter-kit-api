@@ -7,9 +7,25 @@ Security and transport design:
 - Validates that the artifact originated from the 'main' branch at an EXACT pinned 40-character commit SHA.
 - Rejects non-pinned references such as 'latest', branch names, or short SHAs.
 - Enforces an allowlist of trusted triggering events (e.g. workflow_dispatch, release, workflow_run).
-- Independently recomputes the SHA256 digest of the artifact file and verifies it against the receipt.
-- Validates receipt metadata completeness (workflow name/id, run id/url, artifact id/name, commit SHA, created_at).
-- Fails closed on any missing, malformed, divergent, or unallowlisted value.
+- Enforces strict equality for workflow_name, workflow_path, and artifact_name.
+- Validates that workflow_id is an integer associated with the trusted workflow path/name.
+  Contract: in production orchestration, workflow_id is resolved prior to fetch via:
+    gh api repos/{owner}/{repo}/actions/workflows --jq '.workflows[] | select(.path=="...") | .id'
+  and supplied as expected_workflow_id to prevent accepting receipts from unrelated workflows.
+- Strictly validates run_url: https://github.com/{owner}/{repo}/actions/runs/{run_id} without query/fragment,
+  matching the receipt run_id (anti-confused-deputy).
+- Rejects duplicate JSON keys in receipt parsing (object_pairs_hook).
+- Enforces strict integer types for IDs (rejecting bool, float, string numeric).
+- Enforces nominal size boundaries (MAX_RECEIPT_BYTES = 64 KiB, MAX_ARTIFACT_BYTES = 10 MiB)
+  before parsing or hashing to avoid memory exhaustion denial.
+- Distinguishes archive_sha256 (provider ZIP digest) from artifact_file_sha256 (extracted spec file hash).
+  The spec file hash is independently recomputed from the artifact file stream.
+- Supports two explicit verification modes:
+  (a) download-fresh: enforces max_age (default 90 days) against reliable UTC clock; future created_at
+      beyond 300s skew tolerance fails closed.
+  (b) verify-committed: verifies schema, identity, digests, and signatures without age check
+      (durable committed spec/receipt in consumer repository does not expire randomly on consumer CI).
+  Fetch-time enforcement: missing or expired artifacts fail at first fetch before commit.
 
 Consumer transport context (Frontend repository):
 - The consumer commits the OpenAPI spec, generated TypeScript types, and provenance receipt directly
@@ -24,7 +40,7 @@ Consumer transport context (Frontend repository):
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -32,13 +48,29 @@ import re
 import sys
 from typing import Any
 
+DEFAULT_OWNER: str = "yanpenalva"
+DEFAULT_REPO: str = "starter-kit-api"
 DEFAULT_BRANCH: str = "main"
+DEFAULT_WORKFLOW_NAME: str = "OpenAPI Contract"
+DEFAULT_WORKFLOW_PATH: str = ".github/workflows/openapi.yml"
 DEFAULT_ALLOWED_EVENTS: frozenset[str] = frozenset({"workflow_dispatch", "release", "workflow_run"})
+DEFAULT_MAX_AGE_DAYS: int = 90
+CLOCK_SKEW_TOLERANCE_SECONDS: int = 300  # 5 minutes
+
+MAX_RECEIPT_BYTES: int = 64 * 1024  # 64 KiB (S6)
+MAX_ARTIFACT_BYTES: int = 10 * 1024 * 1024  # 10 MiB (S6)
+
+MODE_DOWNLOAD_FRESH: str = "download-fresh"
+MODE_VERIFY_COMMITTED: str = "verify-committed"
+VALID_MODES: frozenset[str] = frozenset({MODE_DOWNLOAD_FRESH, MODE_VERIFY_COMMITTED})
+
 SHA40_PATTERN: re.Pattern[str] = re.compile(r"^[0-9a-fA-F]{40}$")
 SHA256_PATTERN: re.Pattern[str] = re.compile(r"^[0-9a-fA-F]{64}$")
+OWNER_REPO_PATTERN: re.Pattern[str] = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 REQUIRED_RECEIPT_FIELDS: tuple[str, ...] = (
     "workflow_name",
+    "workflow_path",
     "workflow_id",
     "run_id",
     "run_url",
@@ -48,12 +80,41 @@ REQUIRED_RECEIPT_FIELDS: tuple[str, ...] = (
     "head_branch",
     "event",
     "created_at",
-    "artifact_sha256",
+    "archive_sha256",
+    "artifact_file_sha256",
 )
 
 
 class ProvenanceVerificationError(Exception):
     """Raised when artifact provenance verification fails closed."""
+
+
+def check_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Object pairs hook for json.loads that rejects duplicate keys."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ProvenanceVerificationError(f"Duplicate JSON key in receipt: '{key}'")
+        result[key] = value
+    return result
+
+
+def read_bounded_bytes(file_path: Path, max_bytes: int, file_desc: str) -> bytes:
+    """Read a file bounded by maximum allowed bytes."""
+    if not file_path.is_file():
+        raise ProvenanceVerificationError(f"{file_desc} file not found: {file_path}")
+    size = file_path.stat().st_size
+    if size > max_bytes:
+        raise ProvenanceVerificationError(
+            f"{file_desc} file size ({size} bytes) exceeds nominal limit of {max_bytes} bytes"
+        )
+    with file_path.open("rb") as stream:
+        content = stream.read(max_bytes + 1)
+    if len(content) > max_bytes:
+        raise ProvenanceVerificationError(
+            f"{file_desc} stream exceeded maximum limit of {max_bytes} bytes"
+        )
+    return content
 
 
 def compute_file_sha256(file_path: Path) -> str:
@@ -75,7 +136,7 @@ def validate_commit_sha(sha: str, field_name: str = "commit_sha") -> str:
     return cleaned
 
 
-def validate_sha256_digest(digest: str, field_name: str = "artifact_sha256") -> str:
+def validate_sha256_digest(digest: str, field_name: str) -> str:
     """Validate that a digest is an exact 64-character hexadecimal string."""
     cleaned = str(digest).strip().lower()
     if not SHA256_PATTERN.fullmatch(cleaned):
@@ -85,55 +146,108 @@ def validate_sha256_digest(digest: str, field_name: str = "artifact_sha256") -> 
     return cleaned
 
 
-def validate_timestamp_format(timestamp_str: str) -> None:
-    """Validate ISO 8601 timestamp string."""
+def parse_utc_timestamp(timestamp_str: str) -> datetime:
+    """Parse and validate ISO 8601 timestamp string into UTC datetime."""
     cleaned = str(timestamp_str).strip()
     if not cleaned:
         raise ProvenanceVerificationError("Receipt created_at timestamp cannot be empty")
     try:
         normalized = cleaned.replace("Z", "+00:00")
-        datetime.fromisoformat(normalized)
+        dt = datetime.fromisoformat(normalized)
+        if dt.tzinfo is None:
+            raise ProvenanceVerificationError(f"Timestamp '{timestamp_str}' must include timezone offset")
+        return dt.astimezone(timezone.utc)
     except (ValueError, TypeError) as exc:
         raise ProvenanceVerificationError(
             f"Invalid ISO 8601 created_at timestamp '{timestamp_str}': {exc}"
         ) from exc
 
 
-def validate_positive_id(value: Any, field_name: str) -> int:
-    """Validate that an ID is a positive integer."""
-    try:
-        integer_val = int(value)
-        if integer_val <= 0:
-            raise ProvenanceVerificationError(f"{field_name} must be a positive integer, got '{value}'")
-        return integer_val
-    except (ValueError, TypeError) as exc:
-        raise ProvenanceVerificationError(f"{field_name} must be a valid integer, got '{value}'") from exc
+def validate_strict_int_id(value: Any, field_name: str) -> int:
+    """Validate that an ID is strictly a positive JSON integer (reject bool, float, str)."""
+    if isinstance(value, bool):
+        raise ProvenanceVerificationError(f"{field_name} must be a strict integer, got bool ({value})")
+    if not isinstance(value, int):
+        raise ProvenanceVerificationError(
+            f"{field_name} must be a strict integer, got {type(value).__name__} ({value!r})"
+        )
+    if value <= 0:
+        raise ProvenanceVerificationError(f"{field_name} must be a positive integer, got {value}")
+    return value
+
+
+def validate_owner_repo(component: str, field_name: str) -> str:
+    """Validate GitHub repository owner or name component."""
+    cleaned = str(component).strip()
+    if not OWNER_REPO_PATTERN.fullmatch(cleaned):
+        raise ProvenanceVerificationError(f"Invalid {field_name} '{component}': must match [A-Za-z0-9_.-]+")
+    if ".." in cleaned:
+        raise ProvenanceVerificationError(f"Invalid {field_name} '{component}': cannot contain '..'")
+    return cleaned
+
+
+def validate_run_url(run_url: str, run_id: int, owner: str = DEFAULT_OWNER, repo: str = DEFAULT_REPO) -> None:
+    """Strictly validate run_url matching https://github.com/{owner}/{repo}/actions/runs/{run_id}."""
+    valid_owner = validate_owner_repo(owner, "repository owner")
+    valid_repo = validate_owner_repo(repo, "repository name")
+    expected_url = f"https://github.com/{valid_owner}/{valid_repo}/actions/runs/{run_id}"
+    if run_url != expected_url:
+        raise ProvenanceVerificationError(
+            f"Strict run_url mismatch: got '{run_url}', expected exactly '{expected_url}'"
+        )
+
+
+def validate_expiration(created_at_dt: datetime, mode: str, max_age_days: int) -> None:
+    """Validate artifact expiration policy according to verification mode."""
+    if mode == MODE_VERIFY_COMMITTED:
+        return
+    if mode != MODE_DOWNLOAD_FRESH:
+        raise ProvenanceVerificationError(f"Invalid verification mode '{mode}': must be one of {sorted(VALID_MODES)}")
+    now_utc = datetime.now(timezone.utc)
+    skew_limit = now_utc + timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
+    if created_at_dt > skew_limit:
+        raise ProvenanceVerificationError(
+            f"created_at timestamp '{created_at_dt.isoformat()}' is in the future beyond {CLOCK_SKEW_TOLERANCE_SECONDS}s skew tolerance"
+        )
+    age = now_utc - created_at_dt
+    if age > timedelta(days=max_age_days):
+        raise ProvenanceVerificationError(
+            f"Artifact expired: created_at '{created_at_dt.isoformat()}' is older than {max_age_days} days"
+        )
 
 
 def validate_receipt_structure(receipt: dict[str, Any]) -> None:
-    """Ensure all required fields exist and are non-empty."""
+    """Ensure all required fields exist, are non-empty and well-formed."""
     if not isinstance(receipt, dict):
         raise ProvenanceVerificationError("Receipt content must be a JSON object")
     missing_or_empty: list[str] = [
         field for field in REQUIRED_RECEIPT_FIELDS
-        if field not in receipt or receipt[field] is None or str(receipt[field]).strip() == ""
+        if field not in receipt or receipt[field] is None or (isinstance(receipt[field], str) and receipt[field].strip() == "")
     ]
     if missing_or_empty:
         raise ProvenanceVerificationError(
             f"Receipt missing or empty required fields: {sorted(missing_or_empty)}"
         )
+    validate_strict_int_id(receipt["workflow_id"], "receipt workflow_id")
+    validate_strict_int_id(receipt["run_id"], "receipt run_id")
+    validate_strict_int_id(receipt["artifact_id"], "receipt artifact_id")
+    validate_sha256_digest(receipt["archive_sha256"], "receipt archive_sha256")
+    validate_sha256_digest(receipt["artifact_file_sha256"], "receipt artifact_file_sha256")
 
 
-def validate_receipt_content(
+def validate_receipt_identity(
     receipt: dict[str, Any],
     expected_sha: str,
     expected_branch: str,
+    expected_workflow_name: str,
+    expected_workflow_path: str,
+    expected_artifact_name: str,
     allowed_events: frozenset[str],
+    expected_workflow_id: int | None = None,
 ) -> None:
-    """Validate metadata constraints in the receipt."""
+    """Validate exact identity constraints in the receipt."""
     expected_norm_sha = validate_commit_sha(expected_sha, field_name="expected_sha")
     receipt_sha = validate_commit_sha(receipt["commit_sha"], field_name="receipt commit_sha")
-
     if receipt_sha != expected_norm_sha:
         raise ProvenanceVerificationError(
             f"Commit SHA mismatch: receipt has '{receipt_sha}', expected '{expected_norm_sha}'"
@@ -145,31 +259,48 @@ def validate_receipt_content(
             f"Head branch mismatch: receipt artifact came from '{receipt_branch}', expected '{expected_branch}'"
         )
 
+    receipt_wf_name = str(receipt["workflow_name"]).strip()
+    if receipt_wf_name != expected_workflow_name:
+        raise ProvenanceVerificationError(
+            f"Workflow name mismatch: receipt has '{receipt_wf_name}', expected '{expected_workflow_name}'"
+        )
+
+    receipt_wf_path = str(receipt["workflow_path"]).strip()
+    if receipt_wf_path != expected_workflow_path:
+        raise ProvenanceVerificationError(
+            f"Workflow path mismatch: receipt has '{receipt_wf_path}', expected '{expected_workflow_path}'"
+        )
+
+    receipt_art_name = str(receipt["artifact_name"]).strip()
+    if receipt_art_name == "latest":
+        raise ProvenanceVerificationError("Artifact name cannot be 'latest'")
+    if receipt_art_name != expected_artifact_name:
+        raise ProvenanceVerificationError(
+            f"Artifact name mismatch: receipt has '{receipt_art_name}', expected '{expected_artifact_name}'"
+        )
+
     receipt_event = str(receipt["event"]).strip()
     if receipt_event not in allowed_events:
         raise ProvenanceVerificationError(
             f"Event '{receipt_event}' not in allowed workflow events: {sorted(allowed_events)}"
         )
 
-    validate_sha256_digest(receipt["artifact_sha256"], field_name="receipt artifact_sha256")
-    validate_timestamp_format(str(receipt["created_at"]))
-    validate_positive_id(receipt["run_id"], "run_id")
-    validate_positive_id(receipt["artifact_id"], "artifact_id")
-
-    run_url = str(receipt["run_url"]).strip()
-    if not (run_url.startswith("https://") or run_url.startswith("http://")):
-        raise ProvenanceVerificationError(f"Invalid run_url '{run_url}': must be a valid URL")
+    if expected_workflow_id is not None:
+        validate_strict_int_id(expected_workflow_id, "expected_workflow_id")
+        if receipt["workflow_id"] != expected_workflow_id:
+            raise ProvenanceVerificationError(
+                f"Workflow ID mismatch: receipt has {receipt['workflow_id']}, expected {expected_workflow_id}"
+            )
 
 
 def verify_artifact_file(artifact_path: Path, expected_digest: str) -> str:
-    """Independently hash artifact file and compare against expected digest."""
-    if not artifact_path.is_file():
-        raise ProvenanceVerificationError(f"Artifact file not found: {artifact_path}")
+    """Independently hash artifact file bounded by MAX_ARTIFACT_BYTES and compare."""
+    read_bounded_bytes(artifact_path, MAX_ARTIFACT_BYTES, "Artifact")
     computed_digest = compute_file_sha256(artifact_path)
     expected_norm = expected_digest.strip().lower()
     if computed_digest != expected_norm:
         raise ProvenanceVerificationError(
-            f"Artifact digest mismatch: computed SHA256 '{computed_digest}' does not match receipt digest '{expected_norm}'"
+            f"Artifact file digest mismatch: computed SHA256 '{computed_digest}' does not match receipt digest '{expected_norm}'"
         )
     return computed_digest
 
@@ -179,35 +310,77 @@ def verify_provenance(
     receipt_path: Path,
     expected_sha: str,
     expected_branch: str = DEFAULT_BRANCH,
+    expected_workflow_name: str = DEFAULT_WORKFLOW_NAME,
+    expected_workflow_path: str = DEFAULT_WORKFLOW_PATH,
+    expected_artifact_name: str | None = None,
+    expected_workflow_id: int | None = None,
     allowed_events: frozenset[str] = DEFAULT_ALLOWED_EVENTS,
+    owner: str = DEFAULT_OWNER,
+    repo: str = DEFAULT_REPO,
+    mode: str = MODE_VERIFY_COMMITTED,
+    max_age_days: int = DEFAULT_MAX_AGE_DAYS,
 ) -> dict[str, Any]:
     """Execute complete fail-closed provenance verification."""
-    if not receipt_path.is_file():
-        raise ProvenanceVerificationError(f"Receipt file not found: {receipt_path}")
-
+    receipt_bytes = read_bounded_bytes(receipt_path, MAX_RECEIPT_BYTES, "Receipt")
     try:
-        receipt_data = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt_data = json.loads(receipt_bytes.decode("utf-8"), object_pairs_hook=check_duplicate_keys)
     except json.JSONDecodeError as exc:
         raise ProvenanceVerificationError(f"Receipt file is malformed JSON: {exc}") from exc
 
     validate_receipt_structure(receipt_data)
-    validate_receipt_content(receipt_data, expected_sha, expected_branch, allowed_events)
-    computed_digest = verify_artifact_file(artifact_path, receipt_data["artifact_sha256"])
+
+    norm_expected_sha = validate_commit_sha(expected_sha, "expected_sha")
+    art_name = expected_artifact_name
+    if art_name is None:
+        art_name = f"openapi-{norm_expected_sha}"
+
+    validate_receipt_identity(
+        receipt=receipt_data,
+        expected_sha=norm_expected_sha,
+        expected_branch=expected_branch,
+        expected_workflow_name=expected_workflow_name,
+        expected_workflow_path=expected_workflow_path,
+        expected_artifact_name=art_name,
+        allowed_events=allowed_events,
+        expected_workflow_id=expected_workflow_id,
+    )
+
+    validate_run_url(
+        run_url=receipt_data["run_url"],
+        run_id=receipt_data["run_id"],
+        owner=owner,
+        repo=repo,
+    )
+
+    created_at_dt = parse_utc_timestamp(str(receipt_data["created_at"]))
+    validate_expiration(created_at_dt=created_at_dt, mode=mode, max_age_days=max_age_days)
+
+    computed_file_digest = verify_artifact_file(
+        artifact_path=artifact_path,
+        expected_digest=receipt_data["artifact_file_sha256"],
+    )
 
     return {
         "status": "verified",
         "commit_sha": receipt_data["commit_sha"],
         "head_branch": receipt_data["head_branch"],
+        "workflow_name": receipt_data["workflow_name"],
+        "workflow_path": receipt_data["workflow_path"],
+        "workflow_id": receipt_data["workflow_id"],
+        "artifact_name": receipt_data["artifact_name"],
         "event": receipt_data["event"],
-        "artifact_sha256": computed_digest,
+        "archive_sha256": receipt_data["archive_sha256"],
+        "artifact_file_sha256": computed_file_digest,
         "run_id": receipt_data["run_id"],
         "artifact_id": receipt_data["artifact_id"],
+        "mode": mode,
     }
 
 
 def build_receipt(
     workflow_name: str,
-    workflow_id: int | str,
+    workflow_path: str,
+    workflow_id: int,
     run_id: int,
     run_url: str,
     artifact_id: int,
@@ -216,21 +389,24 @@ def build_receipt(
     head_branch: str,
     event: str,
     created_at: str,
-    artifact_sha256: str,
+    archive_sha256: str,
+    artifact_file_sha256: str,
 ) -> dict[str, Any]:
     """Helper to construct a validated provenance receipt dictionary."""
     receipt = {
         "workflow_name": str(workflow_name).strip(),
-        "workflow_id": workflow_id,
-        "run_id": validate_positive_id(run_id, "run_id"),
+        "workflow_path": str(workflow_path).strip(),
+        "workflow_id": validate_strict_int_id(workflow_id, "workflow_id"),
+        "run_id": validate_strict_int_id(run_id, "run_id"),
         "run_url": str(run_url).strip(),
-        "artifact_id": validate_positive_id(artifact_id, "artifact_id"),
+        "artifact_id": validate_strict_int_id(artifact_id, "artifact_id"),
         "artifact_name": str(artifact_name).strip(),
         "commit_sha": validate_commit_sha(commit_sha),
         "head_branch": str(head_branch).strip(),
         "event": str(event).strip(),
         "created_at": str(created_at).strip(),
-        "artifact_sha256": validate_sha256_digest(artifact_sha256),
+        "archive_sha256": validate_sha256_digest(archive_sha256, "archive_sha256"),
+        "artifact_file_sha256": validate_sha256_digest(artifact_file_sha256, "artifact_file_sha256"),
     }
     validate_receipt_structure(receipt)
     return receipt
@@ -244,7 +420,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--artifact-file",
         required=True,
         type=Path,
-        help="Path to the OpenAPI contract artifact file",
+        help="Path to the OpenAPI contract artifact file (extracted spec)",
     )
     parser.add_argument(
         "--receipt-file",
@@ -259,16 +435,64 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Exact pinned 40-character commit SHA (from main)",
     )
     parser.add_argument(
+        "--mode",
+        default=MODE_VERIFY_COMMITTED,
+        choices=[MODE_VERIFY_COMMITTED, MODE_DOWNLOAD_FRESH],
+        help=f"Verification mode: {MODE_VERIFY_COMMITTED} (default, CI) or {MODE_DOWNLOAD_FRESH} (fetch)",
+    )
+    parser.add_argument(
         "--expected-branch",
         default=DEFAULT_BRANCH,
         type=str,
         help=f"Expected source branch (default: {DEFAULT_BRANCH})",
     )
     parser.add_argument(
+        "--expected-workflow-name",
+        default=DEFAULT_WORKFLOW_NAME,
+        type=str,
+        help=f"Expected workflow name (default: '{DEFAULT_WORKFLOW_NAME}')",
+    )
+    parser.add_argument(
+        "--expected-workflow-path",
+        default=DEFAULT_WORKFLOW_PATH,
+        type=str,
+        help=f"Expected workflow path (default: '{DEFAULT_WORKFLOW_PATH}')",
+    )
+    parser.add_argument(
+        "--expected-workflow-id",
+        default=None,
+        type=int,
+        help="Expected workflow ID (int, resolved via gh actions workflows prior to fetch)",
+    )
+    parser.add_argument(
+        "--expected-artifact-name",
+        default=None,
+        type=str,
+        help="Expected artifact name (default: 'openapi-<expected_sha>')",
+    )
+    parser.add_argument(
         "--allowed-events",
         default=",".join(sorted(DEFAULT_ALLOWED_EVENTS)),
         type=str,
         help="Comma-separated allowlist of triggering workflow events",
+    )
+    parser.add_argument(
+        "--owner",
+        default=DEFAULT_OWNER,
+        type=str,
+        help=f"Expected repository owner (default: {DEFAULT_OWNER})",
+    )
+    parser.add_argument(
+        "--repo",
+        default=DEFAULT_REPO,
+        type=str,
+        help=f"Expected repository name (default: {DEFAULT_REPO})",
+    )
+    parser.add_argument(
+        "--max-age-days",
+        default=DEFAULT_MAX_AGE_DAYS,
+        type=int,
+        help=f"Max age in days for download-fresh mode (default: {DEFAULT_MAX_AGE_DAYS})",
     )
     return parser.parse_args(argv)
 
@@ -287,9 +511,20 @@ def run_cli(argv: list[str]) -> int:
             receipt_path=args.receipt_file,
             expected_sha=args.expected_sha,
             expected_branch=args.expected_branch,
+            expected_workflow_name=args.expected_workflow_name,
+            expected_workflow_path=args.expected_workflow_path,
+            expected_artifact_name=args.expected_artifact_name,
+            expected_workflow_id=args.expected_workflow_id,
             allowed_events=allowed_events,
+            owner=args.owner,
+            repo=args.repo,
+            mode=args.mode,
+            max_age_days=args.max_age_days,
         )
-        print(f"SUCCESS: Artifact provenance verified for commit {result['commit_sha']} (sha256: {result['artifact_sha256']})")
+        print(
+            f"SUCCESS: Artifact provenance verified for commit {result['commit_sha']} "
+            f"(mode: {result['mode']}, file_sha256: {result['artifact_file_sha256']}, archive_sha256: {result['archive_sha256']})"
+        )
         return 0
     except ProvenanceVerificationError as exc:
         print(f"FAIL CLOSED: Provenance verification failed: {exc}", file=sys.stderr)

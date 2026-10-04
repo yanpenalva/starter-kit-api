@@ -10,7 +10,7 @@ Preparar a infraestrutura de contrato OpenAPI, validação de proveniência de a
    - Valida que o artefato OpenAPI descende de `main` em SHA exato e completo de 40 caracteres hexadecimais (rejeita explicitamente `latest`, tags ou SHAs parciais).
    - Valida evento de disparo através de allowlist restrita (`workflow_dispatch`, `release`, `workflow_run`).
    - Recalcula independentemente o digest SHA256 do arquivo de artefato e compara com o valor registrado no receipt.
-   - Valida receipt completo contendo: `workflow_name`, `workflow_id`, `run_id`, `run_url`, `artifact_id`, `artifact_name`, `commit_sha`, `head_branch`, `event`, `created_at` e `artifact_sha256`.
+   - Valida receipt completo contendo: `workflow_name`, `workflow_path`, `workflow_id`, `run_id`, `run_url`, `artifact_id`, `artifact_name`, `commit_sha`, `head_branch`, `event`, `created_at`, `archive_sha256` e `artifact_file_sha256`.
    - Comportamento fail-closed: qualquer divergência, campo ausente ou valor malformado encerra a execução com status não-zero e mensagem descritiva.
    - Interface de CLI e helpers para uso pelo produtor e orquestrador.
 
@@ -22,7 +22,8 @@ Preparar a infraestrutura de contrato OpenAPI, validação de proveniência de a
 
 3. **Alinhamento documental de contexto**:
    - `.context/project/api.md`: registra o caminho de transporte ativo pelo orquestrador local com `gh` para repositórios privados (sem novo PAT para consumidor; builds do frontend sem credenciais de CI; `GITHUB_TOKEN contents:read` não cruza repositórios).
-   - `.context/project/stack.md`: registra a decisão de transporte e o version pin pretendido do Scramble (`dedoc/scramble >=0.13.4`).
+   - `.context/project/stack.md`: registra a decisão de transporte e o version pin exato do Scramble (`dedoc/scramble 0.13.47`).
+
 
 4. **Suite de testes automatizados (`tests/tools/test_verify_contract_artifact.py`)**:
    - Unittest em Python cobrindo cenários positivos e negativos (divergência de SHA256, SHA ausente ou inválido, evento fora da allowlist, branch diferente de `main`, metadata incompleta ou malformada, artefato inexistente, CLI).

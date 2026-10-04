@@ -2,10 +2,15 @@ name: OpenAPI Contract
 
 # Guarded draft workflow for OpenAPI contract generation and artifact publishing.
 # Stage A guard: this workflow rejects premature execution before Stage B is unlocked.
-# Stage B prerequisites:
-# 1. L1 authentication freeze (routes, session cookies, Sanctum SPA auth).
-# 2. Scramble package installation (dedoc/scramble >=0.13.4) and custom cookie securityScheme configuration.
-# 3. Deterministic export (LC_ALL=C, 2x idempotent export check).
+#
+# Three core pipeline invariants:
+# 1. Exact pin: Scramble package is pinned strictly to dedoc/scramble 0.13.47 (never >= or ^);
+#    installation is deferred to Stage B after L1 auth freeze (never installed today).
+# 2. Stage B exit-1 guard: execution is blocked with exit 1 until controllers, form requests,
+#    resources, and custom cookie securityScheme (starter-kit-api-session) are implemented.
+# 3. No fake success: this workflow never echoes simulated success or publishes hollow
+#    artifacts before real application routes and deterministic export (LC_ALL=C, 2x idempotent)
+#    are integrated and verified.
 #
 # No secrets are required or provisioned in this workflow.
 

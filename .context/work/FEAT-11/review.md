@@ -21,4 +21,5 @@
 2. **Qualidade de código Python**: Confirmar conformidade com a política de código (.context/policies/core/code-quality.md) — ausência total de `else`/`elif`, no máximo 3 retornos por função, funções concisas.
 3. **Fail-closed**: Confirmar que `scripts/verify_contract_artifact.py` falha com status não-zero em todos os casos adversariais testados.
 4. **Draft guardado**: Confirmar que `.github/workflows/openapi.yml` falha informativamente e não simula falso sucesso.
-5. **Gates CSD**: Confirmar que a suite completa de 26 testes Python e os validadores CSD passaram com zero erros.
+5. **Gates CSD**: Confirmar que a suite completa de 47 testes Python e os validadores CSD passaram com zero erros.
+

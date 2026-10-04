@@ -72,16 +72,23 @@ yanpenalva approved this policy via the question tool ("Aprovar transporte") on 
 
 ### Fail-closed verification and records
 
-- Caller inputs: the expected API SHA taken from a prior reviewed merge (exact 40-character hex SHA from `main`), not a Git tag or `latest`.
-- Implemented in `scripts/verify_contract_artifact.py`: fails closed unless the artifact originates from `main`, the commit SHA matches exactly, the triggering workflow event is in the allowlist (`workflow_dispatch`, `release`, `workflow_run`), all required receipt metadata fields are present and well-formed (`workflow_name`, `workflow_id`, `run_id`, `run_url`, `artifact_id`, `artifact_name`, `commit_sha`, `head_branch`, `event`, `created_at`, `artifact_sha256`), and the SHA-256 digest of the artifact file recomputed independently matches the receipt digest.
+- Caller inputs: the expected API SHA taken from a prior reviewed merge (exact 40-character hex SHA from `main`), and a logical contract version (not a Git tag or `latest`). Verification fails closed unless: the run completed successfully; the head SHA matches exactly; the workflow name, path, and event are allowlisted and trusted; the artifact is not expired; the archive digest matches; and the OpenAPI file SHA-256 is recomputed independently. Absent or expired artifacts fail at first fetch (fetch-time enforcement). Never use `latest`, never widen the check, never fall back to manually maintained DTOs.
+- Dual-digest separation (ARCHIVE digest ≠ FILE hash): The archive digest (`archive_sha256`, ZIP from GitHub Actions provider) and the extracted OpenAPI file hash (`artifact_file_sha256`) are stored separately in the receipt and both validated. NUNCA copiar o digest do ZIP como artifact_sha256. The file hash is independently recomputed from the extracted spec file stream.
+- Record per delivery: API repository SHA, workflow run id, path and workflow SHA, artifact id, archive digest (`archive_sha256`), file hash (`artifact_file_sha256`), contract version, generator version (`dedoc/scramble 0.13.47`), plus the SPA paired SHA and provenance. The archive digest proves transfer integrity, not authorship attestation.
 - Receipt metadata authentication vs attestation: The receipt authenticates GitHub Actions workflow run and artifact metadata; it does NOT implement cryptographic attestation or signing (no signing/notary is implemented at Stage A).
+- Explicit expiration policy (fetch-time enforcement): Two operational modes are supported in `scripts/verify_contract_artifact.py`:
+  1. `--mode download-fresh`: enforced during the initial fetch by the local orchestrator, applying `max_age` (default 90 days matching GitHub Actions retention) against a reliable UTC clock. Timestamps in the future beyond a 300-second skew tolerance fail closed immediately.
+  2. `--mode verify-committed`: used during consumer CI runs over durably committed contract files. No age expiration is evaluated, ensuring approved, committed specifications do not break CI randomly.
+- Recovery is limited to an API-owner rerun (Actions:write via the API-authorized identity, never the SPA token) or a newly explicit reviewed SHA. Never pretend that a workflow dispatch can reproduce an old `main` historical SHA arbitrarily.
 - Stage B deterministic export requirement: the producer export pipeline must execute under `LC_ALL=C` and enforce 2x idempotent export verification before generating the artifact hash.
 - Contract scope discipline: Stage A does not generate a fake live contract; `/up` is an operational liveness probe, not an application contract. When real controllers are implemented in Stage B, a transformer overlay will document real routes (with `/up` optional).
 
 ### Scope limits and current assumptions
 
-- Retention: the 90-day default is proposed as the technical default under existing policy; absent/expired artifacts fail the gate.
+- Retention: the 90-day default is proposed as the technical default under existing policy; absent/expired artifacts fail the gate at first fetch.
 - Production and backups are out of scope.
-- Guarded draft workflow: `.github/workflows/openapi.yml` exists as a guarded draft that fails explicitly if triggered before Stage B (awaiting L1 auth freeze and Scramble installation).
+- Scramble version pin: Target package version is strictly pinned to `dedoc/scramble 0.13.47` (installation deferred to Stage B after L1 auth freeze; never installed in Stage A).
+- Guarded draft workflow: `.github/workflows/openapi.yml` exists as a guarded draft with `name: OpenAPI Contract` that fails explicitly with `exit 1` if triggered before Stage B (awaiting L1 auth freeze and Scramble installation).
 - Sources: [fine-grained PAT permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), [GITHUB_TOKEN security](https://docs.github.com/en/actions/concepts/security/github_token), [security hardening](https://docs.github.com/en/actions/reference/security/secure-use), [workflow runs API](https://docs.github.com/en/rest/actions/workflow-runs), [artifact retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization), [gh run download](https://cli.github.com/manual/gh_run_download).
+
 
