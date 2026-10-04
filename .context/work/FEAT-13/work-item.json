@@ -4,8 +4,8 @@
   "title": "Sanctum SPA authentication, session profile, logout, and case-insensitive email uniqueness (API #13 and API #9 slice)",
   "track": "product",
   "type": "feature",
-  "phase": "verify",
-  "status": "active",
+  "phase": "close",
+  "status": "completed",
   "risk": "medium",
   "owner": "yanpenalva",
   "conversation_profile": "senior-software-engineer",
@@ -44,7 +44,10 @@
     "plan",
     "preflight",
     "execute",
-    "verify"
+    "verify",
+    "release",
+    "observe",
+    "close"
   ],
   "last_updated": "2026-10-04",
   "policy_exceptions": [

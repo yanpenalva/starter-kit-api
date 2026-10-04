@@ -25,3 +25,9 @@ Autor: implementação fiel à spec/preflight (estados independentes, CPF parcia
 - **Integração**: merge normal da PR #35 pelo parent (EXC-0001; **sem waiver de GitGuardian** — check passou por si): `main` @ `5604bf5e6fbbdb2c043780c82580f1cabf26293d`; CI `main` success (run `37215264091`).
 - **Artefato aceito em `main`**: seeder default exclusivo do catálogo (8 permissions / 2 roles / 0 users / 0 assignments; nenhum admin/credencial default; banco somente testing).
 - **Gate da onda 2: PASS.** Onda 3 pronta para execução (não iniciada). Issue #9 permanece aberta (progressiva; fechamento = parent no aceite completo).
+
+## Revisão independente de documentação e suporte (PR #38, conversation 3dd36b83-59ae-4223-80ea-94ff983c9681) — PASS para SHA 595ff44
+
+- **Objeto:** Evidências de aceite do FEAT-9 e FEAT-13 no commit de docs `769f289` e correção de suporte de fila no SHA `595ff44f402126e686bee55ce92e3f43afc2228f` no PR #38.
+- **Veredito independente:** **PASS** atestado na conversation `3dd36b83-59ae-4223-80ea-94ff983c9681` (CI run 37235838740, 89 testes / 572 assertions, 4 rodadas async, Pint, Larastan, CSD 7 PASS).
+- **Status do delta subsequente:** Novo delta (asserção de cardinalidade de `failed_jobs` e explicitação de limites de cobertura) permanece **PENDENTE de revisão independente pelo parent**. Nenhuma aprovação antecipada para o novo SHA é simulada. Issue #9 permanece aberta aguardando revisão e merge condicional do PR #38 pelo parent.

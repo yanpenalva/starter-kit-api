@@ -32,7 +32,7 @@ final class InfraQueueFailureTest extends TestCase
         $token = (string) Str::uuid();
         InfraFailingJob::dispatch($token);
 
-        $worker = $this->runBoundedWorker(tries: 2, extra: ['--backoff=1']);
+        $worker = $this->runBoundedWorker(tries: 2, extra: ['--backoff=1', '--once']);
         $this->assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
 
         // First attempt exhausted: no failure record yet, job waiting out the backoff.
@@ -46,6 +46,8 @@ final class InfraQueueFailureTest extends TestCase
 
         $retryWorker = $this->runBoundedWorker(tries: 2, extra: ['--backoff=1']);
         $this->assertTrue($retryWorker->isSuccessful(), $retryWorker->getErrorOutput());
+
+        $this->assertSame(1, (int) DB::table('failed_jobs')->count());
 
         $record = DB::table('failed_jobs')->first();
         $this->assertNotNull($record, 'exactly one failed_jobs record expected');
