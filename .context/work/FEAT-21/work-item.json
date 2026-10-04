@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-21",
+  "title": "Configurar logs seguros e adicionar ferramentas conforme necessidade",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "medium",
+    "impact": "system",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "security",
+      "testing"
+    ],
+    "deferred": [
+      "release",
+      "incident"
+    ],
+    "triggers": [
+      "API issue #21; wave-2 first slice: structured correlation id and redaction-safe logging around privileged flows; no new log tools"
+    ]
+  },
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "last_updated": "2026-10-03",
+  "policy_exceptions": [
+    "EXC-0001"
+  ]
+}

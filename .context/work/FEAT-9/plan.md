@@ -18,3 +18,7 @@
 
 - Índice único parcial `WHERE cpf IS NOT NULL` **aprovado**; teste de **concorrência de insert duplicado é obrigatório**: segunda conexão PDO com `lock_timeout` curto deve aguardar/ser rejeitada na entrada do índice único (55P03) ou violar a constraint (23505) — prova de serialização no banco.
 - Verificação de nome do banco (`starter_api_test`) por asserção antes de qualquer operação destrutiva; banco dev `starter_api_dev` ausente/inalterado.
+
+## Fatia 2 — wave 2: schema RBAC/audit e seed (planejamento, 2026-10-03)
+
+Segunda fatia sob a [decisão da wave 2](../FEAT-6/approval.md): coordenar e executar as migrations de catálogo e auditoria (`*_000002_permission_tables` — Spatie 8.3 schema oficial; `*_000003_activity_log` — Activitylog 5.1.1 schema oficial, donos: core writer), mantendo `*_000004_failed_jobs` intocado (lane async) e a ordem final integrada pelo pai. Detalhes por issue: [FEAT-16](../FEAT-16/spec.md), [FEAT-19](../FEAT-19/spec.md), [FEAT-12](../FEAT-12/spec.md), [FEAT-21](../FEAT-21/spec.md). Nenhuma tabela speculativa de sessions; nenhuma promoção real.
