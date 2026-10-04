@@ -21,12 +21,12 @@ O merge **não** foi executado sob alegação de checks todos verdes; a autoriza
 1. **Procedência de `9c5f102` resolvida** (ver [execution.md](execution.md), decisão parent 2026-10-04): explorer comprovou via lifecycle OpenCode (log + DB) autoria pela sessão fixer antiga retomada `ses_efbddf033ffevWJI0m8ZqB6Z2U` (2026-10-04T14:16:28Z), todo o conteúdo em escopo FEAT-20, sem escritores ativos.
 2. **Re-review oracle** (independente, não-GitHub): **PASS em `08009f7`** sobre todos os commits/conteúdo — inclui a revisão do workflow CI (serviços Redis/Mailpit efêmeros, pins compose, sem skip/exclusão de testes). Correções F2–F6 de rounds anteriores verificadas como aplicadas.
 3. **Evidência técnica auditável**: Pest **53 passed / 0 failed / 248 assertions** (com Redis/Mailpit reais, incl. afterCommit rollback/commit, retry/backoff→failed_jobs, 5 guardas negativas de prod simulado); Pint 58 files; Larastan 10 sem erros; CSD strict/--examples/unittest/doctor.
-4. **Scan local independente**: gitleaks (imagem oficial) sobre o range `4f7c74d..4888e89` = **0 leaks**; conteúdo sintético (`.test`, UUIDs, sem credenciais). O finding GitGuardian segue em investigação explorer independente; resultado será anexado quando disponível.
+4. **Scan local independente**: gitleaks (imagem oficial) sobre o range `4f7c74d..4888e89` = **0 leaks**. **Cobertura limitada**: o scan cobre até `4888e89` (penúltimo commit da PR) — o head final `08009f7` contém apenas o commit de workflow CI + docs FEAT-20 desta frente, mas **nenhum scan fresco do head final é alegado**. Conteúdo sintético (`.test`, UUIDs, sem credenciais). O finding GitGuardian segue em investigação explorer independente; resultado será anexado quando disponível.
 5. **Zero-diff core**: arquivos core-owned sem divergência vs `origin/main` na base revisada; única sobreposição intencional = bloco consentido de 11 linhas em `routes/console.php`.
 
 ## 4. Resultado e pós-merge
 
-- Merge executado pelo parent (squash/merge normal, sem `--admin`/`--force`), resultando em `main` @ **`44aa89a29dbda6a16164014c914cc3b411324186`**.
+- Merge executado pelo parent (merge commit normal de dois pais — `4f7c74d` + `08009f7`; sem squash, sem `--admin`/`--force`), resultando em `main` @ **`44aa89a29dbda6a16164014c914cc3b411324186`**.
 - CI de `main` no SHA do merge — **context: success** (https://github.com/yanpenalva/starter-kit-api/actions/runs/37211538628/job/111463556099) e **application: success** (https://github.com/yanpenalva/starter-kit-api/actions/runs/37211538628/job/111463556181), run `37211538628`.
 - Branch `feat/wave-2-async-recovery` preservada (não apagada).
 - Issue [#20](https://github.com/yanpenalva/starter-kit-api/issues/20) permanece **aberta/In progress**: consumidores #14/#15 são fatias futuras (ondas 4); a entrega FEAT-20 encerra a fatia de infraestrutura, não a issue inteira.

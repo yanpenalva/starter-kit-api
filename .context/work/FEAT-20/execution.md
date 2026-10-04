@@ -71,6 +71,8 @@ Gates frescos pós-correções: ver `verification.md` (seção 2026-10-04). **No
 
 ## Re-review oracle round 2 (2026-10-04, SHA `ccee7f4`)
 
+> **Seção histórica — SUPERSEDED pelo encerramento de 2026-10-04** (merge PR #34 `44aa89a`; work item `completed`/`close`, ver [outcome.md](outcome.md)). Status de época ("work item permanece `active`", "Merge BLOQUEADO") preservado sem reescrita; não reflete o estado atual.
+
 - **PASS WITH CONDITIONS**: F2–F6 verificadas como aplicadas; zero-diff core vs `origin/main` confirmado de forma independente; gates técnicos auditáveis (Pest 53 passed/248 assertions; Pint 58 files; Larastan 10 limpo; CSD strict/--examples/unittest/doctor; smoke async com cleanup lane-scoped).
 - **Nenhuma aprovação GitHub é alegada** (re-review por agente ≠ approving review); PR/merge/quadro = parent.
 - **Merge BLOQUEADO** até esclarecimento da proveniência de `9c5f102` (investigação explorer em andamento) — condição única restante; work item permanece `active`.

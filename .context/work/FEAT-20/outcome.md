@@ -15,7 +15,7 @@
 ## Learning
 
 - Expected outcome achieved: sim, para a fatia de infraestrutura (#20); testes de integração real (sem fakes/skips) passaram a rodar também no CI remoto.
-- Residual risk: (1) critério de gate da onda 2 "seed idempotente default" pendente — `DatabaseSeeder.php` ausente em `main` @ `44aa89a`; correção em lane separada; onda 3 não liberada. (2) Finding GitGuardian sob investigação explorer independente; scan local gitleaks = 0 leaks. (3) Sumário Pest do runner reporta "53 warnings" sem linhas explicativas (local: "53 passed") — a revisar.
+- Residual risk: (1) critério de gate da onda 2 "seed idempotente default" pendente — `DatabaseSeeder.php` ausente em `main` @ `44aa89a`; correção em lane separada; onda 3 não liberada. (2) Finding GitGuardian sob investigação explorer independente; scan local gitleaks = 0 leaks (cobertura até `4888e89`; ver [approval.md](approval.md)). (3) Sumário Pest "53 warnings" **observado somente no run da PR `37210792638`** (log revisado pelo oracle no SHA `08009f7`; local: "53 passed") — **não alegado para o run de `main`**, cujo output de teste não foi inspecionado linha a linha; o CI de `main` no merge `44aa89a` (run `37211538628`) está **success** (context/application, 53 testes/248 assertions conforme gate da PR) — a revisar quando houver necessidade.
 - Follow-up owner and due date: lane seed (parent) — gate onda 2; explorer — GG; issue [#20](https://github.com/yanpenalva/starter-kit-api/issues/20) permanece aberta para consumidores #14/#15 (onda 4).
 
 ## Closure decision
