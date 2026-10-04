@@ -8,7 +8,9 @@ use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
 use Database\Seeders\RbacCatalogueSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class ProfileTest extends TestCase
@@ -151,5 +153,34 @@ final class ProfileTest extends TestCase
         $response->assertOk();
         $this->assertSame($alice->id, $response->json('data.id'));
         $this->assertSame('Alice', $response->json('data.name'));
+    }
+
+    public function test_bearer_authorization_header_returns_401_without_querying_tokens(): void
+    {
+        $executedQueries = [];
+        DB::listen(static function (QueryExecuted $query) use (&$executedQueries): void {
+            $executedQueries[] = $query->sql;
+        });
+
+        $response = $this->withHeader('Authorization', 'Bearer invalid-or-dummy-token')
+            ->getJson('/api/v1/auth/my-profile');
+
+        $response->assertStatus(401)
+            ->assertExactJson(['message' => 'Unauthenticated.']);
+
+        $this->assertSame([], $executedQueries);
+    }
+
+    public function test_bearer_authorization_header_is_rejected_even_when_session_is_authenticated(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user, 'web')
+            ->withHeader('Authorization', 'Bearer dummy-token')
+            ->getJson('/api/v1/auth/my-profile');
+
+        $response->assertStatus(401)
+            ->assertExactJson(['message' => 'Unauthenticated.']);
     }
 }

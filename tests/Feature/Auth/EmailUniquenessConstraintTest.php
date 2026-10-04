@@ -87,6 +87,24 @@ final class EmailUniquenessConstraintTest extends TestCase
         ]);
     }
 
+    public function test_duplicate_whitespace_variant_email_is_rejected_by_the_database(): void
+    {
+        User::factory()->create([
+            'email' => 'whitespace.check@example.test',
+        ]);
+
+        $this->expectException(QueryException::class);
+        $this->expectExceptionMessage('users_email_lower_unique');
+
+        DB::table('users')->insert([
+            'name' => 'Whitespace Variant',
+            'email' => "\t  whitespace.check@example.test \r\n",
+            'password' => 'password',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function test_concurrent_duplicate_case_variant_email_insert_waits_on_the_unique_index(): void
     {
         User::factory()->create([
@@ -138,9 +156,21 @@ final class EmailUniquenessConstraintTest extends TestCase
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'name' => 'Collision User 3 (Whitespace)',
+                'email' => "\t  collision@example.test \r\n",
+                'password' => 'secret',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
 
-        $this->assertSame(2, DB::table('users')->whereRaw("lower(email) = 'collision@example.test'")->count());
+        $this->assertSame(
+            3,
+            DB::table('users')
+                ->whereRaw("lower(btrim(email, E' \\t\\n\\r\\x0B')) = 'collision@example.test'")
+                ->count(),
+        );
 
         try {
             $migration->up();
@@ -153,17 +183,24 @@ final class EmailUniquenessConstraintTest extends TestCase
         }
 
         // Verify data was NOT deleted or rewritten
-        $this->assertSame(2, DB::table('users')->whereRaw("lower(email) = 'collision@example.test'")->count());
-        $this->assertEqualsCanonicalizing(
-            ['collision@example.test', 'COLLISION@EXAMPLE.TEST'],
+        $this->assertSame(
+            3,
             DB::table('users')
-                ->whereRaw("lower(email) = 'collision@example.test'")
+                ->whereRaw("lower(btrim(email, E' \\t\\n\\r\\x0B')) = 'collision@example.test'")
+                ->count(),
+        );
+        $this->assertEqualsCanonicalizing(
+            ['collision@example.test', 'COLLISION@EXAMPLE.TEST', "\t  collision@example.test \r\n"],
+            DB::table('users')
+                ->whereRaw("lower(btrim(email, E' \\t\\n\\r\\x0B')) = 'collision@example.test'")
                 ->pluck('email')
                 ->all(),
         );
 
         // Clean up colliding data so subsequent tests or teardown are clean
-        DB::table('users')->where('email', 'COLLISION@EXAMPLE.TEST')->delete();
+        DB::table('users')
+            ->whereIn('email', ['COLLISION@EXAMPLE.TEST', "\t  collision@example.test \r\n"])
+            ->delete();
         $migration->up();
     }
 
@@ -197,5 +234,23 @@ final class EmailUniquenessConstraintTest extends TestCase
 
         // Restore index
         $migration->up();
+    }
+
+    public function test_existing_stored_whitespace_email_can_be_found_by_canonical_lookup_without_modifying_row(): void
+    {
+        DB::table('users')->insert([
+            'name' => 'Legacy Padded',
+            'email' => "  legacy.user@example.test \r\n",
+            'password' => 'secret',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $found = DB::table('users')
+            ->whereRaw("lower(btrim(email, E' \\t\\n\\r\\x0B')) = ?", ['legacy.user@example.test'])
+            ->first();
+
+        $this->assertNotNull($found);
+        $this->assertSame("  legacy.user@example.test \r\n", $found->email);
     }
 }

@@ -26,7 +26,7 @@ final class LoginController
 
         /** @var User|null $user */
         $user = User::query()
-            ->whereRaw('lower(email) = ?', [$normalizedEmail])
+            ->whereRaw('lower(btrim(email, E\' \\t\\n\\r\\x0B\')) = ?', [$normalizedEmail])
             ->first();
 
         if ($user === null) {

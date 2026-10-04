@@ -9,8 +9,8 @@
 - **Environment File:** Local untracked `/home/hiyan/Development/github/personal/starter-kit-api-wave3-auth-worktree/.env` (contains local non-secret dev credentials; no production credentials).
 - **Base Commit:** `5d8c198296949b7f3c66b2bd56f086cb8f9ceafe` (`origin/main`).
 - **Baseline Totals:** 57 tests, 293 assertions passing.
-- **Candidate Commit (Pushed `c4eacbf`):** 82 tests, 460 assertions passing.
-- **Current Patched State Totals:** 82 tests, 526 assertions passing (+25 tests, +233 assertions over baseline).
+- **Candidate Commit (Pushed `c6577fe`):** 82 tests, 526 assertions passing.
+- **Current Patched State Totals:** 89 tests, 572 assertions passing (+32 tests, +279 assertions over baseline).
 
 ## Quality Gates and Complete Sanitized Commands
 1. `docker compose -p starter-wave3-auth run --rm --no-deps api composer validate --strict`
@@ -24,13 +24,13 @@
    - Output: `No security vulnerability advisories found.`
 4. `docker compose -p starter-wave3-auth run --rm --no-deps api composer lint`
    - Exit code: 0
-   - Output: `PASS ... 73 files` (0 style issues).
+   - Output: `PASS ... 74 files` (0 style issues).
 5. `docker compose -p starter-wave3-auth run --rm --no-deps api composer analyse`
    - Exit code: 0
    - Output: `[OK] No errors` (strict Larastan Level 10, no baseline).
 6. `docker compose -p starter-wave3-auth --profile test run --rm test vendor/bin/pest`
    - Exit code: 0
-   - Output: `Tests: 82 passed (526 assertions), Duration: 30.68s` (0 failures, 0 errors).
+   - Output: `Tests: 89 passed (572 assertions), Duration: 31.54s` (0 failures, 0 errors).
 
 ## CSD and Project Integrity
 1. `python3 scripts/validate_context.py --strict`
@@ -41,7 +41,7 @@
    - Output: `Context validation passed.`
 3. `python3 -m unittest discover -s tests -v`
    - Exit code: 0
-   - Output: `Ran 7 tests in 1.310s, OK`
+   - Output: `Ran 7 tests in 1.328s, OK`
 4. `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project`
    - Exit code: 0
    - Output: `CSD is healthy (1.2.1)`
@@ -55,6 +55,7 @@ Executed against ephemeral single-process `php -S 127.0.0.1:8099` running with c
 - **Non-Stateful Bypass:** Login attempt with non-stateful origin is rejected with 419 (`EnsureStatefulSession`).
 - **Successful Login:** Returns 204 with credentialed CORS headers (`Access-Control-Allow-Origin: http://localhost:5173`, `Access-Control-Allow-Credentials: true`).
 - **Genuine Session Fixation Proof:** Pre-login cookie jar snapshot is replayed against `GET /api/v1/auth/my-profile` post-login; returns 401 unauthenticated, while the authenticated jar returns 200 with approved profile schema. This proves session migration without relying on randomized encrypted cookie string inequality.
+- **Disallowed Header Authentication:** Request with `Authorization: Bearer` header returns 401 unauthenticated fail-closed even when valid session cookies are present (`DisallowHeaderAuthentication`).
 - **Existing-Session Deactivation Interception:** Authenticated session for active account receives HTTP 403 once account is deactivated in the database (`EnsureAccountNotDeactivated`).
 - **Logout & Invalidation Proof:** Pre-logout authenticated cookie snapshot is replayed post-logout; returns 401 unauthenticated, proving server-side session invalidation.
 - **Stale CSRF Token Rejection:** State-changing POST with pre-logout CSRF token returns 419. Fresh CSRF token from new cookie jar is accepted (returns 401 on bad credentials instead of 419).
@@ -62,7 +63,13 @@ Executed against ephemeral single-process `php -S 127.0.0.1:8099` running with c
 *Limitation Note:* This test exercises the HTTP socket, cookie handling, and middleware boundary. It is distinct from a full browser-driven SPA E2E test.
 
 ## RFC vs Product Identity Contract
-- Decision: Email case-insensitivity is a product identity contract for this system, enforced at the database level via `lower(email)` unique expression index and in the application via `mb_strtolower(trim($email))`. It is not an assertion of universal RFC 5321/5322 behavior, but guarantees unambiguous user account identification.
+- Decision: Email case-insensitivity and whitespace trimming is a product identity contract for this system, enforced at the database level via `lower(btrim(email, E' \t\n\r\x0B'))` unique expression index and in the application via `mb_strtolower(trim($email))`. It is not an assertion of universal RFC 5321/5322 behavior, but guarantees unambiguous user account identification.
 
 ## Scope Boundary & Resolution
 - `tests/Feature/ScaffoldTest.php` line 57 was updated in candidate commit `c4eacbf` to accommodate newly registered auth endpoints in public surface assertion (`api/v1/login`, `api/v1/auth/my-profile`, `api/v1/logout`). Initially flagged as an ownership boundary BLOCKER, this modification is now RESOLVED by explicit parent authorization. Verification confirmed the diff against base `5d8c198296949b7f3c66b2bd56f086cb8f9ceafe` contains strictly those three approved routes with no weakening or unrelated edits. Independent review remains PENDING.
+
+## Oracle ora2 Review Findings Resolution
+- **M1 (Sanctum Token Fallback 500 Elimination):** Resolved. Requests with `Authorization` headers are rejected with HTTP 401 via `DisallowHeaderAuthentication` before authentication, with 0 queries to `personal_access_tokens`.
+- **M2 (PostgreSQL Whitespace Trimming Asymmetry):** Resolved. Aligned database index and query to `lower(btrim(email, E' \t\n\r\x0B'))`.
+- **L3 (Redundant Middleware Definition):** Resolved. Removed manual `api` group override in `bootstrap/app.php`.
+- **L4 (Production Trusted Proxies Documentation):** Resolved. Documented in `auth.md` and verification records that trusted proxies default to empty.

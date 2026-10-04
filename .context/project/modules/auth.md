@@ -25,16 +25,17 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
 - **Request:** JSON `{ "email": "...", "password": "..." }`.
 - **Validation:** `LoginRequest` validates input presence and formats. Fails with standard HTTP 422 `{ "message": "...", "errors": { ... } }` without echoing credentials.
 - **Normalization:** Email is trimmed and lowercased (`mb_strtolower(trim($email))`).
-- **Database Lookup:** Case-insensitive lookup backed by the `users_email_lower_unique` index: `lower(email) = ?`.
+- **Database Lookup:** Case-insensitive, whitespace-trimmed lookup backed by the `users_email_lower_unique` index: `lower(btrim(email, E' \t\n\r\x0B')) = ?`.
 - **Timing and Enumeration Defense:** If the account does not exist, a constant dummy hash check is performed using standard bcrypt work factor, preventing timing side-channels and account enumeration.
 - **Authentication:**
+  - Non-empty `Authorization` header: generic HTTP 401 `{ "message": "Unauthenticated." }` via `DisallowHeaderAuthentication`.
   - Unknown email or wrong password: generic HTTP 401 `{ "message": "Invalid credentials." }`.
   - Deactivated account with wrong password: generic HTTP 401 `{ "message": "Invalid credentials." }` (avoids revealing deactivated status without valid credentials).
   - Deactivated account with correct credentials: HTTP 403 `{ "message": "This account has been deactivated." }`.
   - Active account with correct credentials: authenticates via `web` session guard, regenerates session ID to prevent session fixation, and returns empty HTTP 204.
 
 ### 2. `GET /api/v1/auth/my-profile`
-- **Authentication:** Requires active session (`auth:sanctum` / `auth:web`). Anonymous requests receive HTTP 401.
+- **Authentication:** Requires active session (`auth:sanctum` / `auth:web`). Anonymous requests receive HTTP 401. Requests presenting an `Authorization` header receive HTTP 401 fail-closed via `DisallowHeaderAuthentication` before Sanctum token fallback.
 - **Account Eligibility:** An explicitly deactivated account (`deactivated_at !== null`) receives HTTP 403.
 - **Response Format:** HTTP 200 `{ "data": { "id": int, "name": string, "email": string, "email_verified_at": "RFC3339 UTC"|null, "roles": string[], "permissions": string[] } }`.
 - **Authorization & Invariants:**
@@ -44,13 +45,14 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
   - CPF, password, remember tokens, and sensitive attributes are excluded.
 
 ### 3. `POST /api/v1/logout`
-- **Authentication:** Requires active session (`auth:sanctum` / `auth:web`). Anonymous requests receive HTTP 401.
+- **Authentication:** Requires active session (`auth:sanctum` / `auth:web`). Anonymous requests receive HTTP 401. Requests presenting an `Authorization` header receive HTTP 401 via `DisallowHeaderAuthentication`.
 - **Action:** Logs out of `web` guard, invalidates the server session, and regenerates the CSRF token. Returns HTTP 204.
 - **Subsequent Requests:** Requests reusing the previous session cookie receive HTTP 401.
 
 ## Security Architecture
 
-- **Session Stateful Guard:** Operates exclusively with Laravel Sanctum session cookies (HttpOnly, SameSite=lax). No PAT / JWT storage.
+- **Session Stateful Guard & Header Rejection:** Operates exclusively with Laravel Sanctum session cookies (HttpOnly, SameSite=lax). No PAT / JWT storage. Any request bearing an `Authorization` header is immediately rejected fail-closed with HTTP 401 (`DisallowHeaderAuthentication`), completely preventing fallback queries against non-existent token storage (`personal_access_tokens`).
 - **CSRF Enforcement:** State-changing requests (`POST /login`, `POST /logout`) enforce CSRF validation (`PreventRequestForgery`). Bypassing stateful Origin/Referer is rejected (`EnsureStatefulSession`) rather than crashing or skipping CSRF.
 - **Rate Limiting:** Dedicated `login` limiter in `AppServiceProvider` allows 5 attempts/minute per bucket. The bucket key is `hash('sha256', mb_strtolower(trim($email)) . '|' . $ip)`, completely eliminating PII from cache keys while isolating both IP and normalized identity.
-- **Email Identity Contract:** Case-insensitive email uniqueness enforced at the database level by PostgreSQL expression index `CREATE UNIQUE INDEX users_email_lower_unique ON users (lower(email))`.
+- **Email Identity Contract:** Case-insensitive and whitespace-trimmed email uniqueness enforced at the database level by PostgreSQL expression index `CREATE UNIQUE INDEX users_email_lower_unique ON users (lower(btrim(email, E' \t\n\r\x0B')))`.
+- **Trusted Proxies Limitation:** Trusted proxies are configured as empty by design (`$middleware->trustProxies(at: [])`). No RFC1918 private ranges or localhost addresses are trusted by default. In production deployments fronted by reverse proxies or load balancers (e.g. AWS ALB, Cloudflare, NGINX), trusted proxies must be explicitly configured in deployment environment / proxy settings before trusting client IP headers for rate limiting and audit logs.

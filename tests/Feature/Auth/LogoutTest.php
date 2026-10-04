@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class LogoutTest extends TestCase
@@ -68,5 +70,21 @@ final class LogoutTest extends TestCase
 
         $response->assertNoContent();
         $this->assertGuest('web');
+    }
+
+    public function test_bearer_authorization_header_returns_401_without_querying_tokens(): void
+    {
+        $executedQueries = [];
+        DB::listen(static function (QueryExecuted $query) use (&$executedQueries): void {
+            $executedQueries[] = $query->sql;
+        });
+
+        $response = $this->withHeader('Authorization', 'Bearer dummy-token')
+            ->postJson('/api/v1/logout');
+
+        $response->assertStatus(401)
+            ->assertExactJson(['message' => 'Unauthenticated.']);
+
+        $this->assertSame([], $executedQueries);
     }
 }

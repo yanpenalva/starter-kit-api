@@ -13,7 +13,7 @@ return new class extends Migration
         // cleanly without rewriting, modifying, or deleting any existing records.
         $hasCollisions = DB::table('users')
             ->selectRaw('1')
-            ->groupByRaw('lower(email)')
+            ->groupByRaw('lower(btrim(email, E\' \\t\\n\\r\\x0B\'))')
             ->havingRaw('count(*) > 1')
             ->exists();
 
@@ -23,9 +23,9 @@ return new class extends Migration
             );
         }
 
-        // Minimal PostgreSQL expression index on lower(email).
-        // Enforces case-insensitive email uniqueness at the storage engine level.
-        DB::statement('CREATE UNIQUE INDEX users_email_lower_unique ON users (lower(email))');
+        // Minimal PostgreSQL expression index on lower(btrim(email, E' \t\n\r\x0B')).
+        // Enforces case-insensitive and whitespace-trimmed email uniqueness at the storage engine level.
+        DB::statement('CREATE UNIQUE INDEX users_email_lower_unique ON users (lower(btrim(email, E\' \\t\\n\\r\\x0B\')))');
     }
 
     public function down(): void

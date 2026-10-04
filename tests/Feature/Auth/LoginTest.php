@@ -61,7 +61,7 @@ final class LoginTest extends TestCase
                 'Referer' => 'http://localhost:5173/',
             ])
             ->postJson('/api/v1/login', [
-                'email' => '  CASE.SENSITIVE@EXAMPLE.TEST  ',
+                'email' => "\t  CASE.SENSITIVE@EXAMPLE.TEST \r\n",
                 'password' => 'secret123',
             ]);
 
@@ -250,5 +250,43 @@ final class LoginTest extends TestCase
         ]);
 
         $response->assertStatus(419);
+    }
+
+    public function test_login_rejects_bearer_authorization_header_with_401(): void
+    {
+        $response = $this->withSession([])
+            ->withHeaders([
+                'Origin' => 'http://localhost:5173',
+                'Referer' => 'http://localhost:5173/',
+                'Authorization' => 'Bearer some-bearer-token',
+            ])
+            ->postJson('/api/v1/login', [
+                'email' => 'user@example.test',
+                'password' => 'secret123',
+            ]);
+
+        $response->assertStatus(401)
+            ->assertExactJson(['message' => 'Unauthenticated.']);
+    }
+
+    public function test_login_succeeds_for_user_with_stored_whitespace_in_database(): void
+    {
+        $user = User::factory()->create([
+            'email' => "  stored.whitespace@example.test\t",
+            'password' => 'secret123',
+        ]);
+
+        $response = $this->withSession([])
+            ->withHeaders([
+                'Origin' => 'http://localhost:5173',
+                'Referer' => 'http://localhost:5173/',
+            ])
+            ->postJson('/api/v1/login', [
+                'email' => 'stored.whitespace@example.test',
+                'password' => 'secret123',
+            ]);
+
+        $response->assertNoContent();
+        $this->assertAuthenticatedAs($user, 'web');
     }
 }

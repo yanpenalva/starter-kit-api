@@ -192,6 +192,16 @@ final class HttpAuthSmokeTest extends TestCase
             $this->assertSame($user->id, $profileData['data']['id']);
             $this->assertSame(self::SMOKE_EMAIL, $profileData['data']['email']);
 
+            // 8b. Disallowed Header Authentication: Bearer header is rejected with 401 even with authenticated cookies
+            $headerResponse = $client->get('/api/v1/auth/my-profile', [
+                'headers' => [
+                    'Origin' => 'http://localhost:5173',
+                    'Referer' => 'http://localhost:5173/',
+                    'Authorization' => 'Bearer token-not-allowed',
+                ],
+            ]);
+            $this->assertSame(401, $headerResponse->getStatusCode(), 'Bearer authorization header must return 401');
+
             // 9. Existing-session deactivation interception: active session receives 403 once account is deactivated
             User::factory()->create([
                 'email' => self::DEACTIVATED_EMAIL,

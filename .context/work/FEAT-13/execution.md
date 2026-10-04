@@ -35,11 +35,20 @@
       - Added `SameSite=Lax` attribute check on raw `Set-Cookie` response headers.
       - Added existing-session deactivation interception: active session receives HTTP 403 once account is deactivated in the database.
       - Added non-stateful bypass rejection: non-stateful origin receives HTTP 419.
+      - Added disallowed header authentication check: request with `Authorization: Bearer` header returns 401 unauthenticated even with valid session cookies.
     - `tests/Feature/Auth/EmailUniquenessConstraintTest.php`:
       - Added comprehensive fail-closed isolation guards in `setUp()` ensuring testing environment and preventing execution with parallel runner tokens or database URL overrides.
-  - **Test Coverage (Current State):** All 25 new tests across 5 test suites pass cleanly (82 tests / 526 assertions total in suite):
-    - `tests/Feature/Auth/EmailUniquenessConstraintTest.php` (4 passed, 42 assertions)
-    - `tests/Feature/Auth/LoginTest.php` (10 passed, 62 assertions)
-    - `tests/Feature/Auth/ProfileTest.php` (6 passed, 47 assertions)
-    - `tests/Feature/Auth/LogoutTest.php` (4 passed, 21 assertions)
-    - `tests/Feature/Auth/HttpAuthSmokeTest.php` (1 passed, 56 assertions)
+      - Added duplicate whitespace variant rejection test verifying the PostgreSQL unique index rejects emails with tabs, newlines, and padding.
+      - Added fail-closed whitespace collision check test during migration.
+      - Added test proving legacy padded email records in DB can be located via canonical query without modifying the stored record.
+  - **Oracle ora2 Review Resolution (Post-c6577fe Hardening):**
+    - **M1 (Sanctum PAT Token Fallback Elimination):** Created `app/Http/Middleware/DisallowHeaderAuthentication.php` rejecting non-empty `Authorization` headers with HTTP 401 fail-closed. Prioritized before authentication middleware via `$middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: DisallowHeaderAuthentication::class)` in `bootstrap/app.php` and attached to `/login`, `/auth/my-profile`, and `/logout` routes. Proved via `DB::listen` that 0 queries are executed against `personal_access_tokens`.
+    - **M2 (PostgreSQL vs PHP Whitespace Trimming Alignment):** Aligned PostgreSQL unique index and collision check with PHP `trim()` using `lower(btrim(email, E' \t\n\r\x0B'))`. Updated unreleased migration `database/migrations/2026_10_04_000001_add_case_insensitive_email_unique_index_to_users_table.php` and `LoginController.php` query.
+    - **L3 (Redundant Middleware Registration):** Cleaned up `bootstrap/app.php` by removing manual `api` group overwrite and utilizing `$middleware->statefulApi()` and `$middleware->throttleApi()` directly.
+    - **L4 (Trusted Proxies Limitation Documentation):** Documented in `.context/project/modules/auth.md` and FEAT-13 records that trusted proxies default to empty by design.
+  - **Test Coverage (Current State):** All 32 new tests across 5 test suites pass cleanly (89 tests / 572 assertions total in suite):
+    - `tests/Feature/Auth/EmailUniquenessConstraintTest.php` (6 passed, 62 assertions)
+    - `tests/Feature/Auth/LoginTest.php` (12 passed, 72 assertions)
+    - `tests/Feature/Auth/ProfileTest.php` (8 passed, 57 assertions)
+    - `tests/Feature/Auth/LogoutTest.php` (5 passed, 25 assertions)
+    - `tests/Feature/Auth/HttpAuthSmokeTest.php` (1 passed, 57 assertions)
