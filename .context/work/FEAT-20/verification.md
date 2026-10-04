@@ -47,14 +47,14 @@ Isolamento: todos os comandos Docker com `-p starter-wave2-async` e `API_DEV_IMA
 
 - Request and spec aligned: yes
 - Plan followed: yes (F1–F4 + round 2 F2–F6)
-- Scope drift: none (arquivos async + FEAT-20; README/core intocados)
+- Scope drift: none (arquivos async + FEAT-20; docs-only follow-up limitado a README + FEAT-20)
 - Security impact addressed: yes — sem segredos/PII; guardas de ambiente agora nos 3 comandos dev; default after_commit false; stack default sem Redis/Mailpit; warnings de destruição de volume no compose
 - Regression risk: low — core-owned zero-diff vs main (verificado: `git diff origin/main` vazio nos arquivos core; única sobreposição `routes/console.php` = 11 linhas consentidas)
 - Core policy evidence: code-quality/testing/delivery; EXC-0001 (branch `feat/wave-2-async-recovery` → `main`, remote `origin`, registrado em execution.md)
-- Quality gate result: implementador — gates locais verdes 2026-10-04; **re-review oracle final pendente (não autoaprovado)**
+- Quality gate result: **re-review oracle round 2 em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`: PASS WITH CONDITIONS** — F2–F6 aplicadas, zero-diff core independente, gates 53/248 auditáveis; condição restante: proveniência de `9c5f102` (explorer) BLOQUEIA merge; gate parent; **nenhuma aprovação GitHub é alegada**
 - Security/privacy result: nenhum dado sensível em logs/testes/saídas; `.env` nunca lido (só `--env-file`)
-- AI-use controls and human review: Oracle PASS WITH CONDITIONS em `9c61e18` (ver `review.md`); correções F2–F6 aplicadas nesta sessão; veredito final com revisor independente
-- Subtask/wave integration evidence: FEAT-20-IMPL + FEAT-20-RECOVERY concluídos; round 2 executado; FEAT-20-VERIFY aguarda re-review oracle no SHA final
+- AI-use controls and human review: Oracle PASS WITH CONDITIONS em `9c61e18` + re-review `PASS WITH CONDITIONS` em `ccee7f4`; docs-only pós-re-review sem re-execução de gates PHP (produção intocada); nenhuma autoaprovação
+- Subtask/wave integration evidence: FEAT-20-IMPL + FEAT-20-RECOVERY + round 2 concluídos; integração BLOQUEADA por proveniência de `9c5f102`; PR/merge/quadro = parent
 
 ## Findings
 
@@ -69,4 +69,4 @@ Isolamento: todos os comandos Docker com `-p starter-wave2-async` e `API_DEV_IMA
 
 ## Verdict
 
-`APPROVED WITH CONDITIONS` (implementador; condição do round 1) — **revisão independente oracle em `9c61e18`: PASS WITH CONDITIONS** (F2–F6 atribuídos e aplicados neste SHA). Work item permanece `active` até re-review oracle no SHA final desta branch; PR/merge/integração = parent.
+`PASS WITH CONDITIONS` (re-review oracle round 2, em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`) — F2–F6 aplicadas e verificadas; condição restante: proveniência de `9c5f102` (investigação explorer) BLOQUEIA merge; gate parent. Work item permanece `active`; PR/merge/integração/quadro = parent; nenhuma aprovação GitHub é alegada.

@@ -68,3 +68,10 @@ Após merge `eef1206` (origin/main `4f7c74d`, zero conflito, histórico preserva
 5. **F4 — limitação do healthcheck documentada**: comentários em `worker`/`scheduler`: o probe prova só conectividade/escrita Redis, NÃO consumo de jobs; aceito dev-only, produção deve monitorar profundidade/lag de fila.
 
 Gates frescos pós-correções: ver `verification.md` (seção 2026-10-04). **Nota de governança**: o commit `9c5f102` (contendo estas correções + um adendo anterior de execution.md) apareceu no reflog como commit não executado por este fixer; conteúdo conferido arquivo a arquivo contra as edições desta sessão (idêntico) e a alegação de zero-diff core re-verificada de forma independente (`git diff origin/main` nos arquivos core-owned: vazio; única sobreposição `routes/console.php` = 11 linhas consentidas). Anomalia reportada ao orquestrador para atribuição.
+
+## Re-review oracle round 2 (2026-10-04, SHA `ccee7f4`)
+
+- **PASS WITH CONDITIONS**: F2–F6 verificadas como aplicadas; zero-diff core vs `origin/main` confirmado de forma independente; gates técnicos auditáveis (Pest 53 passed/248 assertions; Pint 58 files; Larastan 10 limpo; CSD strict/--examples/unittest/doctor; smoke async com cleanup lane-scoped).
+- **Nenhuma aprovação GitHub é alegada** (re-review por agente ≠ approving review); PR/merge/quadro = parent.
+- **Merge BLOQUEADO** até esclarecimento da proveniência de `9c5f102` (investigação explorer em andamento) — condição única restante; work item permanece `active`.
+- Follow-up docs-only pós-re-review (este registro): README.md (seção async — perfil opt-in com Redis/Mailpit/worker/scheduler dev, defaults `sync`/`log`, recomendação `scripts/async_dev.sh` + `-p` único por worktree, sem comando cru perigoso) + adendos FEAT-20. Nenhum arquivo de produção/config/testes alterado; gates PHP NÃO re-executados (produção intocada); CSD re-validado após as edições.

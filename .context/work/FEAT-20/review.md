@@ -1,12 +1,20 @@
 # Review — FEAT-20
 
-> **STATUS: IN RE-REVIEW — work item `active`.**
-> Revisão independente oracle: **PASS WITH CONDITIONS em `9c61e18`**
-> (branch `feat/wave-2-async-recovery`, pré-correções round 2), com as
-> condições F2–F6 registradas abaixo e atribuídas ao implementador/fixer.
-> Correções aplicadas em `9c5f102` + adendos de contexto (este SHA).
-> **Follow-up final pendente: re-review oracle no SHA final antes de
-> qualquer integração/PR. Nenhuma autoaprovação é alegada.**
+> **STATUS: IN RE-REVIEW — work item `active`. MERGE BLOQUEADO por
+> procedência do commit `9c5f102` (investigação explorer em andamento);
+> gate = parent.**
+>
+> - Revisão independente oracle round 1: **PASS WITH CONDITIONS em
+>   `9c61e18`** (condições F2–F6 atribuídas ao fixer).
+> - Re-review oracle round 2: **PASS WITH CONDITIONS em
+>   `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`** — F2–F6 aplicadas,
+>   zero-diff core vs `origin/main` confirmado de forma independente,
+>   gates técnicos auditáveis (Pest **53 passed / 248 assertions**).
+> - **Nenhuma aprovação GitHub é alegada**: re-review por agente na conta
+>   do autor não equivale a approving review; PR/merge/quadro = parent.
+> - Condição residual: esclarecimento da proveniência de `9c5f102`
+>   (commit não-executado pelo fixer da sessão; conteúdo auditado arquivo
+>   a arquivo, idêntico às edições da sessão).
 
 ## Inputs
 
@@ -53,4 +61,5 @@
 
 ## Verdict
 
-`PASS WITH CONDITIONS` (oracle, em `9c61e18`) — condições F2–F6 **aplicadas** (`9c5f102` + adendos). **Re-review oracle no SHA final ainda PENDENTE**; work item permanece `active` até então. PR/integração = parent (não iniciados nesta sessão).
+Round 1 — oracle, em `9c61e18`: `PASS WITH CONDITIONS` (F2–F6 atribuídas).
+Round 2 — re-review oracle, em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`: **`PASS WITH CONDITIONS`** — condições F2–F6 verificadas como aplicadas; zero-diff core vs `origin/main` reconfirmado de forma independente; gates técnicos auditáveis (53/248, Pint 58, Larastan limpo, CSD suite). **Condição única restante: proveniência de `9c5f102`** — investigação explorer em andamento BLOQUEIA merge até esclarecimento; gate de integração = parent. Work item permanece `active`; PR/integração/quadro = parent (não iniciados nesta sessão); nenhuma aprovação GitHub é alegada.
