@@ -1,10 +1,13 @@
 # Review — FEAT-20
 
-> **STATUS: RELEASED CONDITIONALLY → MERGE PENDENTE DE CI — work item
-> `active`. PR #34 aberto (base `main` `4f7c74d`); merge NÃO executado:
-> checks `application` e `GitGuardian` falharam no SHA `4888e89`
-> (diagnóstico em verification.md/execution.md); bloqueio de procedência
-> anterior ENCERRADO pelo parent (2026-10-04).**
+> **STATUS: COMPLETED — FATIA INTEGRADA (work item fechado 2026-10-04).**
+> PR #34 merged: `main` @ `44aa89a29dbda6a16164014c914cc3b411324186`, CI
+> `main` success (run 37211538628). Merge sob autorização excepcional do
+> owner com GitGuardian `Triggered` (incidente 37826025) — decisão formal
+> em [approval.md](approval.md); nenhuma aprovação GitHub alegada; EXC-0001
+> não estendida; política de checks intocada. Issue [#20](https://github.com/yanpenalva/starter-kit-api/issues/20)
+> permanece aberta (consumidores #14/#15 futuros). Bloqueio de procedência
+> anterior ENCERRADO pelo parent (2026-10-04, histórico preservado abaixo).
 >
 > - Revisão independente oracle round 1: **PASS WITH CONDITIONS em
 >   `9c61e18`** (condições F2–F6 atribuídas ao fixer).
@@ -74,4 +77,7 @@
 Round 1 — oracle, em `9c61e18`: `PASS WITH CONDITIONS` (F2–F6 atribuídas).
 Round 2 — re-review oracle, em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`: **`PASS WITH CONDITIONS`** — condições F2–F6 verificadas como aplicadas; zero-diff core vs `origin/main` reconfirmado; gates técnicos auditáveis (53/248, Pint 58, Larastan limpo, CSD suite).
 Procedência — parent, 2026-10-04: **RESOLVIDA** (`9c5f102` atribuído à sessão fixer antiga retomada `ses_efbddf033ffevWJI0m8ZqB6Z2U`, 2026-10-04T14:16:28Z, escopo FEAT-20, sem escritores ativos; histórico preservado).
-**Status final: `RELEASED CONDITIONALLY`** — PR/CI/merge condicional liberados sob EXC-0001 + autorização de continuação do parent; condições de merge: todos os checks em sucesso no SHA exato, nenhuma review requerida pendente, base `main` inalterada (se a base mudar: sem merge, retornar para review); sem `--admin`/`--force`; branch não apagada. **Nenhuma aprovação GitHub é alegada**; work item permanece `active` (fechamento/quadro = parent).
+**Status final (DA ÉPOCA, `2026-10-04` pré-encerramento): `RELEASED CONDITIONALLY`** — PR/CI/merge condicional liberados sob EXC-0001 + autorização de continuação do parent; condições de merge: todos os checks em sucesso no SHA exato, nenhuma review requerida pendente, base `main` inalterada (se a base mudar: sem merge, retornar para review); sem `--admin`/`--force`; branch não apagada. **Nenhuma aprovação GitHub é alegada**; work item permanece `active` (fechamento/quadro = parent).
+*(SUPERSEDED em 2026-10-04: o item foi encerrado como `completed`/`close` após o merge da PR #34 em `44aa89a` sob autorização excepcional do owner — [approval.md](approval.md). Este parágrafo é histórico e não reflete o estado atual; preservado sem reescrita. Estado final na linha abaixo.)*
+
+**Estado final do work item: `COMPLETED` — fatia entregue e integrada** (`status: completed`, `phase: close`; merge `44aa89a`, CI `main` success run `37211538628`; issue [#20](https://github.com/yanpenalva/starter-kit-api/issues/20) permanece aberta para consumidores #14/#15; gate onda 2 segue pendente do seed default em lane separada).

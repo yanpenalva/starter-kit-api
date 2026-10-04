@@ -23,3 +23,5 @@ Nenhum endpoint público; user auto-assign só wave 4; exclusão/CRUD extra wave
 ## Re-run delta — B1/B2 (2026-10-03)
 
 Gate de elegibilidade nos policies + B2 self-assignment; matriz negativa unverified/deactivated para as 7 habilidades e regressão self-assign direto. Pest re-executado: **36 passed, 185 assertions**; lint PASS 46 files; analyse No errors.
+
+**Checkpoint onda 2 (2026-10-04):** catálogo/seeders/policies base integrados via PR #33 (`main` `4f7c74d`); issue [#16](https://github.com/yanpenalva/starter-kit-api/issues/16) permanece aberta (evolução na onda 5). Escopo progressivo preservado.
