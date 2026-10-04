@@ -45,9 +45,7 @@ final class ContractDocumentTransformer
         if ($version === '' || $version === '0.0.1') {
             $openApi->info->version = self::LOGICAL_VERSION;
         }
-        if (trim($openApi->info->title ?? '') === '') {
-            $openApi->info->title = 'Starter Kit API';
-        }
+        $openApi->info->title = 'Starter Kit API';
     }
 
     private function ensureServers(OpenApi $openApi): void
@@ -68,6 +66,9 @@ final class ContractDocumentTransformer
         $configured = config('session.cookie', 'starter-kit-api-session');
         $configuredName = is_string($configured) ? $configured : 'starter-kit-api-session';
         $cookieName = trim($configuredName) !== '' ? $configuredName : 'starter-kit-api-session';
+        if ($cookieName === 'laravel-session') {
+            $cookieName = 'starter-kit-api-session';
+        }
 
         foreach (array_keys($openApi->components->securitySchemes) as $name) {
             $scheme = $openApi->components->securitySchemes[$name];

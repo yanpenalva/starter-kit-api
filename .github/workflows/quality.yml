@@ -13,12 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install pinned oasdiff
+        run: |
+          curl -fsSL https://github.com/oasdiff/oasdiff/releases/download/v1.33.0/oasdiff_1.33.0_linux_amd64.tar.gz | sudo tar -xz -C /usr/local/bin oasdiff
+          test "$(oasdiff -v | awk '{print $3}')" = "1.33.0"
       - run: python3 scripts/validate_context.py --strict
       - run: python3 scripts/validate_context.py --strict --examples
       - run: python3 -m unittest discover -s tests -v
@@ -60,6 +66,7 @@ jobs:
           --health-cmd "/mailpit readyz"
           --health-interval 5s --health-timeout 3s --health-retries 12
     env:
+      APP_NAME: 'Starter Kit API'
       APP_ENV: testing
       APP_DEBUG: 'false'
       DB_CONNECTION: pgsql
@@ -116,6 +123,7 @@ jobs:
           --health-cmd "pg_isready -U starter_api_test -d starter_api_test"
           --health-interval 5s --health-timeout 3s --health-retries 12
     env:
+      APP_NAME: 'Starter Kit API'
       APP_ENV: testing
       APP_DEBUG: 'false'
       DB_CONNECTION: pgsql
