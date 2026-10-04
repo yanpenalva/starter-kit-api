@@ -67,6 +67,20 @@ Isolamento: todos os comandos Docker com `-p starter-wave2-async` e `API_DEV_IMA
 - Evidence: seção "Post-merge gates + correções F2–F6" acima
 - Required correction: aplicada a todas (F2 warning+guarda, F5 guardas+negativos, F3 unless-stopped dev-only, F6 pin+docs, F4 comentários)
 
+## CI round — PR #34 (2026-10-04, SHA `4888e89`)
+
+PR aberto: `https://github.com/yanpenalva/starter-kit-api/pull/34` (base `main` `4f7c74d`, head `feat/wave-2-async-recovery` @ `4888e898e4a1f863b2ae952a45d088df1bc53598`; `Refs #20`, issue aberta de propósito). **MERGE NÃO EXECUTADO** — checks não todos em sucesso:
+
+- `context` — **pass** (16s): `https://github.com/yanpenalva/starter-kit-api/actions/runs/37209801797/job/111458491834`
+- `application` — **fail** (57s): `https://github.com/yanpenalva/starter-kit-api/actions/runs/37209801797/job/111458491778`
+- `GitGuardian Security Checks` (app externo, sem run do Actions) — **fail**: `https://dashboard.gitguardian.com`
+
+Diagnóstico `application` (9 falhas, TODAS nos 5 testes de integração async desta frente; nenhuma suíte core afetada): `RedisException`/`ConnectionException` — o workflow `.github/workflows/quality.yml` (dono: core, não alterado nesta lane) provisiona somente o serviço `postgres-test`; não há serviços `redis`/`mailpit` no runner, e o ambiente do job não define `REDIS_HOST`/`MAILPIT_API_URL`. Falhas: AfterCommitDispatchTest ×3, InfraMailDeliveryTest ×2 (Mailpit inalcançável), InfraProdEnvGuardTest ×2 (checagem de chaves/URL no processo-pai), InfraQueueFailureTest ×1, InfraSchedulerTest ×1. Localmente os mesmos testes passam (53/248) porque a stack `--profile test` do compose provê redis-test/mailpit-test. **Correção exigida = mudança no workflow CI (escopo config/core, fora da autorização desta lane)** — decidir com parent: (a) adicionar serviços redis/mailpit efêmeros ao job `application`, ou (b) grupo/exclusão de testes async no CI. Nenhum gate inventado; nenhum arquivo alterado para contornar.
+
+Diagnóstico `GitGuardian`: 1 finding, detalhes somente no dashboard (sem acesso desta sessão). Scan local gitleaks (imagem oficial) sobre o mesmo range `4f7c74d..4888e89`: **0 leaks**; todo o conteúdo é sintético (`.test`, UUIDs, sem credenciais). Requer inspeção parent no dashboard GG para classificar (provável falso positivo — ex.: UUIDs de evidência em docs).
+
+Proteções: `main` sem rulesets e sem branch protection (API 404) — nenhum required check no GitHub; condição de merge do parent (checks todos verdes no SHA exato) aplicada mesmo assim e **não satisfeita**. Base `main` inalterada durante a rodada.
+
 ## Verdict
 
 `PASS WITH CONDITIONS` (re-review oracle round 2, em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`; oracle PASS em todos os commits/conteúdo) — F2–F6 aplicadas e verificadas. **Procedência de `9c5f102` resolvida pelo parent (2026-10-04): sessão fixer antiga retomada `ses_efbddf033ffevWJI0m8ZqB6Z2U`, 2026-10-04T14:16:28Z, escopo FEAT-20, sem escritores ativos** (evidência explorer: lifecycle OpenCode log+DB; ocorrência histórica preservada nos registros). **Liberação condicional**: PR/CI/merge condicional sob EXC-0001 + autorização parent — todos os checks em sucesso no SHA exato, sem review requerida pendente, base `main` inalterada; sem `--admin`/`--force`, branch não apagada, sem tag/produção/secrets. Work item permanece `active` (fechamento/quadro = parent); **nenhuma aprovação GitHub é alegada**.

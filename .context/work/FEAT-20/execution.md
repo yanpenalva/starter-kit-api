@@ -82,3 +82,9 @@ Gates frescos pós-correções: ver `verification.md` (seção 2026-10-04). **No
 - Ocorrência histórica e auditorias da seção anterior **preservadas** (não reescritas); bloqueio de governança **removido** pela decisão parent.
 - **Liberação condicional**: PR/CI/merge condicional autorizados sob EXC-0001 + autorização de continuação do user/parent — condições: checks todos em sucesso no SHA exato do PR (context/application e qualquer required), nenhuma review requerida pendente, base `main` ainda `4f7c74d` (base revisada); base mudou → sem merge e retorno para review; merge normal SEM `--admin`/`--force`, sem apagar branch; sem tag/produção/secrets.
 - Oracle: revisão de todos os commits/conteúdo **PASS em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`** (mantida; conteúdo inalterado desde então — docs FEAT-20 somente). **Nenhuma aprovação GitHub é alegada.**
+
+## Execução PR/CI (2026-10-04)
+
+- PR **#34** aberto (base `main` `4f7c74d`, head `4888e89`, EXC-0001; `Refs #20` sem fechar a issue — aceite 1 depende de consumidores #14/#15): `https://github.com/yanpenalva/starter-kit-api/pull/34`.
+- CI no SHA exato: `context` **pass**; `application` **fail** (9 falhas — testes async exigem redis/mailpit ausentes no workflow core; detalhe em verification.md); `GitGuardian` **fail** (1 finding, dashboard-only; gitleaks local 0 leaks no range). **Merge NÃO executado** (condição parent não satisfeita); base `main` inalterada; sem `--admin`/`--force`; branch não apagada.
+- Desbloqueio exigido (decisão parent/core, fora do escopo desta lane): workflow CI com redis/mailpit efêmeros OU segregação dos testes async no CI + classificação do finding GG.

@@ -1,8 +1,10 @@
 # Review — FEAT-20
 
-> **STATUS: RELEASED CONDITIONALLY — work item `active`; PR/integração
-> autorizada sob EXC-0001 (autorização de continuação do parent,
-> 2026-10-04). Bloqueio de proveniência ENCERRADO pelo parent.**
+> **STATUS: RELEASED CONDITIONALLY → MERGE PENDENTE DE CI — work item
+> `active`. PR #34 aberto (base `main` `4f7c74d`); merge NÃO executado:
+> checks `application` e `GitGuardian` falharam no SHA `4888e89`
+> (diagnóstico em verification.md/execution.md); bloqueio de procedência
+> anterior ENCERRADO pelo parent (2026-10-04).**
 >
 > - Revisão independente oracle round 1: **PASS WITH CONDITIONS em
 >   `9c61e18`** (condições F2–F6 atribuídas ao fixer).
