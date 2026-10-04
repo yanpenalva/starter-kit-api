@@ -62,3 +62,18 @@ Suite composta por 52 testes unitários e de integração de processo (todos ver
 - **Gates PHP/Composer (`composer validate`, `composer lint`, `composer analyse`, `composer audit`)**: Não aplicáveis a esta entrega. Nenhum arquivo PHP da aplicação, rotas ou `composer.json`/`composer.lock` foi tocado, em estrito cumprimento da fronteira da lane auth.
 - **Docker / Pest (`docker compose --profile test run --rm test`)**: Não executado. O escopo do Stage A é puramente ferramental e documental; nenhum serviço Docker precisou ser instanciado e o daemon permaneceu intacto.
 - **Export real de contrato OpenAPI (Scramble 0.13.47) e publicação no GitHub Actions**: Pendente para o **Stage B**, desbloqueado somente após o congelamento da autenticação L1 (FEAT-13).
+
+## Stage B evidence (2026-10-04, unreviewed, compose project starter-wave3-contract)
+
+- `composer validate --strict`: exit 0 (`./composer.json is valid`).
+- `composer check-platform-reqs`: exit 0 (PHP 8.5.11, all extensions success).
+- `composer audit`: exit 0 (no advisories).
+- `composer lint`: exit 0 (79 files PASS, Pint).
+- `composer analyse`: exit 0 (Larastan level 10, no errors).
+- `vendor/bin/pest`: exit 0 (96 passed, 621 assertions; 89 base FEAT-13 + 6 docs + 1 snapshot).
+- `python3 -m unittest discover -s tests`: exit 0 (77 passed: 59 base Stage A + 18 Stage B).
+- `validate_context.py --strict` / `--strict --examples`: exit 0.
+- `csd doctor --scope project`: exit 0 (1.2.1 healthy).
+- Export determinism: `LC_ALL=C TZ=UTC php artisan scramble:export` 2x byte-identical, SHA256 be6e4acd79e8bb9383b39b1e698ba9e3e147cda3c3cf12db223e82cdeee88b8d, 20447 bytes.
+- Generator: dedoc/scramble v0.13.47 (lock d1597812fa8ce40a257d83c527bec28cb60de7a5).
+- Stage A PASS at `edbbe2f` preserved; Stage B PENDING independent review; no autopass, no production/browser/attestation claim.

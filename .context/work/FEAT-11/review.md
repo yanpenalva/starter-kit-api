@@ -1,9 +1,7 @@
 # Review — FEAT-11
 
-> **STATUS: PENDING — AGUARDANDO REVISÃO INDEPENDENTE (Stage A — CONTRACT prep, conformidade estrita CSD <= 7 parâmetros).**
-> Esta entrega conclui a resolução do requisito normativo CSD MUST `<= 7` parâmetros declarados, apontado na revisão independente do commit `78c3f57709e212b6f846f99276ae2c202f84c9bd`.
-> O implementador NÃO autoaprova este item nem progride o status para `Done`.
-> A conclusão de API #11 permanece como item progressivo que depende da integração da autenticação L1 (FEAT-13) e da execução do Stage B.
+> **STATUS: PENDING — STAGE B REVIEW PENDING (real export implemented, independent review NOT yet performed).**
+> Stage A (CONTRACT prep, `edbbe2f`) remains the last independently reviewed state; the Stage B implementation below is new, unreviewed, and must NOT be treated as approved. No production, browser, or attestation gate is claimed.
 
 ## Inputs para o revisor independente
 
@@ -42,3 +40,15 @@
    - Confirmar suporte a carregamento isolado via `importlib.util.spec_from_file_location` a partir de diretórios externos arbitrários sem `sys.path`.
 4. **Draft guardado**: Confirmar que `.github/workflows/openapi.yml` permanece inalterado com seu guard `exit 1` que falha informativamente sem simular falso sucesso de exportação.
 5. **Gates CSD**: Confirmar que os 4 gates de validação CSD passaram com código de saída 0 (59 testes unitários no runner discover).
+
+## Stage B inputs for the independent reviewer (unreviewed, 2026-10-04)
+
+- **Base**: merged `origin/main` @ `1390009d37f6a3493b21be7d83dbd32ae355d579` (auth PR #37) into `feat/wave-3-openapi-prep` via merge commit `7693209` (history preserved, no reset/force).
+- **Scramble**: `dedoc/scramble 0.13.47` exact pin (lock ref `d1597812fa8ce40a257d83c527bec28cb60de7a5`); PHP 8.5.11, Laravel 13.34.
+- **New app-owned files**: `config/scramble.php` (`api/v1`, info 1.0.0), `app/Providers/ScrambleDocServiceProvider.php` (Gate `viewApiDocs`: verified active admin via Role enum), `app/OpenApi/ContractDocumentTransformer.php` (sessionCookie + XSRF overlay, CSRF route, real error contracts), `bootstrap/providers.php` registration.
+- **Snapshot**: `contracts/openapi.json` (OpenAPI 3.1.0, 20447 bytes, SHA256 be6e4acd79e8bb9383b39b1e698ba9e3e147cda3c3cf12db223e82cdeee88b8d, LC_ALL=C 2x identical).
+- **New scripts**: `scripts/contract_extract.py`, `scripts/contract_export.py`, `scripts/contract_fetch.py` (all ≤7 params, ≤15 funcs, ≤500L, ≤3 returns, no else).
+- **New tests**: `tests/tools/test_contract_stageb.py` (18 offline tests), `tests/Feature/Docs/ApiDocsAccessTest.php` (6), `tests/Feature/Contract/OpenApiSnapshotTest.php` (1); `ScaffoldTest` updated for `docs/api` + `docs/api.json` routes.
+- **Workflows**: `openapi.yml` real producer export on main (guard fail-closed, minimal perms, artifact `openapi-<fullSHA>`); `quality.yml` contract job (determinism + snapshot freshness + structural validation).
+- **Gates observed**: composer validate/audit/platform/lint/analyse exit 0; Pest 96 passed; Python 77 passed; CSD strict/examples/doctor exit 0.
+- **Reviewer must verify**: frozen ReceiptRecord/VerificationPolicy unchanged; no auth behavior changes; no Bearer/PAT/JWT schemes; no external $refs; ZIP dual-digest decision documented; no PR/merge/workflow trigger until review.

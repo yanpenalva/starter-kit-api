@@ -1,40 +1,107 @@
 name: OpenAPI Contract
 
-# Guarded draft workflow for OpenAPI contract generation and artifact publishing.
-# Stage A guard: this workflow rejects premature execution before Stage B is unlocked.
+# Producer: generates the real OpenAPI 3.1 document from implemented Controllers,
+# Form Requests and Resources (Scramble 0.13.47, LC_ALL=C, 2x idempotent export)
+# on main at a reviewed commit, then publishes the artifact openapi-<fullSHA>.
 #
-# Three core pipeline invariants:
-# 1. Exact pin: Scramble package is pinned strictly to dedoc/scramble 0.13.47 (never >= or ^);
-#    installation is deferred to Stage B after L1 auth freeze (never installed today).
-# 2. Stage B exit-1 guard: execution is blocked with exit 1 until controllers, form requests,
-#    resources, and custom cookie securityScheme (starter-kit-api-session) are implemented.
-# 3. No fake success: this workflow never echoes simulated success or publishes hollow
-#    artifacts before real application routes and deterministic export (LC_ALL=C, 2x idempotent)
-#    are integrated and verified.
-#
-# No secrets are required or provisioned in this workflow.
+# Triggers: workflow_dispatch (manual, main only) and push to main (post-merge).
+# Wrong-branch or non-allowlisted events fail closed via the branch guard.
+# Permissions are minimal (contents: read). No secrets, no PAT, no frontend writes.
+# The receipt is constructed by the operator fetch AFTER trusted metadata + raw
+# ZIP verification (never inside the same ZIP: upload returns id/digest after
+# the archive is built, avoiding circular self-hash).
 
 on:
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Execution trigger reason (stage B unlock verification)'
+        description: 'Execution trigger reason (producer export on main)'
         required: true
-        default: 'stage-b-verification'
+        default: 'producer-export'
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  contract-draft:
-    name: Guarded Contract Export Draft
+  export:
+    name: Export and publish contract
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_DB: starter_api_test
+          POSTGRES_USER: starter_api_test
+          POSTGRES_PASSWORD: ci-ephemeral-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U starter_api_test -d starter_api_test"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_DATABASE: starter_api_test
+      DB_USERNAME: starter_api_test
+      DB_PASSWORD: ci-ephemeral-test-only
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      LC_ALL: C
+      TZ: UTC
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Guard stage B unlock
+      - name: Guard main branch
         run: |
-          echo "ERROR: Stage B is not unlocked yet: awaiting L1 auth freeze and Scramble installation (FEAT-11 stage B)." >&2
-          echo "Do not simulate false export success before controllers and Scramble are integrated." >&2
-          exit 1
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "ERROR: producer export runs on main only (ref=${GITHUB_REF})." >&2
+            exit 1
+          fi
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, pdo_pgsql
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Verify Scramble pin
+        run: |
+          test "$(composer show dedoc/scramble --format=json | python3 -c 'import json,sys; print(json.load(sys.stdin)["versions"][0])')" = "v0.13.47" || \
+          composer show dedoc/scramble | grep -q 'versions.*0.13.47'
+
+      - name: Migrate test database
+        run: php artisan migrate --force
+
+      - name: Deterministic export (2x byte-identical)
+        run: |
+          php artisan scramble:export --path=storage/app/openapi-pass1.json
+          php artisan scramble:export --path=storage/app/openapi-pass2.json
+          cmp storage/app/openapi-pass1.json storage/app/openapi-pass2.json
+          mkdir -p contracts
+          cp storage/app/openapi-pass1.json contracts/openapi.json
+          sha256sum contracts/openapi.json
+
+      - name: Resolve commit SHA
+        id: sha
+        run: echo "full=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload contract artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-${{ steps.sha.outputs.full }}
+          path: contracts/openapi.json
+          retention-days: 90
