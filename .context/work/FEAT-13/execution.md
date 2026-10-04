@@ -51,4 +51,4 @@
     - `tests/Feature/Auth/LoginTest.php` (12 passed, 72 assertions)
     - `tests/Feature/Auth/ProfileTest.php` (8 passed, 57 assertions)
     - `tests/Feature/Auth/LogoutTest.php` (5 passed, 25 assertions)
-    - `tests/Feature/Auth/HttpAuthSmokeTest.php` (1 passed, 57 assertions)
+    - `tests/Feature/Auth/HttpAuthSmokeTest.php` (1 passed, 60 assertions — corrected from stale 57 per independent validator ses_ef7c66907ffeNNr4HSjPwArWdL)

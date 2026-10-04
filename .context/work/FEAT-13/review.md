@@ -2,7 +2,8 @@
 
 ## Independent Review & Scope Resolution Status
 
-- **Status:** **PENDING** Independent Oracle / Parent Review.
+- **Status:** **PASS** Independent validation — session `ses_ef7c66907ffeNNr4HSjPwArWdL`, model GLM-Go (read-only validator, no source edits). Source `617e56285a3ad58a150ef75622bfffd2b3c69b40` verified HEAD = remote, clean, base `5d8c198296949b7f3c66b2bd56f086cb8f9ceafe`. FINAL PASS zero blockers.
+- **Independent gates observed (actual exits 0, no pipes masking):** composer validate strict / check-platform-reqs PHP 8.5.11 / audit / Pint 74 files / Larastan level 10 no errors; full Pest 89 passed 572 assertions; `HttpAuthSmokeTest` 1 passed 60 assertions (corrects stale 57); CSD strict + examples + unittest 7 OK + doctor 1.2.1 healthy. PG18 testing `en_US.utf8`, no PAT refs in production, `DB::listen` zero-query negative header proofs. No GitHub approving review created (author account cannot self-approve); this record is docs evidence only.
 - **Oracle Review (ora2) at commit `c6577fe`:**
   - Evaluated candidate at `c6577fe84172d5caac7889aa2c3583d2052ab5ec` (82 tests, 526 assertions).
   - Outcome: PASS CONDITIONAL on fixing findings M1 and M2, alongside recommendations L3 and L4.
@@ -12,5 +13,5 @@
   - **L4 (Trusted Proxies Limitation Documentation):** Resolved. Documented in `auth.md` that trusted proxies are empty by default and must be explicitly configured in production reverse-proxy environments.
 - **Ownership Resolution (ScaffoldTest):** Candidate commit `c4eacbfbad11b909bcb0259772f622c0c8f9bdf7` included a 7-line edit to `tests/Feature/ScaffoldTest.php` updating the strict public surface route assertion to include `api/v1/login`, `api/v1/auth/my-profile`, and `api/v1/logout`. While initially flagged as an ownership boundary BLOCKER due to falling outside `tests/Feature/Auth/**`, this has now been explicitly authorized by parent decision as a relevant API #13 ownership resolution. The diff against base `5d8c198296949b7f3c66b2bd56f086cb8f9ceafe` was verified to add strictly those three routes with zero removals or weakening. The blocker is **RESOLVED**.
 - **Candidate Delivery Mode:** Candidate branch `feat/wave-3-api-auth` targeting `main` on origin `git@github.com:yanpenalva/starter-kit-api.git`.
-- **Review Authority:** Independent technical oracle/parent review remains PENDING before integration. AGY does not self-approve. Wave-3 browser E2E gate is NOT covered and NOT claimed PASS.
+- **Review Authority:** Independent technical review recorded above (GLM-Go read-only session). AGY does not self-approve and no fake GitHub approving review was created. Current docs HEAD code-eq source 617e562. Wave-3 browser E2E gate NOT covered and NOT claimed PASS — pending. Production proxies / Unicode-collation limits documented, not production-approved.
 - **Merge/PR Authority:** Strictly NO PR/merge per user instructions. EXC-0001 authorized for candidate branch commit/push only.

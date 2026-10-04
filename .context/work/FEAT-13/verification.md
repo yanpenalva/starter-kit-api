@@ -31,6 +31,7 @@
 6. `docker compose -p starter-wave3-auth --profile test run --rm test vendor/bin/pest`
    - Exit code: 0
    - Output: `Tests: 89 passed (572 assertions), Duration: 31.54s` (0 failures, 0 errors).
+   - Note: `HttpAuthSmokeTest` contributes 1 passed / 60 assertions (corrects stale 57 cited in earlier execution draft; attributed to independent validator ses_ef7c66907ffeNNr4HSjPwArWdL).
 
 ## CSD and Project Integrity
 1. `python3 scripts/validate_context.py --strict`
@@ -61,6 +62,11 @@ Executed against ephemeral single-process `php -S 127.0.0.1:8099` running with c
 - **Stale CSRF Token Rejection:** State-changing POST with pre-logout CSRF token returns 419. Fresh CSRF token from new cookie jar is accepted (returns 401 on bad credentials instead of 419).
 
 *Limitation Note:* This test exercises the HTTP socket, cookie handling, and middleware boundary. It is distinct from a full browser-driven SPA E2E test.
+
+## Independent Review Record (source 617e562)
+- Validator: GLM-Go read-only session `ses_ef7c66907ffeNNr4HSjPwArWdL`, FINAL PASS zero blockers on exact source `617e56285a3ad58a150ef75622bfffd2b3c69b40`.
+- Gates re-observed with actual exit 0: composer strict / platform PHP 8.5.11 / audit / Pint 74 / Larastan 10; Pest 89/572; smoke 1/60; CSD strict/examples/unittest 7/doctor 1.2.1; git clean local=remote SHA; PG18 testing en_US.utf8; no PAT in production; DB::listen zero-query header proofs.
+- M1 zero-query Bearer 401 closed before Sanctum; M2 `lower(btrim(email,E' \t\n\r\x0B'))` aligned, parameterized, original index preserved, fail-closed preexisting collisions, no account rewrite/delete; L3 duplicate stateful removed, `statefulApi`/`throttleApi` kept; prod proxies/Unicode limits documented not production-approved. Browser E2E unproven. No GitHub approving review created.
 
 ## RFC vs Product Identity Contract
 - Decision: Email case-insensitivity and whitespace trimming is a product identity contract for this system, enforced at the database level via `lower(btrim(email, E' \t\n\r\x0B'))` unique expression index and in the application via `mb_strtolower(trim($email))`. It is not an assertion of universal RFC 5321/5322 behavior, but guarantees unambiguous user account identification.
