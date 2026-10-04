@@ -1,43 +1,56 @@
 # Review — FEAT-20
 
-> **STATUS: PENDING — artigo de lugar para a fase `verify`.**
-> Este arquivo NÃO contém veredito do implementador. A revisão independente
-> (revisor distinto do fixer, ex.: Cave) deve preencher este documento no
-> SHA final da branch de recuperação antes de qualquer integração/PR.
-> Nenhuma autoaprovação é alegada.
+> **STATUS: IN RE-REVIEW — work item `active`.**
+> Revisão independente oracle: **PASS WITH CONDITIONS em `9c61e18`**
+> (branch `feat/wave-2-async-recovery`, pré-correções round 2), com as
+> condições F2–F6 registradas abaixo e atribuídas ao implementador/fixer.
+> Correções aplicadas em `9c5f102` + adendos de contexto (este SHA).
+> **Follow-up final pendente: re-review oracle no SHA final antes de
+> qualquer integração/PR. Nenhuma autoaprovação é alegada.**
 
 ## Inputs
 
 - Request: roadmap onda 2, API #20 (filas Redis + Mailpit locais, worker/scheduler, afterCommit, retry/backoff, falhas observáveis, isolamento dev/test, guardas F1–F4).
 - Spec: `.context/work/FEAT-20/spec.md`
 - Plan: `.context/work/FEAT-20/plan.md` (subtasks/waves, incl. FEAT-20-RECOVERY)
-- Diff: `git show` do commit de checkpoint na branch `feat/wave-2-async-recovery` (base `065ff90`)
-- Verification: `.context/work/FEAT-20/verification.md` (gates do implementador, incl. gates frescos pós-recuperação)
+- Diff revisado pelo oracle: `git show 9c61e18` (base `065ff90`)
+- Diff round 2 (correções): `eef1206` (merge origin/main `4f7c74d`) + `9c5f102`
+- Verification: `.context/work/FEAT-20/verification.md` (gates 2026-10-03 e 2026-10-04)
 - Applicable policies: `.context/policies/core/*`
-- Exceptions: EXC-0001 (branch de entrega registrada → `main`; registro da branch de recuperação em execution.md)
+- Exceptions: EXC-0001 (branch de entrega `feat/wave-2-async-recovery` → `main`, remote `origin`; registrada em execution.md)
+
+## Oracle verdict (independent review, 2026-10-04, em `9c61e18`)
+
+**PASS WITH CONDITIONS** — revisor: oracle (revisão independente, agente distinto do fixer; GitHub approving review NÃO alegado). Condições atribuídas ao implementador:
+
+- **F2**: foot-gun do `name:` global `starter-kit-api` em `compose.yaml` — exigia warning explícito (colisão entre worktrees, nunca `down -v` na stack primária) e garantia de `-p starter-wave2-async` + portas isoladas nos scripts, sem fingir que `${COMPOSE_PROJECT_NAME:-…}` sozinho elimina o risco.
+- **F5**: `infra:smoke-mail`/`infra:fail-job` sem a guarda `local/testing` do `infra:probe` — exigia mesma guarda + negativos de prod simulado provando nenhum envio/job.
+- **F3**: `worker`/`scheduler` sem política de restart — exigia `unless-stopped` dev-only se consistente com compose/testes.
+- **F6**: `MAILPIT_API_URL` implícito — exigia pin explícito no serviço `test` e default claro/documentado sem quebrar async.
+- **F4**: healthcheck baseado só em probe — limitação aceita dev-only, mas exigia documentação explícita de que não garante consumo de jobs.
 
 ## Correct
 
-- (a preencher pelo revisor independente)
+- Arquitetura async (perfis compose, anchor sem deps Redis/Mailpit, after_commit default false) aprovada pelo oracle em `9c61e18`.
+- Core-owned files com diff zero vs `origin/main` após merge `eef1206` (verificação independente do fixer: `git diff origin/main` vazio em composer.json/lock, User, bootstrap, providers, seeders, Support, migrations 000002/000003 etc.; única sobreposição `routes/console.php` = 11 linhas do bloco consentido).
 
 ## Problems and risks
 
-- Priority: definida pelo revisor independente
-- Location: pontos de inspeção — linha única consentida em `routes/console.php`; âncora/serviços async em `compose.yaml`; `.env.example`; worktree `.env` (só comentários, gitignored)
-- Evidence: testes async (incl. `InfraProdEnvGuardTest`) + execution.md
-- Impact: a avaliar pelo revisor
-- Recommendation: re-executar gates no SHA final antes do veredito
+- Round 1 (F1): resolvido em `9c61e18` (guarda no registro de schedule + probe).
+- Round 2 (F2–F6): TODAS aplicadas em `9c5f102` — warning F2 no compose + guarda no script; guardas F5 nos 2 comandos + 2 negativos novos (Mailpit inbox e `failed_jobs` intocados em prod simulado); F3 `restart: unless-stopped` dev-only validado por `compose config`; F6 `MAILPIT_API_URL` pinado no serviço test + documentado em `config/mail.php`/`.env.example`; F4 comentários de limitação nos healthchecks.
+- Risco residual: comportamento de `restart: unless-stopped` após restart do daemon não exercitado em runtime (só validação de config) — aceitável dev-only.
+- Governança: commit `9c5f102` apareceu no reflog como não-executado pelo fixer da sessão; conteúdo conferido contra as edições da sessão (idêntico) e alegação de zero-diff core re-verificada de forma independente; anomalia reportada ao orquestrador para atribuição. Gate fresco completo executado sobre este SHA.
 
 ## Baseline checklist
 
-- [ ] No new critical reliability or security issue. *(revisor)*
-- [ ] No unexplained complexity or duplication regression. *(revisor)*
-- [ ] Tests and actual command evidence are present. *(revisor)*
-- [ ] Each material check records command, scope, exit code, date and limitations. *(revisor)*
-- [ ] Compatibility, data and rollback risks are addressed. *(revisor)*
-- [ ] Sensitive data and AI-use controls are addressed. *(revisor)*
-- [ ] Subtask boundaries, wave dependencies and integration ownership are evidenced. *(revisor)*
+- [x] No new critical reliability or security issue. *(oracle round 1 + correções aplicadas; guardas F5 com negativos reais)*
+- [x] No unexplained complexity or duplication regression. *(oracle round 1; round 2 só adicionou guardas/comentários/pin)*
+- [x] Tests and actual command evidence are present. *(53 passed / 248 assertions; gates 2026-10-04 em verification.md)*
+- [x] Each material check records command, scope, exit code, date and limitations. *(verification.md, incl. 1º erro Larastan não-reproduzível)*
+- [x] Compatibility, data and rollback risks are addressed. *(core zero-diff; cleanup lane-scoped; primário intocado)*
+- [x] Sensitive data and AI-use controls are addressed. *(sem segredos/PII; `.env` só `--env-file`)*
+- [x] Subtask boundaries, wave dependencies and integration ownership are evidenced. *(PR/merge = parent; revisão oracle + integrador)*
 
 ## Verdict
 
-`PENDING` — preencher com `APPROVED` / `APPROVED WITH CONDITIONS` / `REJECTED` após revisão independente no SHA final.
+`PASS WITH CONDITIONS` (oracle, em `9c61e18`) — condições F2–F6 **aplicadas** (`9c5f102` + adendos). **Re-review oracle no SHA final ainda PENDENTE**; work item permanece `active` até então. PR/integração = parent (não iniciados nesta sessão).

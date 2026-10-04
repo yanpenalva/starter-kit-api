@@ -45,6 +45,6 @@
     "execute",
     "verify"
   ],
-  "last_updated": "2026-10-03",
+  "last_updated": "2026-10-04",
   "policy_exceptions": ["EXC-0001"]
 }
