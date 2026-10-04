@@ -16,3 +16,5 @@
 ## Limits
 
 Nenhum promotion real; operacional de produção NOT FOUND; issue #12 segue aberta até integração.
+
+**Checkpoint onda 2 (2026-10-04):** bootstrap integrado e auditado via PR #33 (`main` `4f7c74d`); issue #12 fechada e Done (contagem do roadmap: 11/47 em 2026-10-04). Nenhuma promoção real executada.

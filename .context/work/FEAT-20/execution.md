@@ -99,3 +99,11 @@ Escopo novo e explícito do parent: `.github/workflows/quality.yml` + docs FEAT-
 - Job `context` e demais gates **inalterados** (diff mínimo).
 - Validação local pré-push: simulação fiel do CI via containers efêmeros em rede host com o env exato do job → **Pest 53 passed, 0 failed, 248 assertions**; YAML válido; resultado real do runner remoto no run do SHA final (links em verification.md). Reposição acidental corrigida: `storage/framework/cache/data/.gitignore` (run de teste como root limpou o placeholder; restaurado, fora do commit).
 - GitGuardian fora deste escopo (investigação explorer independente, em curso). Sem merge; sem alteração de regras/issue/quadro.
+
+## Encerramento da fatia FEAT-20 (2026-10-04)
+
+- **Merge da PR #34** executado pelo parent sob autorização excepcional específica (GitGuardian `Triggered`, incidente 37826025 — decisão formal em [approval.md](approval.md); **não** é extensão da EXC-0001 nem waive de checks futuros): `main` @ `44aa89a29dbda6a16164014c914cc3b411324186`, histórico preservado, branch de entrega não apagada.
+- **CI de `main` no SHA do merge — success** (run `37211538628`): context https://github.com/yanpenalva/starter-kit-api/actions/runs/37211538628/job/111463556099 · application (53 testes) https://github.com/yanpenalva/starter-kit-api/actions/runs/37211538628/job/111463556181.
+- **Re-review oracle PASS em `08009f7`** (workflow CI incluído; revisão independente, não-aprovação GitHub).
+- Work item FEAT-20 → `status: completed`, `phase: close` (schema permite; fatia de infraestrutura entregue e integrada). **Issue [#20](https://github.com/yanpenalva/starter-kit-api/issues/20) permanece aberta/In progress** — consumidores #14/#15 são fatias futuras (onda 4); fatia entregue não fecha issue progressiva.
+- **Gate da wave 2 permanece PENDENTE** do critério "seed idempotente no banco de teste" para o caminho default (`migrate:fresh --seed` 2×, exigência da issue #9): `main` @ `44aa89a` não contém `database/seeders/DatabaseSeeder.php` (verificado nesta worktree). Correção em lane separada (`DatabaseSeeder.php` + teste exclusivo). **Onda 3 NÃO declarada liberada**; reconciliação do gate docs ocorrerá após o resultado dessa lane.

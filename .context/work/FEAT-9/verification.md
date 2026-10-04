@@ -35,3 +35,5 @@ Comandos re-executados após as correções: `composer validate --strict` (váli
 ## Fatia 2 — wave 2 (schema RBAC/audit, 2026-10-03)
 
 Executada após a integração da fatia 1: migrations coordenadas `_000002_permission_tables` (Spatie 8.3) e `_000003_activity_log` (Activitylog 5.1.1) + seeders idempotentes, cobertas pelas suítes de [FEAT-16](../FEAT-16/verification.md) e [FEAT-19](../FEAT-19/verification.md) (33 passed na fatia; 38 passed no total da wave-2 core). `_000004_failed_jobs` permanece da lane async. Histórico da fatia 1 acima preservado.
+
+**Checkpoint onda 2 (2026-10-04):** fatias de schema RBAC/auditoria + seeders do catálogo integradas via PR #33 (`main` `4f7c74d`, CI SUCCESS); issue [#9](https://github.com/yanpenalva/starter-kit-api/issues/9) permanece aberta (progressiva). Pendência de gate da onda 2 registrada: seed **default** idempotente (`migrate:fresh --seed` 2×) sem `DatabaseSeeder.php` em `main` @ `44aa89a` — correção em lane separada (seeders/DatabaseSeeder + teste exclusivo).

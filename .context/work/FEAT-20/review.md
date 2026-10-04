@@ -1,10 +1,13 @@
 # Review — FEAT-20
 
-> **STATUS: RELEASED CONDITIONALLY → MERGE PENDENTE DE CI — work item
-> `active`. PR #34 aberto (base `main` `4f7c74d`); merge NÃO executado:
-> checks `application` e `GitGuardian` falharam no SHA `4888e89`
-> (diagnóstico em verification.md/execution.md); bloqueio de procedência
-> anterior ENCERRADO pelo parent (2026-10-04).**
+> **STATUS: COMPLETED — FATIA INTEGRADA (work item fechado 2026-10-04).**
+> PR #34 merged: `main` @ `44aa89a29dbda6a16164014c914cc3b411324186`, CI
+> `main` success (run 37211538628). Merge sob autorização excepcional do
+> owner com GitGuardian `Triggered` (incidente 37826025) — decisão formal
+> em [approval.md](approval.md); nenhuma aprovação GitHub alegada; EXC-0001
+> não estendida; política de checks intocada. Issue [#20](https://github.com/yanpenalva/starter-kit-api/issues/20)
+> permanece aberta (consumidores #14/#15 futuros). Bloqueio de procedência
+> anterior ENCERRADO pelo parent (2026-10-04, histórico preservado abaixo).
 >
 > - Revisão independente oracle round 1: **PASS WITH CONDITIONS em
 >   `9c61e18`** (condições F2–F6 atribuídas ao fixer).

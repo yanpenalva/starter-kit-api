@@ -17,3 +17,5 @@
 ## Limits
 
 Feed/leitura e logs.view runtime = wave 6; issue #19 aberta.
+
+**Checkpoint onda 2 (2026-10-04):** escrita mínima de auditoria (allowlist, correlation, rollback) integrada via PR #33 (`main` `4f7c74d`); issue [#19](https://github.com/yanpenalva/starter-kit-api/issues/19) permanece aberta — feed/retenção = onda 6.
