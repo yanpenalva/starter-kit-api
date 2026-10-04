@@ -1,7 +1,15 @@
 # Review — FEAT-11
 
-> **STATUS: PREVIOUS FAIL (integration) — PENDING INDEPENDENT PARENT RE-REVIEW (candidate SHA exact).**
-> Stage A (CONTRACT prep, `edbbe2f`) remains approved (59 unittests + 25 adversariais históricos). A revisão independente anterior pelo parent orchestrator via conversa AGY `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em FAIL de integração sobre o commit `35f6ae8`. As cinco constatações de revisão foram integralmente remediadas nesta submissão candidata e submetidas para reavaliação independente. Nenhum merge, fechamento de issue, publicação real ou alegação de auto-aprovação de PASS é feita.
+> **STATUS: RE-REVIEW INDEPENDENTE FRESCA: PASS sobre o source exato `227b75fb119350d963764df3ce52e0d56fa2c302` — pendente gate/revisão final do parent (nenhuma aprovação final é alegada).**
+> Stage A (CONTRACT prep, `edbbe2f`) remains approved (59 unittests + 25 adversariais históricos). A revisão AGY anterior via conversa `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em **FAIL de integração** sobre o commit `35f6ae82` — esse FAIL permanece como registro histórico e não é apagado. A re-review independente fresca (sessão GLM separada `ses_ef6e17a3effeen2tj5fBnlQBeG`, proveniência por flag CLI `--model zai-coding-plan/glm-5.3-flash`; logs em `/tmp/opencode/feat11-review/native-run.json` e `final-text.md`, somente leitura) resultou em **PASS** sobre `227b75f` — ver seção própria abaixo e em `verification.md`. Nenhum merge, fechamento de issue, publicação real ou alegação de auto-aprovação de PASS é feita.
+
+## Re-Review Independente Fresca — PASS (2026-10-04)
+
+- **Veredito**: **PASS** no source EXATO `227b75fb119350d963764df3ce52e0d56fa2c302`.
+- **Revisor**: sessão GLM fresca e separada `ses_ef6e17a3effeen2tj5fBnlQBeG`, independente da sessão produtora (`ses_ef6fc2ef1ffekDEo6PtpfrA3jn`).
+- **Escopo verificado**: suíte Python 113 (7 CSD + 52 Stage A + 54 Stage B) com ciclo de vida Git real + 8 cenários fail-closed; oasdiff real 1.33.0 (5 negativas + 1 positiva; tamper rejeitado ANTES do extract); export determinístico 2× `APP_URL` (19439 bytes, mesmo hash); PHP focado 7/72 com source read-only; suíte completa/gates reaproveitados do CI `37241164800` no SHA exato; Stage A imutável intacto; gap de preflight registrado.
+- **Proveniência de modelo**: prova de invocação CLI apenas (`--model zai-coding-plan/glm-5.3-flash`); o stream JSON da revisão não contém IDs de modelo — nenhuma lookup de DB é alegada.
+- **Prova histórica**: FAIL (AGY, `35f6ae82`) permanece registrado; o PASS atual não o substitui.
 
 ## Inputs para o revisor independente — Stage A (Aprovado em `edbbe2f`)
 
@@ -31,7 +39,7 @@
    - Validação estrita de SHA de 40 caracteres hexadecimais, rejeição de zero-SHA e rejeição de auto-comparação contra o HEAD atual.
    - Caminho fixo exclusivo em `contracts/openapi.json` (sem caminhos arbitrários ou fallbacks).
    - Ausência do contrato no baseline comprovada por `git ls-tree` em estado tri-partido: qualquer erro Git que não seja ausência genuína falha fechado sem bootstrap.
-   - Testado com repositórios reais de ciclo de vida git: bootstrap na primeira ausência; quebra real (remoção de rota) rejeitada com exatamente 1 finding `error[api-path-removed-without-deprecation]`; SHA inexistente, caminho inválido, repositório sem Git, push `before` zero, baseline == HEAD e commit indisponível falham fechado; mudanças compatíveis passam.
+   - Testado com repositórios reais de ciclo de vida git: bootstrap na primeira ausência; quebra real (remoção da rota inteira do objeto `paths`) rejeitada com exatamente 1 finding `error[api-path-removed-without-deprecation]` (observado verbatim no oasdiff 1.33.0 fixado; quando apenas a operação é removida e o objeto do caminho permanece, o ID observado é `error[api-removed-without-deprecation]` — o ID depende da forma da remoção); SHA inexistente, caminho inválido, repositório sem Git, push `before` zero, baseline == HEAD e commit indisponível falham fechado; mudanças compatíveis passam.
 
 2. **Reconciliação e Prova de Asserções (Finding 2 — MED)**:
    - Causa da discrepância histórica de 621 asserções permanece **HISTORICAL CAUSE NOT VERIFIED**; nenhuma especulação causal é alegada.

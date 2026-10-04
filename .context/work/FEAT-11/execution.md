@@ -1,6 +1,6 @@
 # Execução — FEAT-11
 
-Fase: `plan` (Stage A aprovado em `edbbe2f`; Stage B implementado e aguardando revisão independente) · Branch de entrega: `feat/wave-3-openapi-prep` (worktree persistente `/home/hiyan/Development/github/personal/starter-kit-api-wave3-contract-worktree`) → alvo `main` (remote `origin`), EXC-0001. Base main imutável: `1390009d37f6a3493b21be7d83dbd32ae355d579`.
+Fase: `verify` (Stage B implementado; FAIL histórico da revisão AGY sobre `35f6ae82` registrado; re-review independente fresca PASS sobre `227b75f` registrada em `verification.md`/`review.md`; pendente gate/revisão final do parent) · Branch de entrega: `feat/wave-3-openapi-prep` (worktree persistente `/home/hiyan/Development/github/personal/starter-kit-api-wave3-contract-worktree`) → alvo `main` (remote `origin`), EXC-0001. Base main integrada: `f5dce81711315458e8c32cf61367d58b5206ac05`; primeiro baseline histórico da main: `1390009d37f6a3493b21be7d83dbd32ae355d579`.
 
 ## Resolução dos Cinco Blockers Confirmados
 
@@ -43,7 +43,9 @@ Fase: `plan` (Stage A aprovado em `edbbe2f`; Stage B implementado e aguardando r
 
 ## Reconciliação de Asserções e Execução de Testes
 
-- Discrepância histórica investigada: registro de produtor anterior citava `96 passed, 621 assertions`, enquanto revisor citava `96 passed, 625 assertions`.
-- Causa comprovada: no commit base da main `1390009` (após resolução dos achados Oracle M1, M2, L3, L4 em `617e562`), a suíte de testes de autenticação possui 89 testes e 572 asserções (com `HttpAuthSmokeTest` contribuindo 60 asserções, corrigindo as 57 citadas em rascunhos anteriores). A adição dos testes do Stage B (`OpenApiSnapshotTest` inicialmente com 33 asserções e `ApiDocsAccessTest` com 20 asserções) totalizou exatamente 572 + 33 + 20 = 625 asserções.
-- Com o aprofundamento das validações em `OpenApiSnapshotTest` (resolução de URLs de operações contra router e validação estrita de 429), a contagem atual da suíte Pest é de **96 passed (644 asserções)** em 34.37s.
-- Suíte Python expandida para **87 unittests** (59 Stage A + 28 Stage B), todos verdes.
+> Registro histórico da execução anterior do Stage B. Observações separadas, sem reconciliação causal.
+
+- Discrepância histórica: registro de produtor anterior citava `96 passed, 621 assertions`, enquanto revisor citava `96 passed, 625 assertions` — fatos brutos registrados com sua fonte.
+- Causa NÃO VERIFICADA: nenhuma explicação causal para a divergência foi comprovada; alegações causais anteriores (contagens 572 + 33 + 20 sobre `HttpAuthSmokeTest`/testes Stage B) foram removidas por especulativas.
+- Observação histórica da execução local anterior: `96 passed (644 asserções)` em 34.37s (fonte: verificação da submissão anterior do Stage B).
+- Observação histórica da suíte Python anterior: 87 unittests (59 Stage A + 28 Stage B), todos verdes. Contagem atual observada: 113 (7 CSD + 52 Stage A + 54 Stage B).

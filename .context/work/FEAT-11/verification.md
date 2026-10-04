@@ -19,7 +19,7 @@ Data de execução: 2026-10-04 · Worktree persistente exclusivo: `/home/hiyan/D
 | 11. Checker contra baseline | `python3 scripts/contract_compat.py --base-commit=1390009d37f6a3493b21be7d83dbd32ae355d579 --candidate=contracts/openapi.json` | 0 | `BOOTSTRAP VÁLIDO` (ausência comprovada via `git ls-tree`) com 5 fixtures negativas rejeitadas e 1 positiva aceita (`oasdiff 1.33.0` real) |
 | 12. Instalador oasdiff | `scripts/install_oasdiff.py` (pipeline completo testado; hashes reais medidos do asset oficial) | 0 | Tarball `43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247` (6.822.600 bytes) confirmado no `checksums.txt` oficial da release v1.33.0; binário extraído medido `fa65aae43c867e9f79da9cb121d3c1a113637883afe014c0680fd5b50696f416` (18.837.664 bytes, `oasdiff version 1.33.0`); ambos fixados e verificados antes de qualquer extração/execução |
 
-Suítes Stage B novas observadas na contagem do gate 9: resolvedor de baseline (validação de SHA, eventos `pull_request`/`push`, ciclo de vida Git real com bootstrap, quebra com exatamente 1 finding `error[api-path-removed-without-deprecation]`, SHA inexistente, caminho inválido, repositório sem Git, push com `before` zero, baseline == HEAD, commit indisponível) e integridade do instalador (digest do asset, digest do binário, symlink, membro ausente, membro oversized, membro não regular, pipeline feliz com binário falso e divergência de digest do binário).
+Suítes Stage B novas observadas na contagem do gate 9: resolvedor de baseline (validação de SHA, eventos `pull_request`/`push`, ciclo de vida Git real com bootstrap, quebra com exatamente 1 finding `error[api-path-removed-without-deprecation]` — removação da rota inteira; a remoção apenas da operação produz o ID observado `error[api-removed-without-deprecation]` —, SHA inexistente, caminho inválido, repositório sem Git, push com `before` zero, baseline == HEAD, commit indisponível) e integridade do instalador (digest do asset, digest do binário, symlink, membro ausente, membro oversized, membro não regular, pipeline feliz com binário falso e divergência de digest do binário).
 
 ---
 
@@ -77,9 +77,9 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 - **Baseline**: resolvido dinamicamente do payload oficial do evento (`pull_request.base.sha`; `before` em push restrito a `refs/heads/main`), com fallback manual a `--base-commit` para execução local controlada. O primeiro baseline histórico da main foi `1390009d37f6a3493b21be7d83dbd32ae355d579` (imutável, usado nas fixtures locais desta verificação).
 - **Comprovação de ausência de contrato**: `git ls-tree <commit> -- contracts/openapi.json` com estado tri-partido — exit 0 sem saída prova ausência; exit 0 com saída prova presença; qualquer outro código Git falha fechado sem bootstrap. Verificação de existência do commit precede a checagem de caminho.
 - **Bootstrap comprovado**: executado contra commit real existente e caminho comprovadamente ausente em ciclo de vida Git real (repositório fixture temporário).
-- **Detecção real de quebra**: baseline contendo o contrato + candidato removendo a única rota → `CompatibilityError` com exatamente 1 finding `error[api-path-removed-without-deprecation]` (observado no output real do oasdiff 1.33.0).
-- **Fixtures operacionais testadas**:
-  - `path_removido`: Rejeitada com `exit 1` (`api-path-removed-without-deprecation`).
+- **Detecção real de quebra**: baseline contendo o contrato + candidato removendo a única rota do objeto `paths` → `CompatibilityError` com exatamente 1 finding `error[api-path-removed-without-deprecation]` (observado verbatim no output real do oasdiff 1.33.0 fixado, digest do binário `fa65aae43c867e9f79da9cb121d3c1a113637883afe014c0680fd5b50696f416`; quando apenas a operação é removida e o objeto do caminho permanece, o ID observado é `error[api-removed-without-deprecation]`).
+- **Fixtures operacionais testadas** (IDs observados verbatim no binário fixado nesta execução):
+  - `path_removido`: Rejeitada com `exit 1` (`api-removed-without-deprecation`).
   - `status_removido`: Rejeitada com `exit 1` (`response-success-status-removed`).
   - `tipo_alterado`: Rejeitada com `exit 1` (`response-property-type-changed`).
   - `campo_obrigatorio_adicionado_requisicao`: Rejeitada com `exit 1` (`request-property-became-required`).
@@ -98,10 +98,22 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 
 ---
 
+## Re-Review Independente Fresca — PASS (2026-10-04)
+
+- **Veredito**: **PASS** sobre o source EXATO `227b75fb119350d963764df3ce52e0d56fa2c302`.
+- **Revisor**: sessão GLM fresca e separada `ses_ef6e17a3effeen2tj5fBnlQBeG` — independente da sessão produtora desta entrega (`ses_ef6fc2ef1ffekDEo6PtpfrA3jn`). A revisão não é esta sessão.
+- **Logs da revisão**: `/tmp/opencode/feat11-review/native-run.json` e `/tmp/opencode/feat11-review/final-text.md` (citados apenas como evidência somente leitura; não modificados).
+- **Escopo verificado pela re-review**: suíte Python 113 (7 CSD + 52 Stage A + 54 Stage B) com ciclo de vida Git real + 8 cenários fail-closed; oasdiff real 1.33.0 (5 fixtures negativas + 1 positiva; tamper rejeitado ANTES da extração); export determinístico 2× com variantes de `APP_URL` (19439 bytes, mesmo hash); PHP focado 7/72 com source read-only; suíte completa/gates reaproveitados do CI `37241164800` no SHA exato; Stage A imutável intacto; gap de preflight registrado.
+- **Proveniência de modelo**: registrada como **prova de invocação CLI** (`--model zai-coding-plan/glm-5.3-flash` na linha de comando da sessão de review). O stream JSON da revisão NÃO contém IDs de modelo — nenhuma consulta a DB/banco de sessões é alegada.
+- **Prova histórica preservada**: a re-review anterior (modelo AGY, source `35f6ae82…`) resultou em **FAIL** e permanece como registro histórico — o PASS atual NÃO substitui nem apaga o FAIL histórico.
+- **Nota de reconciliação**: a observação INFO da re-review sobre o ID do finding oasdiff foi reconciliada empiricamente nesta sessão produtora — ambos os IDs existem no oasdiff 1.33.0 e dependem da forma da remoção (ver seção do verificador de compatibilidade).
+
+---
+
 ## Status de Entrega e Limitações
 
 - **Stage A**: Aprovado em `edbbe2f` com 59 unit + 25 testes adversariais históricos preservados.
-- **Stage B**: **PREVIOUS FAIL (integration) — PENDING INDEPENDENT PARENT RE-REVIEW** sobre o novo SHA candidato desta submissão.
-- A revisão independente anterior via conversa AGY `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em FAIL de integração sobre `35f6ae82`. As cinco constatações foram remediadas nesta submissão (resolvedor dinâmico de baseline, reconciliação de observações, alinhamento CSD, integridade criptográfica do instalador, limpeza pt-BR dos workflows) e submetidas para reavaliação independente. O SHA exato do candidato está registrado no corpo do PR #39 e no recibo final desta execução.
+- **Stage B**: **FAIL histórico (AGY, sobre `35f6ae82`) preservado + RE-REVIEW INDEPENDENTE FRESCA PASS sobre `227b75f`** (sessão `ses_ef6e17a3effeen2tj5fBnlQBeG`, ver seção própria) — pendente gate/revisão final do parent; nenhuma aprovação final é alegada.
+- A revisão independente anterior via conversa AGY `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em FAIL de integração sobre `35f6ae82`. As cinco constatações foram remediadas nesta submissão (resolvedor dinâmico de baseline, reconciliação de observações, alinhamento CSD, integridade criptográfica do instalador, limpeza pt-BR dos workflows). O SHA exato do candidato está registrado no corpo do PR #39 e no recibo final desta execução.
 - Gap de preflight histórico permanece registrado em `preflight.md` como lacuna observável (preflight do Stage B documentado apenas nesta data, sem evidência anterior): nada foi retrofabricado.
 - Nenhum merge, fechamento de issue, publicação real no GitHub Actions ou alegação de auto-aprovação de PASS é feita.
