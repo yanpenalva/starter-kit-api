@@ -1,0 +1,94 @@
+name: OpenAPI Contract
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Motivo da execução do workflow produtor (exclusivo para main)'
+        required: true
+        default: 'producer-export'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export and publish contract
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_DB: starter_api_test
+          POSTGRES_USER: starter_api_test
+          POSTGRES_PASSWORD: ci-ephemeral-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U starter_api_test -d starter_api_test"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_DATABASE: starter_api_test
+      DB_USERNAME: starter_api_test
+      DB_PASSWORD: ci-ephemeral-test-only
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      LC_ALL: C
+      TZ: UTC
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Guard main branch
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "ERRO: a exportacao do produtor deve ser executada exclusivamente na branch main (ref=${GITHUB_REF})." >&2
+            exit 1
+          fi
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, pdo_pgsql
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Verify Scramble pin
+        run: |
+          test "$(composer show dedoc/scramble --format=json | python3 -c 'import json,sys; print(json.load(sys.stdin)["versions"][0])')" = "v0.13.47" || \
+          composer show dedoc/scramble | grep -q 'versions.*0.13.47'
+
+      - name: Migrate test database
+        run: php artisan migrate --force
+
+      - name: Deterministic export (2x byte-identical)
+        run: |
+          php artisan scramble:export --path=storage/app/openapi-pass1.json
+          php artisan scramble:export --path=storage/app/openapi-pass2.json
+          cmp storage/app/openapi-pass1.json storage/app/openapi-pass2.json
+          mkdir -p contracts
+          cp storage/app/openapi-pass1.json contracts/openapi.json
+          sha256sum contracts/openapi.json
+
+      - name: Resolve commit SHA
+        id: sha
+        run: echo "full=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload contract artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-${{ steps.sha.outputs.full }}
+          path: contracts/openapi.json
+          retention-days: 90
