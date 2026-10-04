@@ -1,9 +1,29 @@
+# WARNING — project name is a multi-worktree foot-gun (F2):
+# `name:` below pins the project to `starter-kit-api`, the SAME name used by
+# the primary checkout's dev stack. Two checkouts running `docker compose`
+# without an explicit unique `-p` therefore share ONE Compose project
+# (containers, networks and the `starter-kit-api_postgres-dev` volume), and a
+# `docker compose down -v` in one checkout DESTROYS the other's data.
+# Rules for parallel worktrees (e.g. this wave-2 async lane):
+#   - ALWAYS pass an explicit unique project: `docker compose -p starter-wave2-async ...`
+#   - keep isolated 127.0.0.1-only ports per worktree (HTTP_PORT/MAILPIT_PORT)
+#   - point API_DEV_IMAGE at a worktree-local tag (e.g. starter-wave2-async-api:local)
+#   - NEVER run `down -v` (or any destructive command) against the primary
+#     `starter-kit-api` stack.
+# Note: COMPOSE_PROJECT_NAME can override this `name:` when explicitly set,
+# but an ambient `${COMPOSE_PROJECT_NAME:-...}` default alone does NOT remove
+# the collision risk — shells without the variable silently fall back to the
+# shared name. scripts/async_dev.sh enforces the unique project and refuses
+# the primary name; keep that guard when editing it.
 name: starter-kit-api
 
 x-api: &api
   build:
     context: .
-  image: starter-kit-api-dev:local
+  # API_DEV_IMAGE lets parallel worktrees/test stacks use their own tag
+  # (e.g. starter-wave2-async-api:local) so the primary dev image is never
+  # overwritten. Default keeps the historical local tag.
+  image: ${API_DEV_IMAGE:-starter-kit-api-dev:local}
   user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
   working_dir: /var/www/html
   volumes:
@@ -18,7 +38,11 @@ x-api: &api
     DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
     CACHE_STORE: file
     SESSION_DRIVER: file
+    # Safe defaults: the base API stack must not require the async
+    # services (no Redis/Mailpit DNS dependency). The async slice
+    # (worker/scheduler/test) overrides these explicitly.
     QUEUE_CONNECTION: sync
+    MAIL_MAILER: log
     LOG_CHANNEL: stderr
 
 services:
@@ -97,16 +121,41 @@ services:
       DB_PASSWORD: ${TEST_DB_PASSWORD:?Run the documented local environment setup first}
       CACHE_STORE: array
       SESSION_DRIVER: array
-      QUEUE_CONNECTION: sync
+      QUEUE_CONNECTION: redis
+      QUEUE_AFTER_COMMIT: "true"
+      REDIS_HOST: redis-test
+      REDIS_PORT: "6379"
+      REDIS_QUEUE: testqueue
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit-test
+      MAIL_PORT: "1025"
+      # Explicit (F6): Mailpit HTTP API base used by test verification code.
+      # Pinned to the internal test service name so tests never depend on an
+      # ambient env default; override only if you relocate the test Mailpit.
+      MAILPIT_API_URL: http://mailpit-test:8025
       LOG_CHANNEL: stderr
     command: [composer, test]
     depends_on:
       postgres-test:
         condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      mailpit-test:
+        condition: service_healthy
 
   redis:
     image: redis:alpine@sha256:6cbef353e480a8a6e7f10ec545f13d7d3fa85a212cdcc5ffaf5a1c818b9d3798
     profiles: [async]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis-test:
+    image: redis:alpine@sha256:6cbef353e480a8a6e7f10ec545f13d7d3fa85a212cdcc5ffaf5a1c818b9d3798
+    profiles: [test]
+    networks: [testing]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -123,6 +172,105 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+
+  # Test-only Mailpit: reachable solely on the internal `testing` network,
+  # no host port. Tests peek at synthetic metadata over the HTTP API.
+  mailpit-test:
+    image: axllent/mailpit@sha256:c076638db1e15662150be4fb62b8a6e96ef6ba5bde90c838a0239225854830f7
+    profiles: [test]
+    networks: [testing]
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # Dev-only queue worker (async profile): bounded runtime, redis queue.
+  # restart (F3): dev-only convenience — the worker survives Docker daemon
+  # restarts unless explicitly stopped (`docker compose ... stop`). This
+  # service only exists under the `async` profile and is never deployed to
+  # production; production supervision is out of scope for this lane.
+  worker:
+    <<: *api
+    profiles: [async]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_DATABASE: starter_api_dev
+      DB_USERNAME: starter_api_dev
+      DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: redis
+      QUEUE_AFTER_COMMIT: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_QUEUE: default
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      LOG_CHANNEL: stderr
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: [php, artisan, queue:work, redis, "--queue=default", "--tries=3", "--backoff=5,15,60", "--max-jobs=100", "--max-time=3600"]
+    # Dev-only limitation (F4): this healthcheck proves only Redis
+    # connectivity and marker writes (via infra:probe). It does NOT prove
+    # job consumption — that payloads are actually picked up and processed
+    # from the queue. Accepted for the local dev stack only; production
+    # must monitor queue depth/lag instead. Same caveat applies to the
+    # scheduler service below.
+    healthcheck:
+      test: ["CMD", "php", "artisan", "infra:probe", "--key=healthcheck:worker"]
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # Dev-only scheduler (async profile): no production cron definition.
+  # restart (F3): same dev-only `unless-stopped` semantics as the worker.
+  scheduler:
+    <<: *api
+    profiles: [async]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_DATABASE: starter_api_dev
+      DB_USERNAME: starter_api_dev
+      DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: redis
+      QUEUE_AFTER_COMMIT: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_QUEUE: default
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      LOG_CHANNEL: stderr
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: [php, artisan, schedule:work]
+    # Dev-only limitation (F4): probes Redis connectivity only — it does not
+    # prove scheduled work completes; see the worker healthcheck note above.
+    healthcheck:
+      test: ["CMD", "php", "artisan", "infra:probe", "--key=healthcheck:scheduler"]
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
 
 volumes:
   postgres-dev:

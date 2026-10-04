@@ -70,7 +70,10 @@ return [
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
             'block_for' => null,
-            'after_commit' => false,
+            // FEAT-20 ruling: the global default stays FALSE. afterCommit
+            // is opted in explicitly by the async slice only (worker,
+            // scheduler, test stack) via QUEUE_AFTER_COMMIT=true.
+            'after_commit' => (bool) env('QUEUE_AFTER_COMMIT', false),
         ],
 
         'deferred' => [

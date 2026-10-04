@@ -49,13 +49,22 @@ docker compose --profile test run --rm test
 ## Optional services and local operations
 
 ```sh
-docker compose --profile async up -d --wait redis mailpit
 docker compose ps
 docker compose logs --tail=100 api nginx
 docker compose down
 ```
 
-Mailpit UI is available only on localhost, default port 8025 (`MAILPIT_PORT` overrides it). Redis and SMTP have no host ports. The scaffold still uses synchronous queues and the log mailer; enabling containers does not enable application integrations. No workers/scheduler are installed in this stage. Logs go to stderr; Nginx access logs are disabled to avoid capturing query strings. Never add credentials or personal data to logs. Correlation IDs/redaction for business inputs belong to the HTTP/observability feature deliveries.
+The optional Compose `async` profile adds the local queue stack: Redis, Mailpit (local SMTP capture) and dev-only `worker`/`scheduler` containers. The worker runs bounded (`--max-jobs`/`--max-time`) and both async services are healthchecked; those healthchecks only probe Redis connectivity — they do not prove job consumption. Application defaults stay `QUEUE_CONNECTION=sync` and `MAIL_MAILER=log`: the base stack boots without Redis/Mailpit, and starting the async containers changes nothing for the API until jobs/mail are actually dispatched in that profile's environment.
+
+Drive the async stack through the helper script, which pins a dedicated Compose project name, 127.0.0.1-only ports (18080/18025 by default), runs a synthetic smoke check through the real worker and cleans up with a project-scoped teardown:
+
+```sh
+ENV_FILE=/path/to/primary/.env sh scripts/async_dev.sh up|smoke|cleanup
+```
+
+If you operate Compose manually — especially in extra worktrees — always pass a unique project name (`docker compose -p <unique-name> …`): `compose.yaml` fixes the shared project name `starter-kit-api`, so two checkouts without distinct `-p` values would share containers, networks and the development database volume. Never run destructive commands such as `down --volumes` against that shared name, and do not rely on an ambient `COMPOSE_PROJECT_NAME` as a substitute — a shell without it silently falls back to the shared name.
+
+Mailpit UI is available only on localhost, default port 8025 (`MAILPIT_PORT` overrides it; the async helper script defaults it to 18025). Redis and SMTP have no host ports. Logs go to stderr; Nginx access logs are disabled to avoid capturing query strings. Never add credentials or personal data to logs. Correlation IDs/redaction for business inputs belong to the HTTP/observability feature deliveries.
 
 `docker compose down` preserves the development database volume. Do not use `down --volumes` as a routine reset. The test database's tmpfs is disposable when its container is removed. On database authentication errors, check the local `.env` against the credentials used when the development volume was initialized; do not silently reset that volume. On permission errors, regenerate only UID/GID configuration as needed, not secrets or existing data. Docker daemon access is required; failures before image/container execution are environment limitations, not passing checks.
 

@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-20",
+  "title": "Filas Redis e e-mail local integrados com worker, scheduler e falhas observáveis (API #20)",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "devops-release-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "medium",
+    "impact": "system",
+    "security": "relevant",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "architecture",
+      "testing"
+    ],
+    "deferred": [
+      "incident",
+      "release"
+    ],
+    "triggers": [
+      "Roadmap onda 2, item API #20: Redis e Mailpit realmente integrados antes dos testes efetivos de #14/#15",
+      "Recuperação: worktree temporário original perdido; código reconstruído do contexto retido do implementador no worktree persistente (branch feat/wave-2-async-recovery)"
+    ]
+  },
+  "phase_history": [
+    "discover",
+    "specify",
+    "plan",
+    "preflight",
+    "execute",
+    "verify"
+  ],
+  "last_updated": "2026-10-04",
+  "policy_exceptions": ["EXC-0001"]
+}
