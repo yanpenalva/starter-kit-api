@@ -88,3 +88,14 @@ Gates frescos pós-correções: ver `verification.md` (seção 2026-10-04). **No
 - PR **#34** aberto (base `main` `4f7c74d`, head `4888e89`, EXC-0001; `Refs #20` sem fechar a issue — aceite 1 depende de consumidores #14/#15): `https://github.com/yanpenalva/starter-kit-api/pull/34`.
 - CI no SHA exato: `context` **pass**; `application` **fail** (9 falhas — testes async exigem redis/mailpit ausentes no workflow core; detalhe em verification.md); `GitGuardian` **fail** (1 finding, dashboard-only; gitleaks local 0 leaks no range). **Merge NÃO executado** (condição parent não satisfeita); base `main` inalterada; sem `--admin`/`--force`; branch não apagada.
 - Desbloqueio exigido (decisão parent/core, fora do escopo desta lane): workflow CI com redis/mailpit efêmeros OU segregação dos testes async no CI + classificação do finding GG.
+
+## Correção do CI — workflow autorizado pelo parent (2026-10-04)
+
+Escopo novo e explícito do parent: `.github/workflows/quality.yml` + docs FEAT-20. Nenhum arquivo de código/teste alterado (nenhuma exclusão/skip/segregação de testes — os **53** rodam todos).
+
+- Serviços efêmeros no job `application`: `redis-test` e `mailpit-test` com os **mesmos pins por digest do compose** (`redis:alpine@…6cbef353…`, `axllent/mailpit@…c076638d…`), healthchecks equivalentes (`redis-cli ping`, `/mailpit readyz`), portas somente no runner efêmero (6379, 1025+8025) — zero exposição fora do job; sem credenciais reais (Redis/Mailpit unauth em loopback do runner, mesma convenção test-only do serviço PG).
+- Env do job espelhando a fatia `test` do compose: `QUEUE_AFTER_COMMIT=true` (exigido por `AfterCommitDispatchTest::test_redis_connection_env_gates_after_commit` via `getenv`), `REDIS_HOST/PORT=127.0.0.1:6379`, `REDIS_QUEUE=testqueue` (pai despacha na connection queue; worker filho consome `testqueue` — ausência desta chave causou 2 falhas na 1ª simulação), `MAIL_HOST/PORT=127.0.0.1:1025`, `MAILPIT_API_URL=http://127.0.0.1:8025`. `QUEUE_CONNECTION=sync` do job permanece (phpunit força sync/array; testes async setam config explícita).
+- `setup-php`: extensão `redis` (phpredis) adicionada — o cliente padrão do projeto é phpredis (Docker image pin 6.3.0); no runner, setup-php fornece o build compatível mais recente.
+- Job `context` e demais gates **inalterados** (diff mínimo).
+- Validação local pré-push: simulação fiel do CI via containers efêmeros em rede host com o env exato do job → **Pest 53 passed, 0 failed, 248 assertions**; YAML válido; resultado real do runner remoto no run do SHA final (links em verification.md). Reposição acidental corrigida: `storage/framework/cache/data/.gitignore` (run de teste como root limpou o placeholder; restaurado, fora do commit).
+- GitGuardian fora deste escopo (investigação explorer independente, em curso). Sem merge; sem alteração de regras/issue/quadro.

@@ -68,7 +68,6 @@ Isolamento: todos os comandos Docker com `-p starter-wave2-async` e `API_DEV_IMA
 - Required correction: aplicada a todas (F2 warning+guarda, F5 guardas+negativos, F3 unless-stopped dev-only, F6 pin+docs, F4 comentários)
 
 ## CI round — PR #34 (2026-10-04, SHA `4888e89`)
-
 PR aberto: `https://github.com/yanpenalva/starter-kit-api/pull/34` (base `main` `4f7c74d`, head `feat/wave-2-async-recovery` @ `4888e898e4a1f863b2ae952a45d088df1bc53598`; `Refs #20`, issue aberta de propósito). **MERGE NÃO EXECUTADO** — checks não todos em sucesso:
 
 - `context` — **pass** (16s): `https://github.com/yanpenalva/starter-kit-api/actions/runs/37209801797/job/111458491834`
@@ -80,6 +79,12 @@ Diagnóstico `application` (9 falhas, TODAS nos 5 testes de integração async d
 Diagnóstico `GitGuardian`: 1 finding, detalhes somente no dashboard (sem acesso desta sessão). Scan local gitleaks (imagem oficial) sobre o mesmo range `4f7c74d..4888e89`: **0 leaks**; todo o conteúdo é sintético (`.test`, UUIDs, sem credenciais). Requer inspeção parent no dashboard GG para classificar (provável falso positivo — ex.: UUIDs de evidência em docs).
 
 Proteções: `main` sem rulesets e sem branch protection (API 404) — nenhum required check no GitHub; condição de merge do parent (checks todos verdes no SHA exato) aplicada mesmo assim e **não satisfeita**. Base `main` inalterada durante a rodada.
+
+## CI fix round — workflow services (2026-10-04, escopo autorizado pelo parent)
+
+- Change: `.github/workflows/quality.yml` apenas — serviços efêmeros `redis-test`/`mailpit-test` (pins digest idênticos ao compose), env da fatia `test` (`QUEUE_AFTER_COMMIT/REDIS_HOST/REDIS_PORT/REDIS_QUEUE/MAIL_HOST/MAIL_PORT/MAILPIT_API_URL`) e extensão `redis` no setup-php. Contexto job/gates inalterados; zero alteração em código/testes (53/53 rodam).
+- Pré-validação local (simulação fiel do runner): containers efêmeros com os mesmos pins em rede host + env exato do job → Pest **53 passed, 0 failed, 248 assertions**; YAML parse OK.
+- Run remoto do SHA final: registrado no retorno da tarefa e visível no PR #34 (checks do último commit). GitGuardian segue em investigação explorer independente (fora deste escopo).
 
 ## Verdict
 

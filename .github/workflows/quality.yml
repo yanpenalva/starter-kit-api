@@ -38,6 +38,27 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U starter_api_test -d starter_api_test"
           --health-interval 5s --health-timeout 3s --health-retries 12
+      # FEAT-20: the async integration tests run against REAL queue/mail
+      # infrastructure (no fakes, no skips). Images reuse the exact compose
+      # pins; nothing is exposed beyond this ephemeral runner, and the
+      # credentials follow the same test-only fixture convention as the
+      # PostgreSQL service above (none needed: Redis/Mailpit run unauth on
+      # loopback for the job only).
+      redis-test:
+        image: redis:alpine@sha256:6cbef353e480a8a6e7f10ec545f13d7d3fa85a212cdcc5ffaf5a1c818b9d3798
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+      mailpit-test:
+        image: axllent/mailpit@sha256:c076638db1e15662150be4fb62b8a6e96ef6ba5bde90c838a0239225854830f7
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "/mailpit readyz"
+          --health-interval 5s --health-timeout 3s --health-retries 12
     env:
       APP_ENV: testing
       APP_DEBUG: 'false'
@@ -50,12 +71,25 @@ jobs:
       CACHE_STORE: array
       SESSION_DRIVER: array
       QUEUE_CONNECTION: sync
+      # FEAT-20 async test fixtures (mirroring the compose `test` slice):
+      # afterCommit opt-in expected by AfterCommitDispatchTest, real Redis
+      # for the phpredis client, real Mailpit SMTP + HTTP API on loopback.
+      QUEUE_AFTER_COMMIT: 'true'
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '6379'
+      REDIS_QUEUE: testqueue
+      MAIL_HOST: 127.0.0.1
+      MAIL_PORT: '1025'
+      MAILPIT_API_URL: http://127.0.0.1:8025
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, pdo_pgsql
+          # ext-redis (phpredis) is required by the real-queue integration
+          # tests; the Docker dev image pins phpredis 6.3.0, setup-php
+          # provides the latest compatible build on the runner.
+          extensions: mbstring, pdo_pgsql, redis
           coverage: none
           tools: composer:v2
       - run: composer validate --strict
