@@ -21,6 +21,15 @@ final class InfraFailJobCommand extends Command
 
     public function handle(): int
     {
+        // Env guard (F5): same contract as infra:probe — outside local/testing
+        // this command must be a no-op SUCCESS: no job dispatched, no queue
+        // write, no failed_jobs side effects.
+        if (! in_array(app()->environment(), ['local', 'testing'], true)) {
+            $this->info('infra fail-job disabled outside local/testing');
+
+            return self::SUCCESS;
+        }
+
         $token = (string) Str::uuid();
         InfraFailingJob::dispatch($token);
 

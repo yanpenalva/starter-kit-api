@@ -123,6 +123,13 @@ return [
     | Recipient used by the dev-only synthetic infrastructure smoke commands.
     | Restricted to reserved `.test` domains: never real recipients, no
     | credentials, no PII.
+    |
+    | `mailpit_api_url` (env MAILPIT_API_URL) is read ONLY by test/smoke
+    | verification code that inspects the synthetic inbox over Mailpit's HTTP
+    | API — application mail delivery never uses it. Default
+    | `http://mailpit-test:8025` resolves the internal test service on the
+    | `testing` network (compose profile `test`); it intentionally does not
+    | resolve on the host. Override only when relocating Mailpit.
     */
 
     'infra_smoke' => [

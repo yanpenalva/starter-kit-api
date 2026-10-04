@@ -49,3 +49,10 @@ Registro de RECUPERAÇÃO (novo root persistente): reexecução completa obrigat
 | CSD | strict / strict --examples / unittest / doctor | ✔ passed / passed / OK / "CSD is healthy (1.2.1)" |
 
 Checkpoint Git: commit local na branch de recuperação (conventional commit, arquivos FEAT-20 apenas) + push da branch sob EXC-0001; PR/merge = parent. Observação fora desta lane: containers do projeto primário `starter-kit-api` não estavam presentes no daemon durante o cleanup (nenhum comando desta frente os tocou; todas as operações usaram `-p starter-wave2-async`).
+
+## Integração origin/main (PR #33 core, `4f7c74d`) — combined snapshot (2026-10-03)
+
+- Merge normal (sem rebase/force/reset) já registrado em `eef1206`; integridade verificada: TODOS os arquivos core-owned (composer.json/lock, User, bootstrap, providers, phpunit.xml, configs de núcleo, rotas api/web, seeders, Support/Rules/Http, migrations 000002/000003) com diff ZERO vs `origin/main`; única sobreposição = `routes/console.php` com a linha ÚNICA guardada consentida (11 linhas).
+- Correções de revisão preservadas/aplicadas nesta árvore (F5): guardas de ambiente em `infra:smoke-mail`/`infra:fail-job` + 2 testes negativos de prod simulado (Mailpit inbox intocado; `failed_jobs` intocado); (F6) `MAILPIT_API_URL` pinado no serviço de teste; restart unless-stopped dev-only; warnings documentados dos healthchecks (probe ≠ consumo).
+- Gates frescos no snapshot combinado: composer install (lock do main, spatie 8.3/5.1) sem mudança de lock ✔; build proof phpredis 6.3.0/PHP 8.5.11 ✔; Pint `PASS 58 files` ✔; Larastan 10 `[OK] No errors` ✔; validate/audit/check-platform ✔; Pest combinado **53 passed, 0 failed, 248 assertions** (contagem real; base core + 13 async, incl. 5 guardas negativas) ✔; CSD strict/--examples/unittest/doctor ✔; smoke async worker→Mailpit entrega sintética ✔; cleanup `down -v` sem leftovers.
+- `.env` primário usado só como `--env-file` runtime; nenhum segredo lido/impresso.

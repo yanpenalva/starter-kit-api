@@ -22,6 +22,15 @@ final class InfraSmokeMailCommand extends Command
 
     public function handle(): int
     {
+        // Env guard (F5): same contract as infra:probe — outside local/testing
+        // this command must be a no-op SUCCESS: no mailable queued, no send,
+        // no queue write of any kind.
+        if (! in_array(app()->environment(), ['local', 'testing'], true)) {
+            $this->info('infra smoke-mail disabled outside local/testing');
+
+            return self::SUCCESS;
+        }
+
         $token = (string) Str::uuid();
         Mail::queue(new SyntheticInfraMail($token));
 

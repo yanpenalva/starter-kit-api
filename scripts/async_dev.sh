@@ -16,6 +16,14 @@ set -eu
 PROJECT=starter-wave2-async
 IMAGE=starter-wave2-async-api:local
 
+# F2 guard: compose.yaml pins the shared project name `starter-kit-api` (same
+# as the primary checkout). This script must therefore NEVER operate on that
+# project — a `down -v` here would destroy the primary dev volume.
+if [ "$PROJECT" = "starter-kit-api" ]; then
+    echo "refusing: PROJECT '$PROJECT' is the primary compose stack" >&2
+    exit 2
+fi
+
 ENV_FILE="${ENV_FILE:?Set ENV_FILE to the runtime env file path (Docker --env-file only)}"
 export API_DEV_IMAGE="$IMAGE"
 export HTTP_PORT="${HTTP_PORT:-18080}"
