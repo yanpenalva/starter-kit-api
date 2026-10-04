@@ -217,5 +217,97 @@ class FetchPolicyTests(unittest.TestCase):
         validate_artifact_metadata(artifact, self.make_policy())
 
 
+class CompatibilityCheckerTests(unittest.TestCase):
+    def test_resolve_pinned_checker_passes_on_pinned(self) -> None:
+        """Pinned checker resolves matching tool and version."""
+        from scripts.contract_compat import resolve_pinned_checker, PINNED_VERSION
+
+        checker = resolve_pinned_checker()
+        self.assertEqual(checker.version, PINNED_VERSION)
+
+    def test_resolve_pinned_checker_rejects_missing_tool(self) -> None:
+        """Missing tool fails closed."""
+        from scripts.contract_compat import CompatibilityError, resolve_pinned_checker
+
+        with self.assertRaises(CompatibilityError):
+            resolve_pinned_checker('non_existent_tool_binary_xyz')
+
+    def test_resolve_pinned_checker_rejects_wrong_version(self) -> None:
+        """Version mismatch fails closed."""
+        from scripts.contract_compat import CompatibilityError, resolve_pinned_checker
+
+        with self.assertRaises(CompatibilityError):
+            resolve_pinned_checker(expected_version='99.99.99')
+
+    def test_verify_commit_exists_accepts_main_baseline(self) -> None:
+        """Immutable main baseline commit exists."""
+        from scripts.contract_compat import IMMUTABLE_BASE_MAIN, verify_commit_exists
+
+        verify_commit_exists(IMMUTABLE_BASE_MAIN)
+
+    def test_verify_commit_exists_rejects_invalid_hex(self) -> None:
+        """Non-40-hex commit format fails closed."""
+        from scripts.contract_compat import CompatibilityError, verify_commit_exists
+
+        with self.assertRaises(CompatibilityError):
+            verify_commit_exists('not-a-valid-sha')
+
+    def test_verify_commit_exists_rejects_nonexistent_sha(self) -> None:
+        """Non-existent commit SHA fails closed."""
+        from scripts.contract_compat import CompatibilityError, verify_commit_exists
+
+        with self.assertRaises(CompatibilityError):
+            verify_commit_exists('0' * 40)
+
+    def test_is_contract_absent_in_commit_proves_absent_on_main(self) -> None:
+        """Contract is proven absent in baseline main commit."""
+        from scripts.contract_compat import (
+            DEFAULT_CONTRACT_PATH,
+            IMMUTABLE_BASE_MAIN,
+            is_contract_absent_in_commit,
+        )
+
+        absent = is_contract_absent_in_commit(IMMUTABLE_BASE_MAIN, DEFAULT_CONTRACT_PATH)
+        self.assertTrue(absent)
+
+    def test_operational_fixtures_prove_negatives_and_positive(self) -> None:
+        """Operational fixtures prove checker detects breaking changes and accepts compatible diffs."""
+        from scripts.contract_compat import resolve_pinned_checker, verify_operational_fixtures
+
+        checker = resolve_pinned_checker()
+        verify_operational_fixtures(checker)
+
+    def test_check_compatibility_bootstrap_passes_on_main(self) -> None:
+        """Bootstrap mode succeeds on absent base contract with candidate spec."""
+        from scripts.contract_compat import (
+            DEFAULT_CONTRACT_PATH,
+            IMMUTABLE_BASE_MAIN,
+            check_compatibility,
+            resolve_pinned_checker,
+        )
+
+        cache = Path('.cache')
+        cache.mkdir(parents=True, exist_ok=True)
+        cand = cache / 'test_candidate.json'
+        cand.write_bytes(minimal_spec())
+        checker = resolve_pinned_checker()
+        msg = check_compatibility(IMMUTABLE_BASE_MAIN, DEFAULT_CONTRACT_PATH, cand, checker)
+        self.assertIn('BOOTSTRAP VÁLIDO', msg)
+
+    def test_check_compatibility_fails_on_missing_candidate(self) -> None:
+        """Missing candidate file fails closed."""
+        from scripts.contract_compat import (
+            CompatibilityError,
+            DEFAULT_CONTRACT_PATH,
+            IMMUTABLE_BASE_MAIN,
+            check_compatibility,
+            resolve_pinned_checker,
+        )
+
+        checker = resolve_pinned_checker()
+        with self.assertRaises(CompatibilityError):
+            check_compatibility(IMMUTABLE_BASE_MAIN, DEFAULT_CONTRACT_PATH, Path('non_existent.json'), checker)
+
+
 if __name__ == '__main__':
     unittest.main()

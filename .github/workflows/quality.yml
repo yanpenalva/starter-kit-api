@@ -131,6 +131,8 @@ jobs:
       TZ: UTC
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
@@ -151,15 +153,16 @@ jobs:
             exit 1
           fi
           cmp storage/app/openapi-ci1.json contracts/openapi.json
-      - name: Structural contract validation (OpenAPI 3.1, session schemes, real surface)
+      - name: Structural contract validation (OpenAPI 3.1, root-relative server, session schemes, real surface)
         run: |
           python3 - <<'PY'
           import json, sys
           doc = json.loads(open('contracts/openapi.json', encoding='utf-8').read())
           assert doc.get('openapi') == '3.1.0', 'openapi must be 3.1.0'
           assert str(doc.get('info', {}).get('version', '')).strip() != '', 'info.version required'
+          assert doc.get('servers') == [{'url': '/'}], 'server must be root-relative /'
           paths = doc.get('paths', {})
-          for required in ('/login', '/logout', '/auth/my-profile', '/sanctum/csrf-cookie'):
+          for required in ('/api/v1', '/api/v1/login', '/api/v1/logout', '/api/v1/auth/my-profile', '/sanctum/csrf-cookie'):
               assert required in paths, f'missing path {required}'
           schemes = doc.get('components', {}).get('securitySchemes', {})
           assert 'sessionCookie' in schemes, 'sessionCookie scheme required'
@@ -167,5 +170,17 @@ jobs:
           assert 'bearer' not in {k.lower() for k in schemes}, 'bearer schemes forbidden'
           encoded = json.dumps(doc).lower()
           assert 'personal_access_tokens' not in encoded, 'PAT references forbidden'
+          csrf_responses = paths['/sanctum/csrf-cookie']['get']['responses']
+          assert '429' not in csrf_responses, 'non-throttled CSRF cookie route must not declare 429'
+          assert '204' in csrf_responses, 'CSRF cookie route must declare 204'
+          login_responses = paths['/api/v1/login']['post']['responses']
+          assert '429' in login_responses, 'throttled login route must declare 429'
           print('Contract structural validation passed.')
           PY
+      - name: Install pinned oasdiff
+        run: |
+          curl -fsSL https://github.com/oasdiff/oasdiff/releases/download/v1.33.0/oasdiff_1.33.0_linux_amd64.tar.gz | sudo tar -xz -C /usr/local/bin oasdiff
+          test "$(oasdiff -v | awk '{print $3}')" = "1.33.0"
+      - name: Real breaking changes comparison against immutable main baseline
+        run: |
+          python3 scripts/contract_compat.py --base-commit=1390009d37f6a3493b21be7d83dbd32ae355d579 --contract-path=contracts/openapi.json --candidate=contracts/openapi.json

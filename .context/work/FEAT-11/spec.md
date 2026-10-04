@@ -2,46 +2,54 @@
 
 ## Objetivo
 
-Preparar a infraestrutura de contrato OpenAPI, validação de proveniência de artefato e workflow guardado para a onda 3 (Stage A — CONTRACT prep), estabelecendo verificação fail-closed sem violar os limites da lane de autenticação (FEAT-13) e sem simular sucesso prematuro de rotas ou export.
+Implementar a geração e exportação determinística do contrato OpenAPI 3.1 com Scramble 0.13.47 a partir de endpoints reais de autenticação SPA (Stage B), prover verificação de compatibilidade e breaking changes contra a base imutável da main, e assegurar total conformidade com os invariantes normativos e de qualidade de código (CSD15).
 
-## Escopo (Stage A — CONTRACT prep)
+## Escopo Stage A (CONTRACT prep — Aprovado em `edbbe2f`)
 
-1. **Script de proveniência fail-closed (`scripts/verify_contract_artifact.py`)**:
-   - Valida que o artefato OpenAPI descende de `main` em SHA exato e completo de 40 caracteres hexadecimais (rejeita explicitamente `latest`, tags ou SHAs parciais).
-   - Valida evento de disparo através de allowlist restrita (`workflow_dispatch`, `release`, `workflow_run`).
-   - Recalcula independentemente o digest SHA256 do arquivo de artefato e compara com o valor registrado no receipt.
-   - Valida receipt completo contendo: `workflow_name`, `workflow_path`, `workflow_id`, `run_id`, `run_url`, `artifact_id`, `artifact_name`, `commit_sha`, `head_branch`, `event`, `created_at`, `archive_sha256` e `artifact_file_sha256`.
-   - Comportamento fail-closed: qualquer divergência, campo ausente ou valor malformado encerra a execução com status não-zero e mensagem descritiva.
-   - Interface de CLI e helpers para uso pelo produtor e orquestrador.
+- Infraestrutura de proveniência de artefato fail-closed (`scripts/verify_contract_artifact.py`, `scripts/contract_core.py`, `scripts/contract_receipt.py`, `scripts/contract_cli.py`).
+- 59 testes unitários (`test_verify_contract_artifact.py`) e 25 testes adversariais históricos.
+- Assinaturas conformes com `<= 7` parâmetros declarados via objetos congelados tipados (`VerificationPolicy`, `ReceiptRecord`).
 
-2. **Workflow draft guardado (`.github/workflows/openapi.yml`)**:
-   - Trigger restrito via `workflow_dispatch` com input obrigatório de justificativa.
-   - Permissão restrita (`contents: read`), sem segredos novos.
-   - Step guardado com falha explícita e informativa (`exit 1`), documentando que o Stage B aguarda o congelamento de autenticação L1 e instalação do Scramble.
-   - Proibido qualquer echo de falso sucesso antes de endpoints reais existirem.
+## Escopo Stage B (Publicação Real e Fechamento dos Cinco Blockers)
 
-3. **Alinhamento documental de contexto**:
-   - `.context/project/api.md`: registra o caminho de transporte ativo pelo orquestrador local com `gh` para repositórios privados (sem novo PAT para consumidor; builds do frontend sem credenciais de CI; `GITHUB_TOKEN contents:read` não cruza repositórios).
-   - `.context/project/stack.md`: registra a decisão de transporte e o version pin exato do Scramble (`dedoc/scramble 0.13.47`).
+1. **Servidor OpenAPI e Paths Completos**:
+   - Servidor fixado em `'/'` root-relative em `ContractDocumentTransformer::ensureServers`, independente de `APP_URL` ou origem local.
+   - Rotas documentadas com paths reais completos: `/api/v1`, `/api/v1/login`, `/api/v1/logout`, `/api/v1/auth/my-profile`.
+   - Rota `/sanctum/csrf-cookie` na raiz, válida e acessível.
+   - Resolução de URLs de operações comprovada via testes automatizados.
 
+2. **Remoção de 429 na Rota CSRF**:
+   - Rota vendor `/sanctum/csrf-cookie` (grupo `web`, sem throttling) declara apenas resposta 204 (sem 429).
+   - Rotas throttled da API preservam resposta 429 com cabeçalho `Retry-After`.
 
-4. **Suite de testes automatizados (`tests/tools/test_verify_contract_artifact.py`)**:
-   - Unittest em Python cobrindo cenários positivos e negativos (divergência de SHA256, SHA ausente ou inválido, evento fora da allowlist, branch diferente de `main`, metadata incompleta ou malformada, artefato inexistente, CLI).
-   - Discovery de testes do projeto permanece 100% verde sem afetar `test_context_validation.py`.
-   - Proibição absoluta de chamadas reais de rede/API do GitHub, mutações de repositório e segredos em fixtures.
+3. **Verificação de Breaking Changes contra Base Imutável**:
+   - Ferramenta fixada: `oasdiff` versão 1.33.0 (`scripts/contract_compat.py`).
+   - Commit baseline imutável da main: `1390009d37f6a3493b21be7d83dbd32ae355d579`.
+   - Bootstrap estrito: acionado somente com commit baseline existente e caminho `contracts/openapi.json` comprovadamente ausente; falha fechada para erros de acesso/git/tool.
+   - Fixtures operacionais: 5 negativas (remoção de rota, remoção de status de sucesso, alteração de tipo, campo obrigatório adicionado na requisição, propriedade obrigatória removida da resposta) e 1 positiva (mudança compatível) comprovam checker operacional.
 
-## Fora de escopo (Stage B — publicação real)
+4. **Workflow de Publicação com Disparo Estrito**:
+   - Workflow `.github/workflows/openapi.yml` restrito a `workflow_dispatch` na branch `main`.
+   - Remoção do trigger extra `push: branches: [main]`.
 
-- Instalação do Scramble (`composer.json`/`composer.lock`).
-- Configuração de providers, rotas, controllers, form requests ou resources.
-- Alterações em `app/`, `config/`, `routes/`, `database/`.
-- Assinatura criptográfica / attestation (notary/cosign).
-- Execução de contêineres Docker.
+5. **Decomposição Coesa CSD15**:
+   - `ContractResponseFactory` (3 métodos): construção de respostas JSON e descrições de erro.
+   - `ContractOperationOverlay` (12 métodos): overlay de segurança, XSRF headers e respostas de erro.
+   - `ContractDocumentTransformer` (8 métodos): orquestração geral do documento.
+   - Todas as classes atendem estritamente a `<= 15` métodos declarados, `<= 500` linhas, `<= 7` parâmetros, `<= 3` retornos e zero `else`/`elif`.
 
-## Critérios de aceite
+## Convenção de Idioma
 
-- [x] Script `scripts/verify_contract_artifact.py` implementado com regras fail-closed e conformidade estrita de qualidade de código (zero `else`/`elif`, <= 3 retornos por função).
-- [x] Workflow `.github/workflows/openapi.yml` configurado como draft guardado que falha com mensagem explicativa.
-- [x] Suite de testes `tests/tools/test_verify_contract_artifact.py` com testes negativos e positivos passando integralmente.
-- [x] Documentos `api.md` e `stack.md` atualizados com o registro factual do transporte aprovado.
-- [x] Todos os gates CSD e unittests executados com sucesso.
+- Variáveis, identificadores e tokens de máquina em en-US.
+- Todas as mensagens humanas de status, erro, validação, requisição e resposta em pt-BR no código de produção pertencente à lane CONTRACT tocado.
+
+## Critérios de Aceite
+
+- [x] Blocker 1: Servidor OpenAPI root-relative `'/'` e paths completos `/api/v1/...`; `/sanctum/csrf-cookie` na raiz; independência comprovada de `APP_URL`.
+- [x] Blocker 2: Ausência de 429 em CSRF vendor não throttled; preservação de 429 nas operações de API throttled.
+- [x] Blocker 3: Comparação de breaking changes contra base imutável `1390009` com `oasdiff 1.33.0` fixado; fixtures negativas rejeitadas e positiva aceita; bootstrap comprovado.
+- [x] Blocker 4: Workflow `.github/workflows/openapi.yml` restrito a `workflow_dispatch` em main.
+- [x] Blocker 5: Decomposição CSD15 de `ContractDocumentTransformer` em classes com `<= 15` métodos.
+- [x] Todos os gates aplicáveis (composer validate/audit/platform, Pint, Larastan Level 10, Pest 96/644, Python unittests 87, CSD strict/examples/doctor) passando com exit 0.
+- [x] Snapshot `contracts/openapi.json` exportado deterministicamente 2x (byte a byte idêntico).
+- [ ] Revisão independente do candidato SHA exato pelo parent orchestrator (Stage B PENDING).

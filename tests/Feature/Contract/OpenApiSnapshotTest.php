@@ -6,6 +6,7 @@ namespace Tests\Feature\Contract;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 final class OpenApiSnapshotTest extends TestCase
@@ -14,6 +15,7 @@ final class OpenApiSnapshotTest extends TestCase
 
     public function test_export_generates_real_session_contract(): void
     {
+        config(['app.url' => 'http://unexpected-custom-origin.test:9999']);
         $output = storage_path('app/openapi-snapshot-test.json');
 
         $exit = Artisan::call('scramble:export', ['--path' => $output]);
@@ -34,12 +36,41 @@ final class OpenApiSnapshotTest extends TestCase
         $info = $document['info'];
         $this->assertSame('1.0.0', $info['version']);
 
+        /** @var list<array{url: string}> $servers */
+        $servers = $document['servers'];
+        $this->assertSame([['url' => '/']], $servers);
+        $this->assertStringNotContainsString('unexpected-custom-origin', $payload);
+        $this->assertStringNotContainsString('localhost:8080', $payload);
+
         /** @var array<string, mixed> $paths */
         $paths = $document['paths'];
-        $this->assertArrayHasKey('/login', $paths);
-        $this->assertArrayHasKey('/logout', $paths);
-        $this->assertArrayHasKey('/auth/my-profile', $paths);
+        $this->assertArrayHasKey('/api/v1', $paths);
+        $this->assertArrayHasKey('/api/v1/login', $paths);
+        $this->assertArrayHasKey('/api/v1/logout', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/my-profile', $paths);
         $this->assertArrayHasKey('/sanctum/csrf-cookie', $paths);
+
+        // URL resolution of generated operations against root-relative server
+        $registeredUris = array_map(
+            fn (\Illuminate\Routing\Route $route): string => '/'.ltrim($route->uri(), '/'),
+            Route::getRoutes()->getRoutes(),
+        );
+
+        $serverUrl = $servers[0]['url'];
+        foreach (['/api/v1', '/api/v1/login', '/api/v1/logout', '/api/v1/auth/my-profile', '/sanctum/csrf-cookie'] as $expectedPath) {
+            $resolvedUrl = '/'.ltrim($serverUrl, '/').ltrim($expectedPath, '/');
+            $this->assertSame($expectedPath, $resolvedUrl);
+            $this->assertContains($resolvedUrl, $registeredUris);
+        }
+
+        /** @var array<string, mixed> $csrfRoute */
+        $csrfRoute = $paths['/sanctum/csrf-cookie'];
+        /** @var array<string, mixed> $csrfGet */
+        $csrfGet = $csrfRoute['get'];
+        /** @var array<string, mixed> $csrfResponses */
+        $csrfResponses = $csrfGet['responses'];
+        $this->assertArrayHasKey('204', $csrfResponses);
+        $this->assertArrayNotHasKey('429', $csrfResponses, 'Non-throttled CSRF cookie route must not declare 429');
 
         /** @var array<string, mixed> $components */
         $components = $document['components'];
@@ -75,7 +106,7 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertSame('string', $roleItems['type']);
 
         /** @var mixed $loginRoute */
-        $loginRoute = $paths['/login'];
+        $loginRoute = $paths['/api/v1/login'];
         $this->assertIsArray($loginRoute);
         /** @var mixed $loginPostMixed */
         $loginPostMixed = $loginRoute['post'];
@@ -89,8 +120,17 @@ final class OpenApiSnapshotTest extends TestCase
             $this->assertArrayHasKey($status, $loginResponses, "login missing {$status}");
         }
 
+        /** @var mixed $logoutRoute */
+        $logoutRoute = $paths['/api/v1/logout'];
+        $this->assertIsArray($logoutRoute);
+        /** @var array<string, mixed> $logoutPost */
+        $logoutPost = $logoutRoute['post'];
+        /** @var array<string, mixed> $logoutResponses */
+        $logoutResponses = $logoutPost['responses'];
+        $this->assertArrayHasKey('429', $logoutResponses, 'Throttled logout route must declare 429');
+
         /** @var mixed $profileRoute */
-        $profileRoute = $paths['/auth/my-profile'];
+        $profileRoute = $paths['/api/v1/auth/my-profile'];
         $this->assertIsArray($profileRoute);
         /** @var mixed $profileGetMixed */
         $profileGetMixed = $profileRoute['get'];
@@ -100,5 +140,10 @@ final class OpenApiSnapshotTest extends TestCase
         /** @var array<int, mixed> $profileSecurity */
         $profileSecurity = $profileGet['security'];
         $this->assertSame([['sessionCookie' => []]], $profileSecurity);
+        /** @var array<string, mixed> $profileResponses */
+        $profileResponses = $profileGet['responses'];
+        $this->assertArrayHasKey('429', $profileResponses, 'Throttled profile route must declare 429');
+
+        unlink($output);
     }
 }

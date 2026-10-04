@@ -4,7 +4,7 @@ name: OpenAPI Contract
 # Form Requests and Resources (Scramble 0.13.47, LC_ALL=C, 2x idempotent export)
 # on main at a reviewed commit, then publishes the artifact openapi-<fullSHA>.
 #
-# Triggers: workflow_dispatch (manual, main only) and push to main (post-merge).
+# Triggers: workflow_dispatch (manual, main only).
 # Wrong-branch or non-allowlisted events fail closed via the branch guard.
 # Permissions are minimal (contents: read). No secrets, no PAT, no frontend writes.
 # The receipt is constructed by the operator fetch AFTER trusted metadata + raw
@@ -18,8 +18,6 @@ on:
         description: 'Execution trigger reason (producer export on main)'
         required: true
         default: 'producer-export'
-  push:
-    branches: [main]
 
 permissions:
   contents: read
