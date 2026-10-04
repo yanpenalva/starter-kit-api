@@ -54,6 +54,13 @@ final class ScaffoldTest extends TestCase
         );
         sort($uris);
 
-        $this->assertSame(['api/v1', 'sanctum/csrf-cookie', 'up'], $uris);
+        $this->assertSame([
+            'api/v1',
+            'api/v1/auth/my-profile',
+            'api/v1/login',
+            'api/v1/logout',
+            'sanctum/csrf-cookie',
+            'up',
+        ], $uris);
     }
 }
