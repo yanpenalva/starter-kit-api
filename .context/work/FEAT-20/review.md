@@ -1,8 +1,8 @@
 # Review — FEAT-20
 
-> **STATUS: IN RE-REVIEW — work item `active`. MERGE BLOQUEADO por
-> procedência do commit `9c5f102` (investigação explorer em andamento);
-> gate = parent.**
+> **STATUS: RELEASED CONDITIONALLY — work item `active`; PR/integração
+> autorizada sob EXC-0001 (autorização de continuação do parent,
+> 2026-10-04). Bloqueio de proveniência ENCERRADO pelo parent.**
 >
 > - Revisão independente oracle round 1: **PASS WITH CONDITIONS em
 >   `9c61e18`** (condições F2–F6 atribuídas ao fixer).
@@ -10,11 +10,19 @@
 >   `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`** — F2–F6 aplicadas,
 >   zero-diff core vs `origin/main` confirmado de forma independente,
 >   gates técnicos auditáveis (Pest **53 passed / 248 assertions**).
-> - **Nenhuma aprovação GitHub é alegada**: re-review por agente na conta
->   do autor não equivale a approving review; PR/merge/quadro = parent.
-> - Condição residual: esclarecimento da proveniência de `9c5f102`
->   (commit não-executado pelo fixer da sessão; conteúdo auditado arquivo
->   a arquivo, idêntico às edições da sessão).
+> - **Procedência de `9c5f102` RESOLVIDA (decisão parent, 2026-10-04)**:
+>   explorer comprovou via lifecycle OpenCode (log + DB) que o commit foi
+>   realizado em **2026-10-04T14:16:28Z pela sessão fixer antiga retomada
+>   `ses_efbddf033ffevWJI0m8ZqB6Z2U`**, distinta da sessão fixer seguinte
+>   desta frente; conteúdo = edições novas da sessão antiga + adendo no
+>   execution.md da mesma sessão, todo ele em escopo FEAT-20; nenhum
+>   escritor ativo/locks restantes. Ocorrência histórica preservada nos
+>   registros abaixo (round 2); bloqueio de governança removido.
+> - **Liberação condicional**: PR/CI/merge condicional liberados, sujeitos
+>   aos checks finais no SHA exato (context/application e qualquer
+>   required), regra "base mudou → sem merge", sem `--admin`/`--force`.
+>   **Nenhuma aprovação GitHub é alegada** — re-review por agente não
+>   equivale a approving review; review independente continua não-GitHub.
 
 ## Inputs
 
@@ -62,4 +70,6 @@
 ## Verdict
 
 Round 1 — oracle, em `9c61e18`: `PASS WITH CONDITIONS` (F2–F6 atribuídas).
-Round 2 — re-review oracle, em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`: **`PASS WITH CONDITIONS`** — condições F2–F6 verificadas como aplicadas; zero-diff core vs `origin/main` reconfirmado de forma independente; gates técnicos auditáveis (53/248, Pint 58, Larastan limpo, CSD suite). **Condição única restante: proveniência de `9c5f102`** — investigação explorer em andamento BLOQUEIA merge até esclarecimento; gate de integração = parent. Work item permanece `active`; PR/integração/quadro = parent (não iniciados nesta sessão); nenhuma aprovação GitHub é alegada.
+Round 2 — re-review oracle, em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`: **`PASS WITH CONDITIONS`** — condições F2–F6 verificadas como aplicadas; zero-diff core vs `origin/main` reconfirmado; gates técnicos auditáveis (53/248, Pint 58, Larastan limpo, CSD suite).
+Procedência — parent, 2026-10-04: **RESOLVIDA** (`9c5f102` atribuído à sessão fixer antiga retomada `ses_efbddf033ffevWJI0m8ZqB6Z2U`, 2026-10-04T14:16:28Z, escopo FEAT-20, sem escritores ativos; histórico preservado).
+**Status final: `RELEASED CONDITIONALLY`** — PR/CI/merge condicional liberados sob EXC-0001 + autorização de continuação do parent; condições de merge: todos os checks em sucesso no SHA exato, nenhuma review requerida pendente, base `main` inalterada (se a base mudar: sem merge, retornar para review); sem `--admin`/`--force`; branch não apagada. **Nenhuma aprovação GitHub é alegada**; work item permanece `active` (fechamento/quadro = parent).

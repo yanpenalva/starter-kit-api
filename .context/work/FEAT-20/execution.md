@@ -75,3 +75,10 @@ Gates frescos pós-correções: ver `verification.md` (seção 2026-10-04). **No
 - **Nenhuma aprovação GitHub é alegada** (re-review por agente ≠ approving review); PR/merge/quadro = parent.
 - **Merge BLOQUEADO** até esclarecimento da proveniência de `9c5f102` (investigação explorer em andamento) — condição única restante; work item permanece `active`.
 - Follow-up docs-only pós-re-review (este registro): README.md (seção async — perfil opt-in com Redis/Mailpit/worker/scheduler dev, defaults `sync`/`log`, recomendação `scripts/async_dev.sh` + `-p` único por worktree, sem comando cru perigoso) + adendos FEAT-20. Nenhum arquivo de produção/config/testes alterado; gates PHP NÃO re-executados (produção intocada); CSD re-validado após as edições.
+
+## Decisão parent — procedência resolvida e liberação condicional (2026-10-04)
+
+- **Resolução**: explorer comprovou via lifecycle OpenCode (log + DB) que `9c5f102` foi commitado em **2026-10-04T14:16:28Z pela sessão fixer antiga retomada `ses_efbddf033ffevWJI0m8ZqB6Z2U`** — distinta da sessão fixer seguinte desta frente. Conteúdo = edições novas da sessão antiga + adendo no execution.md pela mesma sessão, todo em escopo FEAT-20. Nenhum escritor ativo/locks restantes.
+- Ocorrência histórica e auditorias da seção anterior **preservadas** (não reescritas); bloqueio de governança **removido** pela decisão parent.
+- **Liberação condicional**: PR/CI/merge condicional autorizados sob EXC-0001 + autorização de continuação do user/parent — condições: checks todos em sucesso no SHA exato do PR (context/application e qualquer required), nenhuma review requerida pendente, base `main` ainda `4f7c74d` (base revisada); base mudou → sem merge e retorno para review; merge normal SEM `--admin`/`--force`, sem apagar branch; sem tag/produção/secrets.
+- Oracle: revisão de todos os commits/conteúdo **PASS em `ccee7f42214b91ba394d6ddcae37a0c10d596f6c`** (mantida; conteúdo inalterado desde então — docs FEAT-20 somente). **Nenhuma aprovação GitHub é alegada.**
