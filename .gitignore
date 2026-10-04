@@ -17,3 +17,4 @@ dist/
 !/storage/logs/.gitignore
 .context/work/**/progress.md
 .context/work/**/.local/
+/.cache/

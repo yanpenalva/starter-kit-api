@@ -1,0 +1,134 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\OpenApi;
+
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\Operation;
+use Dedoc\Scramble\Support\Generator\Parameter;
+use Dedoc\Scramble\Support\Generator\Response;
+use Dedoc\Scramble\Support\Generator\Schema;
+use Dedoc\Scramble\Support\Generator\SecurityRequirement;
+use Dedoc\Scramble\Support\Generator\Types\StringType;
+
+final class ContractOperationOverlay
+{
+    private ContractResponseFactory $responses;
+
+    public function __construct(?ContractResponseFactory $responses = null)
+    {
+        $this->responses = $responses ?? new ContractResponseFactory;
+    }
+
+    public function apply(OpenApi $openApi): void
+    {
+        foreach ($openApi->paths as $path) {
+            $normalized = $this->normalizePath($path->path);
+            foreach ($path->operations as $operation) {
+                $this->overlayOperation($operation, $normalized);
+            }
+        }
+    }
+
+    private function overlayOperation(Operation $operation, string $normalizedPath): void
+    {
+        $method = strtolower($operation->method);
+
+        if ($this->isLogin($normalizedPath, $method)) {
+            $this->applyLogin($operation);
+
+            return;
+        }
+
+        if ($this->isLogout($normalizedPath, $method)) {
+            $this->applyLogout($operation);
+
+            return;
+        }
+
+        if ($this->isProfile($normalizedPath, $method)) {
+            $this->applyProfile($operation);
+
+            return;
+        }
+
+        $operation->security = [];
+    }
+
+    private function applyLogin(Operation $operation): void
+    {
+        $operation->security = [];
+        $this->ensureXsrfHeaderParam($operation);
+        $this->ensureResponse($operation, $this->responses->messageResponse(419, 'CSRF token mismatch.'));
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyLogout(Operation $operation): void
+    {
+        $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
+        $this->ensureXsrfHeaderParam($operation);
+        $this->ensureResponse($operation, $this->responses->messageResponse(419, 'CSRF token mismatch.'));
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyProfile(Operation $operation): void
+    {
+        $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
+        $this->ensureResponse($operation, $this->responses->messageResponse(403, 'This account has been deactivated.'));
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function ensureXsrfHeaderParam(Operation $operation): void
+    {
+        foreach ($operation->parameters as $parameter) {
+            if ($parameter instanceof Parameter && $parameter->name === ContractDocumentTransformer::XSRF_HEADER && $parameter->in === 'header') {
+                return;
+            }
+        }
+
+        /** @var Parameter $param */
+        $param = Parameter::make(ContractDocumentTransformer::XSRF_HEADER, 'header');
+        $param->required = true;
+        $param->description = 'Token XSRF espelhando o cookie XSRF-TOKEN; obrigatório em requisições que alteram estado.';
+        /** @var Schema $schema */
+        $schema = Schema::fromType(new StringType);
+        $param->schema = $schema;
+        $operation->parameters[] = $param;
+    }
+
+    private function ensureResponse(Operation $operation, Response $response): void
+    {
+        if ($operation->responses === null) {
+            $operation->responses = [];
+        }
+        foreach ($operation->responses as $index => $existing) {
+            if ($existing instanceof Response && (string) $existing->code === (string) $response->code) {
+                $operation->responses[$index] = $response;
+
+                return;
+            }
+        }
+        $operation->responses[] = $response;
+    }
+
+    private function normalizePath(string $path): string
+    {
+        return strtolower(trim($path, '/'));
+    }
+
+    private function isLogin(string $path, string $method): bool
+    {
+        return $method === 'post' && str_ends_with($path, 'login');
+    }
+
+    private function isLogout(string $path, string $method): bool
+    {
+        return $method === 'post' && str_ends_with($path, 'logout');
+    }
+
+    private function isProfile(string $path, string $method): bool
+    {
+        return $method === 'get' && str_ends_with($path, 'auth/my-profile');
+    }
+}

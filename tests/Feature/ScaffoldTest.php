@@ -101,6 +101,8 @@ final class ScaffoldTest extends TestCase
             'api/v1/auth/my-profile',
             'api/v1/login',
             'api/v1/logout',
+            'docs/api',
+            'docs/api.json',
             'sanctum/csrf-cookie',
             'up',
         ], $uris);
