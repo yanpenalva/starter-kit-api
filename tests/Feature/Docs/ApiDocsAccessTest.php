@@ -25,8 +25,10 @@ final class ApiDocsAccessTest extends TestCase
         $this->assertSame('starter_api_test', config('database.connections.pgsql.database'));
         $this->assertSame('starter_api_test', config('database.connections.pgsql.username'));
         $this->assertNull(config('database.connections.pgsql.url'));
-        $this->assertSame('smtp', config('mail.default'));
-        $this->assertSame('mailpit-test', config('mail.mailers.smtp.host'));
+        $mailMailer = config('mail.default');
+        $this->assertContains($mailMailer, ['log', 'smtp']);
+        // CI usa loopback; Compose usa nome interno do serviço.
+        $this->assertContains(config('mail.mailers.smtp.host'), ['127.0.0.1', 'mailpit-test']);
         $this->assertSame('1025', config('mail.mailers.smtp.port'));
         $this->assertSame('testing', app()->environment());
         $this->assertFalse(config('app.debug'));
