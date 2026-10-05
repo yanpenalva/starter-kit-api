@@ -14,16 +14,16 @@ use Illuminate\Support\Facades\Redis;
  */
 final class InfraProbeCommand extends Command
 {
-    protected $signature = 'infra:probe {--key=infra:probe:last : Marker key in Redis}';
+    protected $signature = 'infra:probe {--key=infra:probe:last : Chave do marcador no Redis}';
 
-    protected $description = 'Dev-only Redis probe that stores a short-lived scheduler marker (async infra)';
+    protected $description = 'Sonda Redis exclusiva de desenvolvimento que grava um marcador efêmero do scheduler (infra assíncrona)';
 
     public function handle(): int
     {
         // Env guard (F1): outside local/testing this command must be a
         // no-op SUCCESS — no Redis connection, no keys written.
         if (! in_array(app()->environment(), ['local', 'testing'], true)) {
-            $this->info('infra probe disabled outside local/testing');
+            $this->info('Sonda de infra desativada fora de local/testing');
 
             return self::SUCCESS;
         }
@@ -34,7 +34,7 @@ final class InfraProbeCommand extends Command
         $connection->set($key, now()->toIso8601String());
         $connection->expire($key, 300);
 
-        $this->info('redis probe ok');
+        $this->info('Sonda Redis OK');
 
         return self::SUCCESS;
     }

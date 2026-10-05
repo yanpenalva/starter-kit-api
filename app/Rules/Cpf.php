@@ -7,11 +7,6 @@ namespace App\Rules;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
-/**
- * Validates an optional CPF provided as a normalized 11-digit string.
- * Leading zeros are preserved by storing the value as a string; the
- * caller normalizes (digits only) before or after validation.
- */
 final class Cpf implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -21,27 +16,32 @@ final class Cpf implements ValidationRule
         }
 
         if (! is_string($value)) {
-            $fail('The :attribute must be a string of 11 digits.');
+            $fail('O campo :attribute deve ser uma string de 11 dígitos.');
 
             return;
         }
 
+        $this->validateNormalizedDigits($attribute, $value, $fail);
+    }
+
+    private function validateNormalizedDigits(string $attribute, string $value, Closure $fail): void
+    {
         $digits = preg_replace('/\D/', '', $value) ?? '';
 
         if (strlen($digits) !== 11) {
-            $fail('The :attribute must contain exactly 11 digits.');
+            $fail('O campo :attribute deve conter exatamente 11 dígitos.');
 
             return;
         }
 
         if (preg_match('/^(\d)\1{10}$/', $digits) === 1) {
-            $fail('The :attribute must not have all repeated digits.');
+            $fail('O campo :attribute não pode ter todos os dígitos repetidos.');
 
             return;
         }
 
         if (! $this->hasValidCheckDigits($digits)) {
-            $fail('The :attribute check digits are invalid.');
+            $fail('Os dígitos verificadores do campo :attribute são inválidos.');
         }
     }
 

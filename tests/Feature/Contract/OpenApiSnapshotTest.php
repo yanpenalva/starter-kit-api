@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Contract;
 
+use App\Models\User;
+use App\Support\ApiMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 final class OpenApiSnapshotTest extends TestCase
@@ -144,6 +149,165 @@ final class OpenApiSnapshotTest extends TestCase
         $profileResponses = $profileGet['responses'];
         $this->assertArrayHasKey('429', $profileResponses, 'Throttled profile route must declare 429');
 
+        $this->assertMessageExamplesMatchApiMessageConstants($document);
+
         unlink($output);
+    }
+
+    public function test_contract_examples_match_real_runtime_responses(): void
+    {
+        $this->assertRuntimeMessage(419, ApiMessage::CSRF, function (): TestResponse {
+            return $this->postJson('/api/v1/login', ['email' => 'parity@example.test', 'password' => 'wrong']);
+        });
+
+        $this->assertRuntimeMessage(401, ApiMessage::INVALID_CREDENTIALS, function (): TestResponse {
+            return $this->withSession([])
+                ->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/'])
+                ->postJson('/api/v1/login', ['email' => 'parity@example.test', 'password' => 'wrong']);
+        });
+
+        $email = 'parity-throttled@example.test';
+        $key = hash('sha256', $email.'|127.0.0.1');
+        RateLimiter::clear($key);
+        $blocked = null;
+        foreach (range(1, 6) as $attempt) {
+            $blocked = $this->withSession([])
+                ->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/'])
+                ->postJson('/api/v1/login', ['email' => $email, 'password' => 'wrong']);
+            $blocked->assertStatus($attempt < 6 ? 401 : 429);
+        }
+        $this->assertInstanceOf(TestResponse::class, $blocked);
+        $this->assertSame(ApiMessage::THROTTLED, $blocked->json('message'));
+        $this->assertTrue($blocked->headers->has('Retry-After'));
+        RateLimiter::clear($key);
+
+        $this->assertRuntimeMessage(401, ApiMessage::UNAUTHENTICATED, function (): TestResponse {
+            return $this->withSession([])
+                ->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/'])
+                ->getJson('/api/v1/auth/my-profile');
+        });
+
+        $deactivated = User::factory()->deactivated()->create([
+            'email' => 'parity-deactivated@example.test',
+            'password' => Hash::make('secret123'),
+        ]);
+        $this->assertRuntimeMessage(403, ApiMessage::DEACTIVATED, function () use ($deactivated): TestResponse {
+            return $this->withSession([])
+                ->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/'])
+                ->postJson('/api/v1/login', ['email' => $deactivated->email, 'password' => 'secret123']);
+        });
+
+        $this->assertRuntimeMessage(404, ApiMessage::NOT_FOUND, function (): TestResponse {
+            return $this->withSession([])
+                ->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/'])
+                ->getJson('/api/v1/parity-nonexistent-endpoint');
+        });
+
+        $this->assertRuntimeMessage(405, ApiMessage::METHOD_NOT_ALLOWED, function (): TestResponse {
+            return $this->withSession([])
+                ->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/'])
+                ->patchJson('/api/v1');
+        });
+
+        $document = $this->exportContractDocument();
+        $this->assertMessageExamplesMatchApiMessageConstants($document);
+    }
+
+    /**
+     * @param  array<string, mixed>  $document
+     */
+    private function assertMessageExamplesMatchApiMessageConstants(array $document): void
+    {
+        /** @var array<string, mixed> $paths */
+        $paths = $document['paths'];
+
+        $this->assertSame(ApiMessage::INVALID_CREDENTIALS, $this->messageExample($paths, '/api/v1/login', 'post', '401'));
+        $this->assertSame(ApiMessage::DEACTIVATED, $this->messageExample($paths, '/api/v1/login', 'post', '403'));
+        $this->assertSame(ApiMessage::CSRF, $this->messageExample($paths, '/api/v1/login', 'post', '419'));
+        $this->assertSame(ApiMessage::THROTTLED, $this->messageExample($paths, '/api/v1/login', 'post', '429'));
+
+        $this->assertSame(ApiMessage::UNAUTHENTICATED, $this->messageExample($paths, '/api/v1/logout', 'post', '401'));
+        $this->assertSame(ApiMessage::CSRF, $this->messageExample($paths, '/api/v1/logout', 'post', '419'));
+        $this->assertSame(ApiMessage::THROTTLED, $this->messageExample($paths, '/api/v1/logout', 'post', '429'));
+
+        $this->assertSame(ApiMessage::UNAUTHENTICATED, $this->messageExample($paths, '/api/v1/auth/my-profile', 'get', '401'));
+        $this->assertSame(ApiMessage::DEACTIVATED, $this->messageExample($paths, '/api/v1/auth/my-profile', 'get', '403'));
+        $this->assertSame(ApiMessage::THROTTLED, $this->messageExample($paths, '/api/v1/auth/my-profile', 'get', '429'));
+    }
+
+    /**
+     * @param  callable(): mixed  $request
+     */
+    private function assertRuntimeMessage(int $status, string $expected, callable $request): void
+    {
+        $response = $request();
+        $this->assertInstanceOf(TestResponse::class, $response);
+        $response->assertStatus($status);
+        $this->assertSame($expected, $response->json('message'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $paths
+     */
+    private function messageExample(array $paths, string $path, string $method, string $status): string
+    {
+        /** @var mixed $node */
+        $node = $paths[$path];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node[$method];
+        $this->assertIsArray($node);
+        /** @var array<string, mixed> $operation */
+        $operation = $node;
+        /** @var mixed $node */
+        $node = $operation['responses'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node[$status];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['content'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['application/json'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['schema'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['properties'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['message'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['examples'];
+        $this->assertIsArray($node);
+        /** @var list<string> $examples */
+        $examples = $node;
+
+        return $examples[0];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function exportContractDocument(): array
+    {
+        $output = storage_path('app/openapi-parity-test.json');
+
+        $exit = Artisan::call('scramble:export', ['--path' => $output]);
+        $this->assertSame(0, $exit);
+        $this->assertFileExists($output);
+
+        /** @var mixed $decoded */
+        $decoded = json_decode((string) file_get_contents($output), true);
+        $this->assertIsArray($decoded);
+        unlink($output);
+
+        /** @var array<string, mixed> $document */
+        $document = $decoded;
+
+        return $document;
     }
 }

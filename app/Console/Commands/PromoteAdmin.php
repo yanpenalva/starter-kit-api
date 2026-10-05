@@ -10,17 +10,17 @@ use Illuminate\Console\Command;
 final class PromoteAdmin extends Command
 {
     protected $signature = 'app:promote-admin
-        {id : Numeric ID of the chosen, verified and active account}
-        {--confirm-production : Explicitly confirm an administrative bootstrap against production}';
+        {id : ID numérico da conta escolhida, verificada e ativa}
+        {--confirm-production : Confirma explicitamente um bootstrap administrativo em produção}';
 
-    protected $description = 'Idempotently grant the admin role to the chosen account inside one audited transaction';
+    protected $description = 'Concede de forma idempotente o papel de administrador à conta escolhida dentro de uma transação auditada';
 
     public function handle(BootstrapAdmin $bootstrap): int
     {
         $id = (int) $this->argument('id');
 
         if ($id < 1) {
-            $this->error('The target must be a positive numeric account ID.');
+            $this->error('O alvo deve ser um ID de conta numérico positivo.');
 
             return self::FAILURE;
         }
@@ -33,11 +33,11 @@ final class PromoteAdmin extends Command
             return self::FAILURE;
         }
 
-        if ($result['already_admin']) {
-            $this->info('Account already holds the admin role; nothing changed.');
-        } else {
-            $this->info('Admin role granted and audited.');
-        }
+        $alreadyAdmin = (bool) $result['already_admin'];
+
+        $this->info($alreadyAdmin
+            ? 'A conta já possui o papel de administrador; nada foi alterado.'
+            : 'Papel de administrador concedido e auditado.');
 
         return self::SUCCESS;
     }

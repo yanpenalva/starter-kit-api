@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 use App\Http\Middleware\CorrelateRequest;
 use App\Http\Middleware\DisallowHeaderAuthentication;
+use App\Support\ApiMessage;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -23,8 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->redirectGuestsTo(fn (): ?string => null);
 
-        // Trusted proxies stay EMPTY by ruling: no RFC1918/localhost ranges are
-        // trusted. A concrete proxy list may be added later, only if needed.
         $middleware->statefulApi();
         $middleware->throttleApi();
 
@@ -39,4 +43,31 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request): bool => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (AuthenticationException $e, Request $request): ?JsonResponse {
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+
+            return response()->json(['message' => ApiMessage::UNAUTHENTICATED], 401);
+        });
+
+        $exceptions->render(function (Throwable $e, Request $request): ?JsonResponse {
+            if ((bool) config('app.debug')
+                || $e instanceof ValidationException
+                || $e instanceof HttpResponseException
+                || ! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+
+            if ($e instanceof HttpExceptionInterface) {
+                return response()->json(
+                    ['message' => ApiMessage::forHttpException($e)],
+                    $e->getStatusCode(),
+                    $e->getHeaders(),
+                );
+            }
+
+            return response()->json(['message' => ApiMessage::SERVER_ERROR], 500);
+        });
     })->create();

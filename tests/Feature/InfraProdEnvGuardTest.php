@@ -87,7 +87,7 @@ final class InfraProdEnvGuardTest extends TestCase
         ], 'infra:probe');
 
         $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
-        $this->assertStringContainsString('disabled outside local/testing', $process->getOutput());
+        $this->assertStringContainsString('desativada fora de local/testing', $process->getOutput());
 
         // No keys may have been created on the real test Redis either.
         $this->assertSame(0, (int) Redis::connection()->exists('infra:probe:last-guards'));
@@ -110,7 +110,7 @@ final class InfraProdEnvGuardTest extends TestCase
         ], 'infra:smoke-mail');
 
         $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
-        $this->assertStringContainsString('disabled outside local/testing', $process->getOutput());
+        $this->assertStringContainsString('desativado fora de local/testing', $process->getOutput());
         $this->assertSame($before, $this->mailpitTotal($apiUrl));
     }
 
@@ -130,7 +130,7 @@ final class InfraProdEnvGuardTest extends TestCase
         ], 'infra:fail-job');
 
         $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
-        $this->assertStringContainsString('disabled outside local/testing', $process->getOutput());
+        $this->assertStringContainsString('desativado fora de local/testing', $process->getOutput());
         $this->assertSame($before, (int) DB::table('failed_jobs')->count());
     }
 

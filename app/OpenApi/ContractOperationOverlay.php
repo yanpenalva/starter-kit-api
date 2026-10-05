@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\OpenApi;
 
+use App\Support\ApiMessage;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\Generator\Parameter;
@@ -60,7 +61,9 @@ final class ContractOperationOverlay
     {
         $operation->security = [];
         $this->ensureXsrfHeaderParam($operation);
-        $this->ensureResponse($operation, $this->responses->messageResponse(419, 'CSRF token mismatch.'));
+        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::INVALID_CREDENTIALS));
+        $this->ensureResponse($operation, $this->responses->messageResponse(403, ApiMessage::DEACTIVATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(419, ApiMessage::CSRF));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
@@ -68,14 +71,16 @@ final class ContractOperationOverlay
     {
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
         $this->ensureXsrfHeaderParam($operation);
-        $this->ensureResponse($operation, $this->responses->messageResponse(419, 'CSRF token mismatch.'));
+        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(419, ApiMessage::CSRF));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
     private function applyProfile(Operation $operation): void
     {
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
-        $this->ensureResponse($operation, $this->responses->messageResponse(403, 'This account has been deactivated.'));
+        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(403, ApiMessage::DEACTIVATED));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 

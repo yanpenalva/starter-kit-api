@@ -33,7 +33,7 @@ final class ProfileTest extends TestCase
         $response = $this->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Unauthenticated.']);
+            ->assertExactJson(['message' => 'Não autenticado.']);
     }
 
     public function test_verified_active_user_returns_full_profile_with_roles_and_permissions(): void
@@ -124,7 +124,7 @@ final class ProfileTest extends TestCase
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(403)
-            ->assertExactJson(['message' => 'This account has been deactivated.']);
+            ->assertExactJson(['message' => 'Esta conta foi desativada.']);
     }
 
     public function test_verified_deactivated_account_remains_blocked_with_403(): void
@@ -139,7 +139,7 @@ final class ProfileTest extends TestCase
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(403)
-            ->assertExactJson(['message' => 'This account has been deactivated.']);
+            ->assertExactJson(['message' => 'Esta conta foi desativada.']);
     }
 
     public function test_profile_returns_strictly_authenticated_user_representation(): void
@@ -166,7 +166,7 @@ final class ProfileTest extends TestCase
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Unauthenticated.']);
+            ->assertExactJson(['message' => 'Não autenticado.']);
 
         $this->assertSame([], $executedQueries);
     }
@@ -181,6 +181,6 @@ final class ProfileTest extends TestCase
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(401)
-            ->assertExactJson(['message' => 'Unauthenticated.']);
+            ->assertExactJson(['message' => 'Não autenticado.']);
     }
 }

@@ -18,7 +18,7 @@ final class InfraSmokeMailCommand extends Command
 {
     protected $signature = 'infra:smoke-mail';
 
-    protected $description = 'Dev-only: queue one synthetic test mail through the async stack';
+    protected $description = 'Exclusivo de desenvolvimento: enfileira um e-mail sintético de teste pela pilha assíncrona';
 
     public function handle(): int
     {
@@ -26,7 +26,7 @@ final class InfraSmokeMailCommand extends Command
         // this command must be a no-op SUCCESS: no mailable queued, no send,
         // no queue write of any kind.
         if (! in_array(app()->environment(), ['local', 'testing'], true)) {
-            $this->info('infra smoke-mail disabled outside local/testing');
+            $this->info('Infra smoke-mail desativado fora de local/testing');
 
             return self::SUCCESS;
         }
@@ -35,7 +35,7 @@ final class InfraSmokeMailCommand extends Command
         Mail::queue(new SyntheticInfraMail($token));
 
         // The token is the only correlation data printed; synthetic UUID.
-        $this->info('queued synthetic mail token='.$token);
+        $this->info('E-mail sintético de teste enfileirado token='.$token);
 
         return self::SUCCESS;
     }

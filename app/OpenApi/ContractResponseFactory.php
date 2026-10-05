@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\OpenApi;
 
+use App\Support\ApiMessage;
 use Dedoc\Scramble\Support\Generator\Header;
 use Dedoc\Scramble\Support\Generator\Response;
 use Dedoc\Scramble\Support\Generator\Schema;
@@ -33,7 +34,7 @@ final class ContractResponseFactory
 
     public function rateLimitedResponse(): Response
     {
-        $response = $this->messageResponse(429, 'Too many requests.');
+        $response = $this->messageResponse(429, ApiMessage::THROTTLED);
         $header = new Header(description: 'Segundos até que o cliente possa tentar novamente.');
         /** @var Schema $schema */
         $schema = Schema::fromType(new IntegerType);

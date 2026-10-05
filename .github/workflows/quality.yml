@@ -88,12 +88,11 @@ jobs:
       MAILPIT_API_URL: http://127.0.0.1:8025
     steps:
       - uses: actions/checkout@v4
+      # FEAT-24: racional em .context/work/FEAT-24/verification.md
+      - run: touch .env
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          # ext-redis (phpredis) is required by the real-queue integration
-          # tests; the Docker dev image pins phpredis 6.3.0, setup-php
-          # provides the latest compatible build on the runner.
           extensions: mbstring, pdo_pgsql, redis
           coverage: none
           tools: composer:v2

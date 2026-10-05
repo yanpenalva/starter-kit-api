@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Support\ApiMessage;
 use Closure;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -16,7 +17,7 @@ final class DisallowHeaderAuthentication
         $authorization = $request->header('Authorization');
 
         if (is_string($authorization) && trim($authorization) !== '') {
-            abort(401, 'Unauthenticated.');
+            abort(401, ApiMessage::UNAUTHENTICATED);
         }
 
         $response = $next($request);
