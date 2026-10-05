@@ -8,19 +8,33 @@ use App\Enums\Role;
 use App\Models\User;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\DocsAccessDatabaseGuard;
 use Tests\TestCase;
 
 final class ApiDocsAccessTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function beforeRefreshingDatabase(): void
+    {
+        DocsAccessDatabaseGuard::assertSafe([
+            'connection' => config('database.default'),
+            'host' => config('database.connections.pgsql.host'),
+            'port' => config('database.connections.pgsql.port'),
+            'database' => config('database.connections.pgsql.database'),
+            'username' => config('database.connections.pgsql.username'),
+            'url' => config('database.connections.pgsql.url'),
+            'environment' => app()->environment(),
+            'debug' => config('app.debug'),
+            'mailer' => config('mail.default'),
+            'smtp_host' => config('mail.mailers.smtp.host'),
+            'smtp_port' => config('mail.mailers.smtp.port'),
+        ]);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
-
-        $database = config('database.connections.pgsql.database');
-        $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
 
         $this->seed(RbacCatalogueSeeder::class);
     }
@@ -97,5 +111,94 @@ final class ApiDocsAccessTest extends TestCase
         $document = $response->json();
         $this->assertIsArray($document);
         $this->assertSame('3.1.0', $document['openapi']);
+    }
+
+    public function test_production_docs_policy_denies_guest_non_admin_unverified_and_deactivated_users(): void
+    {
+        $this->useProductionDocsPolicy();
+
+        $this->assertDocsForbiddenFor(null);
+
+        /** @var User $nonAdmin */
+        $nonAdmin = User::factory()->create([
+            'email_verified_at' => now(),
+            'deactivated_at' => null,
+        ]);
+        $nonAdmin->assignRole(Role::User->value);
+        $this->assertDocsForbiddenFor($nonAdmin);
+
+        /** @var User $unverifiedAdmin */
+        $unverifiedAdmin = User::factory()->create([
+            'email_verified_at' => null,
+            'deactivated_at' => null,
+        ]);
+        $unverifiedAdmin->assignRole(Role::Admin->value);
+        $this->assertDocsForbiddenFor($unverifiedAdmin);
+
+        /** @var User $deactivatedAdmin */
+        $deactivatedAdmin = User::factory()->create([
+            'email_verified_at' => now(),
+            'deactivated_at' => now(),
+        ]);
+        $deactivatedAdmin->assignRole(Role::Admin->value);
+        $this->assertDocsForbiddenFor($deactivatedAdmin);
+    }
+
+    public function test_production_docs_policy_allows_verified_active_admin_for_ui_and_json(): void
+    {
+        $this->useProductionDocsPolicy();
+
+        /** @var User $admin */
+        $admin = User::factory()->create([
+            'email_verified_at' => now(),
+            'deactivated_at' => null,
+        ]);
+        $admin->assignRole(Role::Admin->value);
+
+        $this->actingAs($admin, 'web');
+
+        $document = $this->getJson('/docs/api.json');
+        $document->assertOk();
+        $this->assertSame('3.1.0', $document->json('openapi'));
+
+        $ui = $this->get('/docs/api');
+        $ui->assertOk();
+        $this->assertStringStartsWith('text/html', (string) $ui->headers->get('content-type'));
+        $this->assertNotSame('', $ui->getContent());
+    }
+
+    private function useProductionDocsPolicy(): void
+    {
+        $this->assertSame('testing', app()->environment());
+
+        $this->app->detectEnvironment(static fn (): string => 'production');
+        config(['app.debug' => false]);
+
+        $this->assertSame('production', app()->environment());
+        $this->assertFalse(config('app.debug'));
+    }
+
+    private function assertDocsForbiddenFor(?User $user): void
+    {
+        $this->app['auth']->forgetGuards();
+
+        if ($user instanceof User) {
+            $this->actingAs($user, 'web');
+        }
+
+        $responses = [
+            $this->get('/docs/api'),
+            $this->getJson('/docs/api.json'),
+        ];
+
+        foreach ($responses as $response) {
+            $response->assertForbidden();
+            $body = (string) $response->getContent();
+            $this->assertStringNotContainsString('Stack trace', $body);
+            $this->assertStringNotContainsString('Illuminate\\', $body);
+            $this->assertStringNotContainsString('SQLSTATE[', $body);
+        }
+
+        $this->app['auth']->forgetGuards();
     }
 }

@@ -1,8 +1,10 @@
-# Versioned Handoff — FEAT-11 (owner handoff pós-integração do PR #39)
+# Versioned Handoff — FEAT-11
+
+## Historical handoff context — 2026-10-04
 
 ## State
 
-- Current phase/status: verify (delta pós-integração aguardando revisão independente; nada aprovado por esta sessão).
+- Current phase/status: verify (artefato OpenAPI da main `e646c34` publicado pelo workflow `OpenAPI Contract` e verificado em 2026-10-05; critérios de consumo frontend e proteção de docs em produção ainda sem evidência; issue #11 continua ativa).
 - Approved scope: transferência de ownership autorizada pelo parent (EXC-0001): execução do escopo contract-owner NESTA worktree AUTH, enquanto o writer da lane AUTH está com terminal pausado.
 - Decisions:
   - Sessão NATIVA FRESCA iniciada com `--dir` na worktree AUTH. Motivo: tentativa de continuar a sessão produtora `ses_ef6fc2ef1ffekDEo6PtpfrA3jn` com `--dir` falhou probe-verify — o cwd do worker permaneceu na worktree do contrato (`starter-kit-api-wave3-contract-worktree`, HEAD `0cb5fda`); `--dir` não redireciona sessão continuada, então continuar escreveria na árvore errada.
@@ -13,3 +15,23 @@
 - Commands and evidence: gates reais desta execução registrados no recibo da sessão produtora (Pint 86 files, Larastan 10 OK, composer validate/audit/platform OK, Pest 106 passed/1160 assertions/0 warnings, Python 113 OK, CSD strict/examples/doctor 1.2.1 OK, export 2× byte-idêntica + 2× APP_URL variantes byte-idênticas, oasdiff real 1.33.0 (tarball `43a4e328…`, binário `fa65aae4…` verificados) contra baseline real `21fc960` = zero breaking, sem bootstrap).
 - Failures and risks: revisão independente do NOVO delta (overlay/ snapshot) PENDENTE — o PASS histórico vale para `227b75f`/`9334e2d`, não para o novo SHA; CI do novo head deve confirmar freshness gate do snapshot.
 - Next step: revisão independente do combo (core `f89be5d` + overlay delta) pelo parent antes de qualquer merge/publicação.
+
+## Publicação observada em main — 2026-10-05
+
+- Evidência: workflow `374937885`, run `37255680565` (`workflow_dispatch`, head `e646c34a280b851847676af290494e872edcaa9b`) SUCCESS; artifact `11321734331`, nome versionado por SHA. Detalhes, hashes, comandos e limitações em `release.md`.
+- Verificação: SHA-256 do ZIP local corresponde ao digest publicado pelo provider; extração segura e `contract_cli.py --mode download-fresh` passaram; OpenAPI extraído (21,323 bytes) corresponde ao blob versionado na main.
+- Pendências: frontend ainda precisa demonstrar geração/consumo dos tipos; documentação protegida em produção ainda sem evidência; issue #11 não atende todos os critérios e não deve ser fechada. Parent valida bundle/integração e decide fechamento.
+- Entrega documental desta continuação: branch `docs/wave-3-contract-published` → `main`, remote `origin`, sob EXC-0001.
+
+## Política de docs em contexto production — 2026-10-05
+
+- Verificação request-time para Scramble UI + JSON registrada em `verification.md`: anônimo, non-admin, admin não verificado e admin desativado recebem 403 nos dois endpoints; admin verificado/ativo recebe 200. `APP_DEBUG=false`; corpos negados sem stack/class SQL detalhada.
+- A decisão do vendor middleware é lazy por request (`environment('local')`), enquanto provider/Gate e rotas são registrados no boot sem condição de ambiente. Teste muda somente `app.environment` após boot; não alega boot ou infra de produção reais.
+- Observações históricas: full local `bdcb3ad` 108/1.279; CI `e1f4dc1` run 37259316295 108/1.287 SUCCESS. Diferem por SHA/ambiente; causa não verificada.
+- Critérios #11: critério 1 observado por snapshot/contract validation; critério 3 observado no harness limitado; critério 2 (frontend gera tipos do artefato) continua pendente. Issue #11 segue open/active; parent faz review/integração.
+
+## Estado após re-review independente — 2026-10-05
+
+- CI do SHA `e1f4dc1bd07a711283fced315af97293d97ea098` passou em [run 37259316295](https://github.com/yanpenalva/starter-kit-api/actions/runs/37259316295): 3 jobs success; aplicação 108 testes/1.287 assertions.
+- A re-review independente Luna `ses_ef1b3181fffe3pkzZdomyhtbtH` devolveu **FAIL** nesse SHA, com finding MED sobre guard do DB e finding LOW sobre observações 1.279/1.287. `review.md` conserva o FAIL como registro histórico.
+- Delta de teste `1326c623dc2327075f6008c69765b656ef0660bc` e CSD-only head `64417b7a6d5f354a52a4f76a68323eb40bd02eba` passaram CI 3/3 (runs `37388157061` e `37388523093`). Gates locais: Pest 111/1.210; Pint 88 arquivos; Larastan 60; Composer validate/platform/audit, Python 113 e CSD strict/examples/doctor passaram. Peer review independente do candidato final aguarda parent. Estado `verify`/`active` permanece, API #11 não fecha e frontend types seguem pendentes para o parent.

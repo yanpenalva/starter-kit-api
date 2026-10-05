@@ -83,3 +83,16 @@
 8. Conformidade CSD15 (`<= 15` métodos, zero `else`) em todos os fontes de produção tocados.
 9. Resolvedor de baseline: eventos fora de `pull_request`/`push`, push fora de `refs/heads/main`, zero-SHA, SHA malformado, commit indisponível e baseline == HEAD falham fechado.
 10. Integridade do instalador: digests do asset e do binário fixados; verificação antes de extração/execução; rejeição de symlink, membro ausente, oversized e não regular.
+
+## Revisão do delta de proteção da documentação — pendente
+
+- Esta continuação adiciona testes HTTP reais da UI e JSON sob avaliação lazy do middleware como `production`, mais guard de banco antes do `RefreshDatabase`.
+- A revisão independente acima cobre SHA `227b75f…`, não este delta de teste/documentação. Nenhuma revisão independente do novo HEAD é alegada; parent revisa PR #41 antes da integração.
+- Evidência e limites do harness constam em `verification.md`; critério frontend da issue #11 permanece pendente.
+
+## Re-review independente fresca — FAIL no candidato `e1f4dc1`
+
+- Revisor separado: sessão Luna `ses_ef1b3181fffe3pkzZdomyhtbtH`; candidato exato `e1f4dc1bd07a711283fced315af97293d97ea098`; resultado **FAIL**. Este achado permanece registrado; nenhum PASS é alegado para esse SHA.
+- Finding MED: o DB guard aceitava qualquer hostname não vazio e só verificava `config(...pgsql.url)`, não a presença bruta de `DB_URL` em `getenv()`, `$_ENV` e `$_SERVER`.
+- Finding LOW: a observação CSD local `108/1.279` não reconciliava com CI real `108/1.287` do run `37259316295`; os valores foram confirmados por ambiente/SHA sem atribuir causa.
+- O delta em `1326c623dc2327075f6008c69765b656ef0660bc` adiciona guard/helper e fixtures apenas em `tests/`, além de reconciliar observações e handoff. Helper exige allowlist de hostname + alvo/porta/configuração exatos e verifica presença bruta nos três stores; fixtures provam rejeição antes do contador de SQL simulado avançar. CI `37388157061` passou (3/3 jobs, Pest 111/1.210); re-review peer independente deste novo SHA segue pendente, sem autoaprovação.

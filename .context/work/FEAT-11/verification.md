@@ -117,3 +117,63 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 - A revisão independente anterior via conversa AGY `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em FAIL de integração sobre `35f6ae82`. As cinco constatações foram remediadas nesta submissão (resolvedor dinâmico de baseline, reconciliação de observações, alinhamento CSD, integridade criptográfica do instalador, limpeza pt-BR dos workflows). O SHA exato do candidato está registrado no corpo do PR #39 e no recibo final desta execução.
 - Gap de preflight histórico permanece registrado em `preflight.md` como lacuna observável (preflight do Stage B documentado apenas nesta data, sem evidência anterior): nada foi retrofabricado.
 - Nenhum merge, fechamento de issue, publicação real no GitHub Actions ou alegação de auto-aprovação de PASS é feita.
+
+---
+
+## Verificação adicional — política de acesso à documentação (2026-10-05)
+
+### Policy real e estratégia de execução
+
+- `config/scramble.php` associa `web` e `Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess` às rotas UI e JSON.
+- `App\Providers\ScrambleDocServiceProvider::boot()` define Gate `viewApiDocs`: nega usuário ausente, desativado ou não verificado; permite apenas papel `admin` verificado e ativo. Gate e rotas são registrados sem branch por ambiente no boot.
+- O middleware Scramble `vendor/dedoc/scramble/src/Http/Middleware/RestrictedDocsAccess.php::handle()` decide em cada request: `app()->environment('local')` é bypass; fora de `local`, exige `Gate::allows('viewApiDocs')`. O branch ambiental é lazy/request-time; por isso não foi necessário bootstrap de produção separado.
+- `ApiDocsAccessTest::useProductionDocsPolicy()` confirma ambiente inicial `testing`, muda o ambiente da aplicação para `production` depois do boot e força `app.debug=false`. Requests HTTP de teste passam pelo middleware e Gate reais; não há mock de response, rotas ou RBAC.
+- `beforeRefreshingDatabase()` chama `DocsAccessDatabaseGuard` antes do `RefreshDatabase` executar migração. O guard exige host Postgres em allowlist exata (`postgres-test`, `127.0.0.1`, `localhost`), porta 5432, database/user `starter_api_test`, URL `null`, ambiente `testing`, debug falso e mailer de teste isolado (`array`, `log`, `smtp`; SMTP apenas loopback/alias Mailpit na porta 1025). Mensagens rejeitam sem incluir host/DB/DSN ou valores de ambiente.
+- O guard consulta presença bruta de `DB_URL` por `getenv() !== false` e `array_key_exists` em `$_ENV` e `$_SERVER`; não lê nem inclui valor em mensagens. Fixture com `Symfony\Component\Process\Process` passa `DB_URL => false` somente ao subprocesso, então input herdado não é alterado no processo de teste.
+
+### Resultado observado por identidade e endpoint
+
+| Identidade no ambiente avaliado como `production` | `GET /docs/api` UI | `GET /docs/api.json` JSON | Resultado |
+| --- | --- | --- | --- |
+| Anônimo | 403 | 403 | Negado; corpo sem stack trace, classe Illuminate ou SQLSTATE |
+| Usuário ativo/verificado sem admin | 403 | 403 | Negado; sem detalhes internos |
+| Admin não verificado | 403 | 403 | Negado; sem detalhes internos |
+| Admin desativado | 403 | 403 | Negado; sem detalhes internos |
+| Admin verificado e ativo | 200, HTML não vazio | 200, OpenAPI `3.1.0` | Permitido pela policy configurada |
+
+O catalogue RBAC real foi semeado no Postgres efêmero; contas e estados foram criados por factories de teste. Observações preservadas por SHA/ambiente: teste focused inicial `8/139`; full Pest local em `bdcb3ad` no Docker Compose (SMTP Mailpit isolado), `108/1.279`; CI em `e1f4dc1` (PHPUnit fake mailer `array`), [run 37259316295](https://github.com/yanpenalva/starter-kit-api/actions/runs/37259316295), `108/1.287` SUCCESS; focused local após portabilidade em `e1f4dc1`, `8/147`. Full Pest desta correção candidata: **111 passed / 1.210 assertions** no scratch Docker PHP 8.5 com PostgreSQL 18 efêmero. As contagens por SHA/ambiente permanecem observações distintas; nenhuma causa para a diferença de assertions entre `bdcb3ad` local e `e1f4dc1` CI é alegada.
+
+### Cobertura, limitações e estado dos critérios da issue #11
+
+| Critério | Estado | Evidência / limite |
+| --- | --- | --- |
+| 1. OpenAPI válido nos endpoints criados e security scheme preciso | Observado no escopo automatizado | `OpenApiSnapshotTest` exporta documento real, verifica paths reais (`/api/v1`, login, logout, profile e CSRF), `sessionCookie` como `apiKey` em cookie, `xsrfToken`, security por sessão, ausência de Bearer/PAT e contrato estrutural; CI de `main` `37249567434` e gate `Contract generation and compatibility` na suíte local passaram. |
+| 2. Frontend gera tipos do artefato publicado | **PENDENTE** | Geração/consumo Orval da lane frontend ainda não foi observada nesta sessão; parent valida evidência dessa lane. |
+| 3. Docs protegidos em produção conforme policy declarada | Observado via simulação request-time | UI e JSON exercitados por HTTP no framework com ambiente alterado pós-boot para `production`, `APP_DEBUG=false` e policy real. Não representa boot/deploy/infra de produção. |
+
+Limitações explícitas: app de teste inicia em `testing`; só o valor consultado lazy pelo middleware é mudado para `production`, pois código Scramble inspecionado não decide registro de rotas por ambiente no boot. DB, contas e RBAC são efêmeros/sintéticos; `APP_KEY` e senhas de DB são valores fake, Mailpit é isolado na rede interna de teste. Não foram testados browser real, cookie/sessão em servidor live, proxy/CDN, segredo/variáveis de produção, deploy, nem URL pública de produção. A evidência cobre a policy em código e seus responses de request no framework, não disponibilidade nem configuração operacional do ambiente produtivo.
+
+### Runtime isolado e gates desta continuação
+
+- Harness scratch: `/tmp/opencode/starter-api-docsprod-4dbec42` (cópia `git archive` do source, apenas teste atualizado, `vendor` copiado, `.env` vazio; `.env.testing` não copiado nem lido). Compose project/image: `starter-api-docsprod-4dbec42` / `starter-api-docsprod-4dbec42-api:local`; imagens base PHP 8.5, Composer 2 e Postgres 18 pinadas por digest; Redis/Mailpit também usam pins do `compose.yaml`.
+- `composer validate --strict`: PASS; `composer check-platform-reqs`: PASS (PHP 8.5.11); `composer audit`: PASS, sem advisories; Pint `composer lint`: PASS, 86 files; Larastan `composer analyse`: PASS, 58 files, sem erros.
+- Pest completo: PASS, **108 passed (1.279 assertions)**.
+- `python3 scripts/validate_context.py --strict`: PASS; `--strict --examples`: PASS (warning esperado: sem example suite instalado); `python3 -m unittest discover -s tests -v`: PASS, **113 tests**; `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: PASS (`CSD is healthy (1.2.1)`).
+- Primeira tentativa da suíte completa injetou `DB_URL=null`; 7 testes de guarda recusaram corretamente com `Refusing to run: inherited DB_URL environment variable is present.` A execução completa seguinte deixou `DB_URL` ausente e passou 108/108. O scratch não contém `.env.testing`; o DB guard assegurou alvo efêmero antes de migração.
+- Nenhum fonte de aplicação, workflow, dependência, contrato ou artefato publicado foi alterado.
+
+### Revalidação após findings independentes — candidato pós-`e1f4dc1`
+
+- Composer `validate --strict`, `check-platform-reqs` (PHP 8.5.11) e `audit`: PASS; nenhum advisory.
+- Pint `composer lint`: PASS, **88 files**. Larastan `composer analyse`: PASS, **60 files**, sem erros.
+- Pest completo `composer test`: PASS, **111 testes / 1.210 assertions**, incluindo 3 fixtures de guard (19 assertions) e 8 casos de docs UI/JSON.
+- Python `unittest discover -s tests -v`: PASS, **113 tests**; CSD `--strict` e `--strict --examples`: PASS (warning esperado: sem example suite instalado); CSD doctor 1.2.1: PASS.
+- Evidência do candidato de código `1326c623dc2327075f6008c69765b656ef0660bc`: 11 casos brutos de DB_URL e cinco hosts inválidos recusaram antes do contador de SQL simulado; hosts permitidos foram aceitos. [CI run 37388157061](https://github.com/yanpenalva/starter-kit-api/actions/runs/37388157061) concluiu SUCCESS nos três jobs; application confirmou 111 passed / 1.210 assertions. O head CSD-only `64417b7a6d5f354a52a4f76a68323eb40bd02eba` também passou 3/3 em [CI run 37388523093](https://github.com/yanpenalva/starter-kit-api/actions/runs/37388523093). Peer review independente do candidato final segue pendente.
+
+### Findings da re-review `e1f4dc1` — correção candidata
+
+- Resultado independente recebido: FAIL em `e1f4dc1bd07a711283fced315af97293d97ea098`, revisor Luna separado `ses_ef1b3181fffe3pkzZdomyhtbtH`; preservado em `review.md` sem alegar PASS/autoaprovação.
+- MED: agora há allowlist estrita de hosts Postgres e port 5432; DB, username e URL permanecem exatos. O guard consulta `getenv('DB_URL') !== false` e chaves presentes em `$_ENV`/`$_SERVER` com `array_key_exists`, sem truthiness.
+- LOW: observações por ambiente/SHA reconciliadas como fatos separados acima, sem causalidade inventada.
+- `DocsAccessDatabaseGuardTest`: positive hosts `postgres-test`, `127.0.0.1`, `localhost` aceitos pelo guard; host null/vazio/arbitrário/URL/array rejeitado; 11 fixtures para raw DB_URL em `getenv`, `$_ENV` e `$_SERVER` rejeitadas (valores vazios, null, `0`, `null`). Cada caso negativo confirmou contador de SQL simulado igual a zero. Symfony Process recebeu `DB_URL => false` somente no subprocesso; nenhum valor bruto foi impresso e nenhum subprocesso conectou ao banco.
+- Pest completo incluiu esses casos e a suíte docs UI/JSON; número observado nesta execução: 111 testes / 1.210 assertions. CI do candidato de código e do head CSD-only passou; peer review independente do candidato final segue pendente.
