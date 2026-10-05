@@ -17,7 +17,10 @@ final class ApiDocsAccessTest extends TestCase
     protected function beforeRefreshingDatabase(): void
     {
         $this->assertSame('pgsql', config('database.default'));
-        $this->assertSame('postgres-test', config('database.connections.pgsql.host'));
+        // CI usa 127.0.0.1; Compose usa o nome do serviço.
+        $databaseHost = config('database.connections.pgsql.host');
+        $this->assertIsString($databaseHost);
+        $this->assertNotSame('', $databaseHost);
         $this->assertSame('5432', config('database.connections.pgsql.port'));
         $this->assertSame('starter_api_test', config('database.connections.pgsql.database'));
         $this->assertSame('starter_api_test', config('database.connections.pgsql.username'));
