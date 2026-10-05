@@ -22,3 +22,10 @@
 - Verificação: SHA-256 do ZIP local corresponde ao digest publicado pelo provider; extração segura e `contract_cli.py --mode download-fresh` passaram; OpenAPI extraído (21,323 bytes) corresponde ao blob versionado na main.
 - Pendências: frontend ainda precisa demonstrar geração/consumo dos tipos; documentação protegida em produção ainda sem evidência; issue #11 não atende todos os critérios e não deve ser fechada. Parent valida bundle/integração e decide fechamento.
 - Entrega documental desta continuação: branch `docs/wave-3-contract-published` → `main`, remote `origin`, sob EXC-0001.
+
+## Política de docs em contexto production — 2026-10-05
+
+- Verificação request-time para Scramble UI + JSON registrada em `verification.md`: anônimo, non-admin, admin não verificado e admin desativado recebem 403 nos dois endpoints; admin verificado/ativo recebe 200. `APP_DEBUG=false`; corpos negados sem stack/class SQL detalhada.
+- A decisão do vendor middleware é lazy por request (`environment('local')`), enquanto provider/Gate e rotas são registrados no boot sem condição de ambiente. Teste muda somente `app.environment` após boot; não alega boot ou infra de produção reais.
+- Suíte completa passou: 108 testes/1.279 assertions. Composer validate/platform/audit, Pint (86 arquivos), Larastan (58 arquivos), CSD strict/examples, Python 113 e doctor 1.2.1 passaram. CI do novo commit ainda aguardará push.
+- Critérios #11: critério 1 observado por snapshot/contract validation; critério 3 observado no harness limitado; critério 2 (frontend gera tipos do artefato) continua pendente. Issue #11 segue open/active; parent faz review/integração.

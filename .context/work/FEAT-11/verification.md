@@ -117,3 +117,46 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 - A revisão independente anterior via conversa AGY `b0f5f43d-85e2-4848-9cc6-a3c37bd67e14` resultou em FAIL de integração sobre `35f6ae82`. As cinco constatações foram remediadas nesta submissão (resolvedor dinâmico de baseline, reconciliação de observações, alinhamento CSD, integridade criptográfica do instalador, limpeza pt-BR dos workflows). O SHA exato do candidato está registrado no corpo do PR #39 e no recibo final desta execução.
 - Gap de preflight histórico permanece registrado em `preflight.md` como lacuna observável (preflight do Stage B documentado apenas nesta data, sem evidência anterior): nada foi retrofabricado.
 - Nenhum merge, fechamento de issue, publicação real no GitHub Actions ou alegação de auto-aprovação de PASS é feita.
+
+---
+
+## Verificação adicional — política de acesso à documentação (2026-10-05)
+
+### Policy real e estratégia de execução
+
+- `config/scramble.php` associa `web` e `Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess` às rotas UI e JSON.
+- `App\Providers\ScrambleDocServiceProvider::boot()` define Gate `viewApiDocs`: nega usuário ausente, desativado ou não verificado; permite apenas papel `admin` verificado e ativo. Gate e rotas são registrados sem branch por ambiente no boot.
+- O middleware Scramble `vendor/dedoc/scramble/src/Http/Middleware/RestrictedDocsAccess.php::handle()` decide em cada request: `app()->environment('local')` é bypass; fora de `local`, exige `Gate::allows('viewApiDocs')`. O branch ambiental é lazy/request-time; por isso não foi necessário bootstrap de produção separado.
+- `ApiDocsAccessTest::useProductionDocsPolicy()` confirma ambiente inicial `testing`, muda o ambiente da aplicação para `production` depois do boot e força `app.debug=false`. Requests HTTP de teste passam pelo middleware e Gate reais; não há mock de response, rotas ou RBAC.
+- `beforeRefreshingDatabase()` verifica antes do `RefreshDatabase` executar migração: connection `pgsql`, host `postgres-test`, porta 5432, database/user `starter_api_test`, `DB_URL` ausente, mail SMTP em `mailpit-test:1025`, ambiente `testing` e debug falso.
+
+### Resultado observado por identidade e endpoint
+
+| Identidade no ambiente avaliado como `production` | `GET /docs/api` UI | `GET /docs/api.json` JSON | Resultado |
+| --- | --- | --- | --- |
+| Anônimo | 403 | 403 | Negado; corpo sem stack trace, classe Illuminate ou SQLSTATE |
+| Usuário ativo/verificado sem admin | 403 | 403 | Negado; sem detalhes internos |
+| Admin não verificado | 403 | 403 | Negado; sem detalhes internos |
+| Admin desativado | 403 | 403 | Negado; sem detalhes internos |
+| Admin verificado e ativo | 200, HTML não vazio | 200, OpenAPI `3.1.0` | Permitido pela policy configurada |
+
+O catalogue RBAC real foi semeado no Postgres efêmero; contas e estados foram criados por factories de teste. O gate focused passou com **8 casos e 139 assertions** na primeira versão e a suíte Pest completa, após os ajustes finais ao guard, passou com **108 testes e 1.279 assertions**.
+
+### Cobertura, limitações e estado dos critérios da issue #11
+
+| Critério | Estado | Evidência / limite |
+| --- | --- | --- |
+| 1. OpenAPI válido nos endpoints criados e security scheme preciso | Observado no escopo automatizado | `OpenApiSnapshotTest` exporta documento real, verifica paths reais (`/api/v1`, login, logout, profile e CSRF), `sessionCookie` como `apiKey` em cookie, `xsrfToken`, security por sessão, ausência de Bearer/PAT e contrato estrutural; CI de `main` `37249567434` e gate `Contract generation and compatibility` na suíte local passaram. |
+| 2. Frontend gera tipos do artefato publicado | **PENDENTE** | Geração/consumo Orval da lane frontend ainda não foi observada nesta sessão; parent valida evidência dessa lane. |
+| 3. Docs protegidos em produção conforme policy declarada | Observado via simulação request-time | UI e JSON exercitados por HTTP no framework com ambiente alterado pós-boot para `production`, `APP_DEBUG=false` e policy real. Não representa boot/deploy/infra de produção. |
+
+Limitações explícitas: app de teste inicia em `testing`; só o valor consultado lazy pelo middleware é mudado para `production`, pois código Scramble inspecionado não decide registro de rotas por ambiente no boot. DB, contas e RBAC são efêmeros/sintéticos; `APP_KEY` e senhas de DB são valores fake, Mailpit é isolado na rede interna de teste. Não foram testados browser real, cookie/sessão em servidor live, proxy/CDN, segredo/variáveis de produção, deploy, nem URL pública de produção. A evidência cobre a policy em código e seus responses de request no framework, não disponibilidade nem configuração operacional do ambiente produtivo.
+
+### Runtime isolado e gates desta continuação
+
+- Harness scratch: `/tmp/opencode/starter-api-docsprod-4dbec42` (cópia `git archive` do source, apenas teste atualizado, `vendor` copiado, `.env` vazio; `.env.testing` não copiado nem lido). Compose project/image: `starter-api-docsprod-4dbec42` / `starter-api-docsprod-4dbec42-api:local`; imagens base PHP 8.5, Composer 2 e Postgres 18 pinadas por digest; Redis/Mailpit também usam pins do `compose.yaml`.
+- `composer validate --strict`: PASS; `composer check-platform-reqs`: PASS (PHP 8.5.11); `composer audit`: PASS, sem advisories; Pint `composer lint`: PASS, 86 files; Larastan `composer analyse`: PASS, 58 files, sem erros.
+- Pest completo: PASS, **108 passed (1.279 assertions)**.
+- `python3 scripts/validate_context.py --strict`: PASS; `--strict --examples`: PASS (warning esperado: sem example suite instalado); `python3 -m unittest discover -s tests -v`: PASS, **113 tests**; `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: PASS (`CSD is healthy (1.2.1)`).
+- Primeira tentativa da suíte completa injetou `DB_URL=null`; 7 testes de guarda recusaram corretamente com `Refusing to run: inherited DB_URL environment variable is present.` A execução completa seguinte deixou `DB_URL` ausente e passou 108/108. O scratch não contém `.env.testing`; o DB guard assegurou alvo efêmero antes de migração.
+- Nenhum fonte de aplicação, workflow, dependência, contrato ou artefato publicado foi alterado.

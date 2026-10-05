@@ -14,7 +14,7 @@
 
 ## Scope and remaining acceptance evidence
 
-This records successful generation and authenticated GitHub Actions artifact retrieval only. It does not establish frontend type generation/consumption, production protection of OpenAPI documentation, browser E2E, production publication, or completion of API #11. Issue #11 remains open and active; parent owns final integration and closure after remaining acceptance gates are evidenced.
+This records successful generation and authenticated GitHub Actions artifact retrieval, plus test evidence that configured docs UI/JSON middleware denies unauthorized roles when its lazy environment check evaluates as `production`. It does not establish frontend type generation/consumption, a fresh production boot, live production routing/deployment, browser E2E, production publication or completion of API #11. Issue #11 remains open and active; parent owns final integration and closure after remaining acceptance gates are evidenced.
 
 Issue progress comment: https://github.com/yanpenalva/starter-kit-api/issues/11#issuecomment-5987126007. Issues #10 and #24 were observed open on 2026-10-05 and were not changed. Issue #38 is already closed by PR #38 and is outside this FEAT-11 publication scope.
 

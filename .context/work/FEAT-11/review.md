@@ -83,3 +83,9 @@
 8. Conformidade CSD15 (`<= 15` métodos, zero `else`) em todos os fontes de produção tocados.
 9. Resolvedor de baseline: eventos fora de `pull_request`/`push`, push fora de `refs/heads/main`, zero-SHA, SHA malformado, commit indisponível e baseline == HEAD falham fechado.
 10. Integridade do instalador: digests do asset e do binário fixados; verificação antes de extração/execução; rejeição de symlink, membro ausente, oversized e não regular.
+
+## Revisão do delta de proteção da documentação — pendente
+
+- Esta continuação adiciona testes HTTP reais da UI e JSON sob avaliação lazy do middleware como `production`, mais guard de banco antes do `RefreshDatabase`.
+- A revisão independente acima cobre SHA `227b75f…`, não este delta de teste/documentação. Nenhuma revisão independente do novo HEAD é alegada; parent revisa PR #41 antes da integração.
+- Evidência e limites do harness constam em `verification.md`; critério frontend da issue #11 permanece pendente.
