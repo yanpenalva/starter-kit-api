@@ -128,7 +128,8 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 - `App\Providers\ScrambleDocServiceProvider::boot()` define Gate `viewApiDocs`: nega usuário ausente, desativado ou não verificado; permite apenas papel `admin` verificado e ativo. Gate e rotas são registrados sem branch por ambiente no boot.
 - O middleware Scramble `vendor/dedoc/scramble/src/Http/Middleware/RestrictedDocsAccess.php::handle()` decide em cada request: `app()->environment('local')` é bypass; fora de `local`, exige `Gate::allows('viewApiDocs')`. O branch ambiental é lazy/request-time; por isso não foi necessário bootstrap de produção separado.
 - `ApiDocsAccessTest::useProductionDocsPolicy()` confirma ambiente inicial `testing`, muda o ambiente da aplicação para `production` depois do boot e força `app.debug=false`. Requests HTTP de teste passam pelo middleware e Gate reais; não há mock de response, rotas ou RBAC.
-- `beforeRefreshingDatabase()` verifica antes do `RefreshDatabase` executar migração: connection `pgsql`, host `postgres-test`, porta 5432, database/user `starter_api_test`, `DB_URL` ausente, mail SMTP em `mailpit-test:1025`, ambiente `testing` e debug falso.
+- `beforeRefreshingDatabase()` chama `DocsAccessDatabaseGuard` antes do `RefreshDatabase` executar migração. O guard exige host Postgres em allowlist exata (`postgres-test`, `127.0.0.1`, `localhost`), porta 5432, database/user `starter_api_test`, URL `null`, ambiente `testing`, debug falso e mailer de teste isolado (`array`, `log`, `smtp`; SMTP apenas loopback/alias Mailpit na porta 1025). Mensagens rejeitam sem incluir host/DB/DSN ou valores de ambiente.
+- O guard consulta presença bruta de `DB_URL` por `getenv() !== false` e `array_key_exists` em `$_ENV` e `$_SERVER`; não lê nem inclui valor em mensagens. Fixture com `Symfony\Component\Process\Process` passa `DB_URL => false` somente ao subprocesso, então input herdado não é alterado no processo de teste.
 
 ### Resultado observado por identidade e endpoint
 
@@ -140,7 +141,7 @@ Auditoria estrutural executada em todos os arquivos de produção tocados ou cri
 | Admin desativado | 403 | 403 | Negado; sem detalhes internos |
 | Admin verificado e ativo | 200, HTML não vazio | 200, OpenAPI `3.1.0` | Permitido pela policy configurada |
 
-O catalogue RBAC real foi semeado no Postgres efêmero; contas e estados foram criados por factories de teste. O gate focused passou com **8 casos e 139 assertions** na primeira versão e a suíte Pest completa, após os ajustes finais ao guard, passou com **108 testes e 1.279 assertions**.
+O catalogue RBAC real foi semeado no Postgres efêmero; contas e estados foram criados por factories de teste. Observações preservadas por SHA/ambiente: teste focused inicial `8/139`; full Pest local em `bdcb3ad` no Docker Compose (SMTP Mailpit isolado), `108/1.279`; CI em `e1f4dc1` (PHPUnit fake mailer `array`), [run 37259316295](https://github.com/yanpenalva/starter-kit-api/actions/runs/37259316295), `108/1.287` SUCCESS; focused local após portabilidade em `e1f4dc1`, `8/147`. Full Pest desta correção candidata: **111 passed / 1.210 assertions** no scratch Docker PHP 8.5 com PostgreSQL 18 efêmero. As contagens por SHA/ambiente permanecem observações distintas; nenhuma causa para a diferença de assertions entre `bdcb3ad` local e `e1f4dc1` CI é alegada.
 
 ### Cobertura, limitações e estado dos critérios da issue #11
 
@@ -160,3 +161,19 @@ Limitações explícitas: app de teste inicia em `testing`; só o valor consulta
 - `python3 scripts/validate_context.py --strict`: PASS; `--strict --examples`: PASS (warning esperado: sem example suite instalado); `python3 -m unittest discover -s tests -v`: PASS, **113 tests**; `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: PASS (`CSD is healthy (1.2.1)`).
 - Primeira tentativa da suíte completa injetou `DB_URL=null`; 7 testes de guarda recusaram corretamente com `Refusing to run: inherited DB_URL environment variable is present.` A execução completa seguinte deixou `DB_URL` ausente e passou 108/108. O scratch não contém `.env.testing`; o DB guard assegurou alvo efêmero antes de migração.
 - Nenhum fonte de aplicação, workflow, dependência, contrato ou artefato publicado foi alterado.
+
+### Revalidação após findings independentes — candidato pós-`e1f4dc1`
+
+- Composer `validate --strict`, `check-platform-reqs` (PHP 8.5.11) e `audit`: PASS; nenhum advisory.
+- Pint `composer lint`: PASS, **88 files**. Larastan `composer analyse`: PASS, **60 files**, sem erros.
+- Pest completo `composer test`: PASS, **111 testes / 1.210 assertions**, incluindo 3 fixtures de guard (19 assertions) e 8 casos de docs UI/JSON.
+- Python `unittest discover -s tests -v`: PASS, **113 tests**; CSD `--strict` e `--strict --examples`: PASS (warning esperado: sem example suite instalado); CSD doctor 1.2.1: PASS.
+- Evidência antes de novo commit: os 11 casos brutos de DB_URL e cinco hosts inválidos recusaram antes do contador de SQL simulado; hosts permitidos foram aceitos. CI do novo candidato ainda pendente.
+
+### Findings da re-review `e1f4dc1` — correção candidata
+
+- Resultado independente recebido: FAIL em `e1f4dc1bd07a711283fced315af97293d97ea098`, revisor Luna separado `ses_ef1b3181fffe3pkzZdomyhtbtH`; preservado em `review.md` sem alegar PASS/autoaprovação.
+- MED: agora há allowlist estrita de hosts Postgres e port 5432; DB, username e URL permanecem exatos. O guard consulta `getenv('DB_URL') !== false` e chaves presentes em `$_ENV`/`$_SERVER` com `array_key_exists`, sem truthiness.
+- LOW: observações por ambiente/SHA reconciliadas como fatos separados acima, sem causalidade inventada.
+- `DocsAccessDatabaseGuardTest`: positive hosts `postgres-test`, `127.0.0.1`, `localhost` aceitos pelo guard; host null/vazio/arbitrário/URL/array rejeitado; 11 fixtures para raw DB_URL em `getenv`, `$_ENV` e `$_SERVER` rejeitadas (valores vazios, null, `0`, `null`). Cada caso negativo confirmou contador de SQL simulado igual a zero. Symfony Process recebeu `DB_URL => false` somente no subprocesso; nenhum valor bruto foi impresso e nenhum subprocesso conectou ao banco.
+- Pest completo incluiu esses casos e a suíte docs UI/JSON; número observado nesta execução: 111 testes / 1.210 assertions. Peer review independente e CI do novo candidato permanecem pendentes até a entrega.

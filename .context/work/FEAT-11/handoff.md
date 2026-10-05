@@ -27,5 +27,11 @@
 
 - Verificação request-time para Scramble UI + JSON registrada em `verification.md`: anônimo, non-admin, admin não verificado e admin desativado recebem 403 nos dois endpoints; admin verificado/ativo recebe 200. `APP_DEBUG=false`; corpos negados sem stack/class SQL detalhada.
 - A decisão do vendor middleware é lazy por request (`environment('local')`), enquanto provider/Gate e rotas são registrados no boot sem condição de ambiente. Teste muda somente `app.environment` após boot; não alega boot ou infra de produção reais.
-- Suíte completa passou: 108 testes/1.279 assertions. Composer validate/platform/audit, Pint (86 arquivos), Larastan (58 arquivos), CSD strict/examples, Python 113 e doctor 1.2.1 passaram. CI do novo commit ainda aguardará push.
+- Observações históricas: full local `bdcb3ad` 108/1.279; CI `e1f4dc1` run 37259316295 108/1.287 SUCCESS. Diferem por SHA/ambiente; causa não verificada.
 - Critérios #11: critério 1 observado por snapshot/contract validation; critério 3 observado no harness limitado; critério 2 (frontend gera tipos do artefato) continua pendente. Issue #11 segue open/active; parent faz review/integração.
+
+## Estado após re-review independente — 2026-10-05
+
+- CI do SHA `e1f4dc1bd07a711283fced315af97293d97ea098` passou em [run 37259316295](https://github.com/yanpenalva/starter-kit-api/actions/runs/37259316295): 3 jobs success; aplicação 108 testes/1.287 assertions.
+- A re-review independente Luna `ses_ef1b3181fffe3pkzZdomyhtbtH` devolveu **FAIL** nesse SHA, com finding MED sobre guard do DB e finding LOW sobre observações 1.279/1.287. `review.md` conserva o FAIL como registro histórico.
+- Delta atual implementa correções apenas em testes/CSD. Gates locais: Pest 111/1.210; Pint 88 arquivos; Larastan 60; Composer validate/platform/audit, Python 113 e CSD strict/examples/doctor passaram. CI do novo SHA e peer review independente aguardam; estado `verify`/`active` permanece, API #11 não fecha e frontend types seguem pendentes para o parent.

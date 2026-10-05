@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Models\User;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\DocsAccessDatabaseGuard;
 use Tests\TestCase;
 
 final class ApiDocsAccessTest extends TestCase
@@ -16,22 +17,19 @@ final class ApiDocsAccessTest extends TestCase
 
     protected function beforeRefreshingDatabase(): void
     {
-        $this->assertSame('pgsql', config('database.default'));
-        // CI usa 127.0.0.1; Compose usa o nome do serviço.
-        $databaseHost = config('database.connections.pgsql.host');
-        $this->assertIsString($databaseHost);
-        $this->assertNotSame('', $databaseHost);
-        $this->assertSame('5432', config('database.connections.pgsql.port'));
-        $this->assertSame('starter_api_test', config('database.connections.pgsql.database'));
-        $this->assertSame('starter_api_test', config('database.connections.pgsql.username'));
-        $this->assertNull(config('database.connections.pgsql.url'));
-        $mailMailer = config('mail.default');
-        $this->assertContains($mailMailer, ['array', 'log', 'smtp']);
-        // CI usa loopback; Compose usa nome interno do serviço.
-        $this->assertContains(config('mail.mailers.smtp.host'), ['127.0.0.1', 'mailpit-test']);
-        $this->assertSame('1025', config('mail.mailers.smtp.port'));
-        $this->assertSame('testing', app()->environment());
-        $this->assertFalse(config('app.debug'));
+        DocsAccessDatabaseGuard::assertSafe([
+            'connection' => config('database.default'),
+            'host' => config('database.connections.pgsql.host'),
+            'port' => config('database.connections.pgsql.port'),
+            'database' => config('database.connections.pgsql.database'),
+            'username' => config('database.connections.pgsql.username'),
+            'url' => config('database.connections.pgsql.url'),
+            'environment' => app()->environment(),
+            'debug' => config('app.debug'),
+            'mailer' => config('mail.default'),
+            'smtp_host' => config('mail.mailers.smtp.host'),
+            'smtp_port' => config('mail.mailers.smtp.port'),
+        ]);
     }
 
     protected function setUp(): void

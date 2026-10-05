@@ -89,3 +89,10 @@
 - Esta continuação adiciona testes HTTP reais da UI e JSON sob avaliação lazy do middleware como `production`, mais guard de banco antes do `RefreshDatabase`.
 - A revisão independente acima cobre SHA `227b75f…`, não este delta de teste/documentação. Nenhuma revisão independente do novo HEAD é alegada; parent revisa PR #41 antes da integração.
 - Evidência e limites do harness constam em `verification.md`; critério frontend da issue #11 permanece pendente.
+
+## Re-review independente fresca — FAIL no candidato `e1f4dc1`
+
+- Revisor separado: sessão Luna `ses_ef1b3181fffe3pkzZdomyhtbtH`; candidato exato `e1f4dc1bd07a711283fced315af97293d97ea098`; resultado **FAIL**. Este achado permanece registrado; nenhum PASS é alegado para esse SHA.
+- Finding MED: o DB guard aceitava qualquer hostname não vazio e só verificava `config(...pgsql.url)`, não a presença bruta de `DB_URL` em `getenv()`, `$_ENV` e `$_SERVER`.
+- Finding LOW: a observação CSD local `108/1.279` não reconciliava com CI real `108/1.287` do run `37259316295`; os valores foram confirmados por ambiente/SHA sem atribuir causa.
+- O delta atual adiciona guard/helper e fixtures apenas em `tests/`, além de reconciliar observações e handoff. Helper exige allowlist de hostname + alvo/porta/configuração exatos e verifica presença bruta nos três stores; fixtures provam rejeição antes do contador de SQL simulado avançar. Novo candidato aguarda re-review peer independente e CI; não há autoaprovação.
