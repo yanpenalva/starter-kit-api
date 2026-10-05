@@ -69,7 +69,7 @@
                         "description": "No content"
                     },
                     "401": {
-                        "description": "An error",
+                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -77,9 +77,8 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "description": "Error overview.",
                                             "examples": [
-                                                "Invalid credentials."
+                                                "Credenciais inv\u00e1lidas."
                                             ]
                                         }
                                     },
@@ -91,7 +90,7 @@
                         }
                     },
                     "403": {
-                        "description": "An error",
+                        "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -99,9 +98,8 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "description": "Error overview.",
                                             "examples": [
-                                                "This account has been deactivated."
+                                                "Esta conta foi desativada."
                                             ]
                                         }
                                     },
@@ -125,7 +123,7 @@
                                         "message": {
                                             "type": "string",
                                             "examples": [
-                                                "CSRF token mismatch."
+                                                "Token CSRF inv\u00e1lido ou expirado."
                                             ]
                                         }
                                     },
@@ -146,7 +144,7 @@
                                         "message": {
                                             "type": "string",
                                             "examples": [
-                                                "Too many requests."
+                                                "Muitas tentativas. Por favor, tente novamente mais tarde."
                                             ]
                                         }
                                     },
@@ -191,7 +189,25 @@
                         "description": "No content"
                     },
                     "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "N\u00e3o autenticado."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "419": {
                         "description": "Token CSRF ausente ou inv\u00e1lido.",
@@ -203,7 +219,7 @@
                                         "message": {
                                             "type": "string",
                                             "examples": [
-                                                "CSRF token mismatch."
+                                                "Token CSRF inv\u00e1lido ou expirado."
                                             ]
                                         }
                                     },
@@ -224,7 +240,7 @@
                                         "message": {
                                             "type": "string",
                                             "examples": [
-                                                "Too many requests."
+                                                "Muitas tentativas. Por favor, tente novamente mais tarde."
                                             ]
                                         }
                                     },
@@ -277,7 +293,25 @@
                         }
                     },
                     "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
+                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "N\u00e3o autenticado."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "403": {
                         "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
@@ -289,7 +323,7 @@
                                         "message": {
                                             "type": "string",
                                             "examples": [
-                                                "This account has been deactivated."
+                                                "Esta conta foi desativada."
                                             ]
                                         }
                                     },
@@ -310,7 +344,7 @@
                                         "message": {
                                             "type": "string",
                                             "examples": [
-                                                "Too many requests."
+                                                "Muitas tentativas. Por favor, tente novamente mais tarde."
                                             ]
                                         }
                                     },
