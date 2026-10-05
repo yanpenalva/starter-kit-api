@@ -168,7 +168,7 @@ Limitações explícitas: app de teste inicia em `testing`; só o valor consulta
 - Pint `composer lint`: PASS, **88 files**. Larastan `composer analyse`: PASS, **60 files**, sem erros.
 - Pest completo `composer test`: PASS, **111 testes / 1.210 assertions**, incluindo 3 fixtures de guard (19 assertions) e 8 casos de docs UI/JSON.
 - Python `unittest discover -s tests -v`: PASS, **113 tests**; CSD `--strict` e `--strict --examples`: PASS (warning esperado: sem example suite instalado); CSD doctor 1.2.1: PASS.
-- Evidência antes de novo commit: os 11 casos brutos de DB_URL e cinco hosts inválidos recusaram antes do contador de SQL simulado; hosts permitidos foram aceitos. CI do novo candidato ainda pendente.
+- Evidência do candidato `1326c623dc2327075f6008c69765b656ef0660bc`: 11 casos brutos de DB_URL e cinco hosts inválidos recusaram antes do contador de SQL simulado; hosts permitidos foram aceitos. [CI run 37388157061](https://github.com/yanpenalva/starter-kit-api/actions/runs/37388157061) concluiu SUCCESS nos três jobs (`application`, `context`, `Contract generation and compatibility`); job application confirmou 111 passed / 1.210 assertions. Peer review independente do novo SHA segue pendente.
 
 ### Findings da re-review `e1f4dc1` — correção candidata
 
