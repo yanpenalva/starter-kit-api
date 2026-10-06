@@ -41,6 +41,10 @@ final class AdminContractTest extends TestCase
      */
     private static function validationErrors(FormRequest $request): array
     {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::values());
+        $request->setUserResolver(static fn (): User => $actor);
+
         try {
             $request->validateResolved();
         } catch (ValidationException $e) {
