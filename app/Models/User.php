@@ -62,12 +62,14 @@ final class User extends Authenticatable
     }
 
     /**
-     * Excluding a target keeps at least one admin standing.
+     * Excluding a target keeps at least one active admin standing. A
+     * deactivated account never counts as standing, whatever roles it holds.
      */
     public static function otherAdminsRemain(int $targetId): bool
     {
         return self::query()
             ->whereKeyNot($targetId)
+            ->whereNull('deactivated_at')
             ->role(Role::Admin->value)
             ->exists();
     }

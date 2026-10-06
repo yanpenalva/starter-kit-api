@@ -70,7 +70,7 @@ final class PrivilegeFoundationTest extends TestCase
             $this->assertFalse($policy->view($actor, $target), $state);
             $this->assertFalse($policy->update($actor, $target), $state);
             $this->assertFalse($policy->readCpf($actor, $target), $state);
-            $this->assertFalse($policy->setStatus($actor, $target), $state);
+            $this->assertFalse($policy->setStatus($actor, $target, 'deactivated'), $state);
             $this->assertFalse($policy->assignRoles($actor, $target), $state);
         }
     }
