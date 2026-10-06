@@ -44,6 +44,7 @@ final class AdminContractTest extends TestCase
         $actor = User::factory()->verified()->create();
         $actor->givePermissionTo(Permission::values());
         $request->setUserResolver(static fn (): User => $actor);
+        $request->setRedirector(app('redirect'));
 
         try {
             $request->validateResolved();
