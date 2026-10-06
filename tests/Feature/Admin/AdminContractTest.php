@@ -40,10 +40,7 @@ final class AdminContractTest extends TestCase
 
     private static function makeValidator(FormRequest&HasRules $request): ValidatorContract
     {
-        $data = $request->all();
-        assert(is_array($data));
-
-        return Validator::make($request->rules(), $data);
+        return Validator::make($request->rules(), $request->all());
     }
 
     protected function setUp(): void
