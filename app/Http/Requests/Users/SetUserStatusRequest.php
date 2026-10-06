@@ -6,6 +6,7 @@ namespace App\Http\Requests\Users;
 
 use App\Enums\Permission;
 use App\Models\User;
+use App\Http\Requests\HasRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,7 @@ use Illuminate\Validation\Rule;
  * route enforces UserPolicy::setStatus (self and last-admin protections)
  * for the resolved target inside a PrivilegeTransaction.
  */
-final class SetUserStatusRequest extends FormRequest
+final class SetUserStatusRequest extends FormRequest implements HasRules
 {
     public function authorize(): bool
     {

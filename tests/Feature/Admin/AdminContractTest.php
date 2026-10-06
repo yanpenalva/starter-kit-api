@@ -6,6 +6,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\Permission;
 use App\Enums\Role;
+use App\Http\Requests\HasRules;
 use App\Http\Requests\Roles\IndexRolesRequest;
 use App\Http\Requests\Roles\UpdateRolePermissionsRequest;
 use App\Http\Requests\Users\AssignUserRolesRequest;
@@ -37,9 +38,12 @@ final class AdminContractTest extends TestCase
 {
     use RefreshDatabase;
 
-    private static function makeValidator(FormRequest $request): ValidatorContract
+    private static function makeValidator(FormRequest&HasRules $request): ValidatorContract
     {
-        return Validator::make($request->rules(), $request->all());
+        $data = $request->all();
+        assert(is_array($data));
+
+        return Validator::make($request->rules(), $data);
     }
 
     protected function setUp(): void

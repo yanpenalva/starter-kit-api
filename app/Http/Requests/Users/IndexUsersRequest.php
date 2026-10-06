@@ -6,6 +6,7 @@ namespace App\Http\Requests\Users;
 
 use App\Enums\Permission;
 use App\Models\User;
+use App\Http\Requests\HasRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,7 +14,7 @@ use Illuminate\Validation\Rule;
  * Wave B contract: list users with allowlisted filters and bounded
  * pagination. No route binds this request yet.
  */
-final class IndexUsersRequest extends FormRequest
+final class IndexUsersRequest extends FormRequest implements HasRules
 {
     public const DEFAULT_PER_PAGE = 15;
 
