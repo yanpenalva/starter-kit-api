@@ -44,7 +44,10 @@ final class AdminContractTest extends TestCase
         try {
             $request->validateResolved();
         } catch (ValidationException $e) {
-            return $e->errors();
+            /** @var array<string, array<int, string>> $errors */
+            $errors = $e->errors();
+
+            return $errors;
         }
 
         return [];
