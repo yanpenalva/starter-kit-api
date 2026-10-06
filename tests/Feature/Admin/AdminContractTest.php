@@ -115,7 +115,7 @@ final class AdminContractTest extends TestCase
             'unlisted' => 'ignored',
         ]);
         $valid->setContainer($this->app);
-        \$this->assertSame([], self::validationErrors($valid)->fails());
+        $this->assertSame([], self::validationErrors($valid));
 
         $this->assertSame(2, $valid->page());
         $this->assertSame(25, $valid->perPage());
@@ -130,7 +130,7 @@ final class AdminContractTest extends TestCase
         $request = IndexUsersRequest::create('/api/v1/users', 'GET', []);
         $request->setContainer($this->app);
 
-        \$this->assertSame([], self::validationErrors($request)->fails());
+        $this->assertSame([], self::validationErrors($request));
         $this->assertSame(1, $request->page());
         $this->assertSame(IndexUsersRequest::DEFAULT_PER_PAGE, $request->perPage());
         $this->assertSame([], $request->filters());
@@ -153,22 +153,22 @@ final class AdminContractTest extends TestCase
             'cpf' => null,
         ]);
         $valid->setContainer($this->app);
-        \$this->assertSame([], self::validationErrors($valid)->fails());
+        $this->assertSame([], self::validationErrors($valid));
     }
 
     public function test_set_user_status_only_accepts_known_transitions(): void
     {
         $missing = SetUserStatusRequest::create('/api/v1/users/1/status', 'POST', []);
         $missing->setContainer($this->app);
-        \$this->assertNotEmpty(self::validationErrors($missing)->fails());
+        $this->assertNotEmpty(self::validationErrors($missing));
 
         $bogus = SetUserStatusRequest::create('/api/v1/users/1/status', 'POST', ['status' => 'bogus']);
         $bogus->setContainer($this->app);
-        \$this->assertNotEmpty(self::validationErrors($bogus)->fails());
+        $this->assertNotEmpty(self::validationErrors($bogus));
 
         $valid = SetUserStatusRequest::create('/api/v1/users/1/status', 'POST', ['status' => 'deactivated']);
         $valid->setContainer($this->app);
-        \$this->assertSame([], self::validationErrors($valid)->fails());
+        $this->assertSame([], self::validationErrors($valid));
         $this->assertSame('deactivated', $valid->status());
     }
 
@@ -176,19 +176,19 @@ final class AdminContractTest extends TestCase
     {
         $empty = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => []]);
         $empty->setContainer($this->app);
-        \$this->assertNotEmpty(self::validationErrors($empty)->fails());
+        $this->assertNotEmpty(self::validationErrors($empty));
 
         $ghost = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => ['ghost']]);
         $ghost->setContainer($this->app);
-        \$this->assertNotEmpty(self::validationErrors($ghost)->fails());
+        $this->assertNotEmpty(self::validationErrors($ghost));
 
         $duplicated = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => ['user', 'user']]);
         $duplicated->setContainer($this->app);
-        \$this->assertNotEmpty(self::validationErrors($duplicated)->fails());
+        $this->assertNotEmpty(self::validationErrors($duplicated));
 
         $valid = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => ['admin', 'user']]);
         $valid->setContainer($this->app);
-        \$this->assertSame([], self::validationErrors($valid)->fails());
+        $this->assertSame([], self::validationErrors($valid));
         $this->assertSame(['admin', 'user'], $valid->roleNames());
     }
 
@@ -198,13 +198,13 @@ final class AdminContractTest extends TestCase
             'permissions' => ['users.delete'],
         ]);
         $rogue->setContainer($this->app);
-        \$this->assertNotEmpty(self::validationErrors($rogue)->fails());
+        $this->assertNotEmpty(self::validationErrors($rogue));
 
         $valid = UpdateRolePermissionsRequest::create('/api/v1/roles/1/permissions', 'PUT', [
             'permissions' => ['roles.view', 'users.view'],
         ]);
         $valid->setContainer($this->app);
-        \$this->assertSame([], self::validationErrors($valid)->fails());
+        $this->assertSame([], self::validationErrors($valid));
         $this->assertSame(['roles.view', 'users.view'], $valid->permissionNames());
     }
 
