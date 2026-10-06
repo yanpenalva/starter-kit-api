@@ -18,9 +18,12 @@ use App\Models\User;
 use App\Support\Filters\RoleFilters;
 use App\Support\Filters\UserFilters;
 use Database\Seeders\RbacCatalogueSeeder;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Validator as ValidatorContract;
 use Spatie\Permission\Models\Role as RoleModel;
 use Tests\TestCase;
 
@@ -33,6 +36,11 @@ use Tests\TestCase;
 final class AdminContractTest extends TestCase
 {
     use RefreshDatabase;
+
+    private static function makeValidator(FormRequest $request): ValidatorContract
+    {
+        return Validator::make($request->rules(), $request->all());
+    }
 
     protected function setUp(): void
     {
@@ -90,7 +98,7 @@ final class AdminContractTest extends TestCase
         ]);
         $request->setContainer($this->app);
 
-        $validator = $request->getValidatorInstance();
+        $validator = self::makeValidator($request);
         $this->assertTrue($validator->fails());
         $this->assertSame(['page', 'per_page', 'search', 'status'], array_keys($validator->errors()->messages()));
 
@@ -103,7 +111,7 @@ final class AdminContractTest extends TestCase
             'unlisted' => 'ignored',
         ]);
         $valid->setContainer($this->app);
-        $this->assertFalse($valid->getValidatorInstance()->fails());
+        $this->assertFalse(self::makeValidator($valid)->fails());
 
         $this->assertSame(2, $valid->page());
         $this->assertSame(25, $valid->perPage());
@@ -118,7 +126,7 @@ final class AdminContractTest extends TestCase
         $request = IndexUsersRequest::create('/api/v1/users', 'GET', []);
         $request->setContainer($this->app);
 
-        $this->assertFalse($request->getValidatorInstance()->fails());
+        $this->assertFalse(self::makeValidator($request)->fails());
         $this->assertSame(1, $request->page());
         $this->assertSame(IndexUsersRequest::DEFAULT_PER_PAGE, $request->perPage());
         $this->assertSame([], $request->filters());
@@ -132,7 +140,7 @@ final class AdminContractTest extends TestCase
         ]);
         $request->setContainer($this->app);
 
-        $validator = $request->getValidatorInstance();
+        $validator = self::makeValidator($request);
         $this->assertTrue($validator->fails());
         $this->assertSame(['email', 'cpf'], array_keys($validator->errors()->messages()));
 
@@ -142,22 +150,22 @@ final class AdminContractTest extends TestCase
             'cpf' => null,
         ]);
         $valid->setContainer($this->app);
-        $this->assertFalse($valid->getValidatorInstance()->fails());
+        $this->assertFalse(self::makeValidator($valid)->fails());
     }
 
     public function test_set_user_status_only_accepts_known_transitions(): void
     {
         $missing = SetUserStatusRequest::create('/api/v1/users/1/status', 'POST', []);
         $missing->setContainer($this->app);
-        $this->assertTrue($missing->getValidatorInstance()->fails());
+        $this->assertTrue(self::makeValidator($missing)->fails());
 
         $bogus = SetUserStatusRequest::create('/api/v1/users/1/status', 'POST', ['status' => 'bogus']);
         $bogus->setContainer($this->app);
-        $this->assertTrue($bogus->getValidatorInstance()->fails());
+        $this->assertTrue(self::makeValidator($bogus)->fails());
 
         $valid = SetUserStatusRequest::create('/api/v1/users/1/status', 'POST', ['status' => 'deactivated']);
         $valid->setContainer($this->app);
-        $this->assertFalse($valid->getValidatorInstance()->fails());
+        $this->assertFalse(self::makeValidator($valid)->fails());
         $this->assertSame('deactivated', $valid->status());
     }
 
@@ -165,19 +173,19 @@ final class AdminContractTest extends TestCase
     {
         $empty = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => []]);
         $empty->setContainer($this->app);
-        $this->assertTrue($empty->getValidatorInstance()->fails());
+        $this->assertTrue(self::makeValidator($empty)->fails());
 
         $ghost = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => ['ghost']]);
         $ghost->setContainer($this->app);
-        $this->assertTrue($ghost->getValidatorInstance()->fails());
+        $this->assertTrue(self::makeValidator($ghost)->fails());
 
         $duplicated = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => ['user', 'user']]);
         $duplicated->setContainer($this->app);
-        $this->assertTrue($duplicated->getValidatorInstance()->fails());
+        $this->assertTrue(self::makeValidator($duplicated)->fails());
 
         $valid = AssignUserRolesRequest::create('/api/v1/users/1/roles', 'PUT', ['roles' => ['admin', 'user']]);
         $valid->setContainer($this->app);
-        $this->assertFalse($valid->getValidatorInstance()->fails());
+        $this->assertFalse(self::makeValidator($valid)->fails());
         $this->assertSame(['admin', 'user'], $valid->roleNames());
     }
 
@@ -187,13 +195,13 @@ final class AdminContractTest extends TestCase
             'permissions' => ['users.delete'],
         ]);
         $rogue->setContainer($this->app);
-        $this->assertTrue($rogue->getValidatorInstance()->fails());
+        $this->assertTrue(self::makeValidator($rogue)->fails());
 
         $valid = UpdateRolePermissionsRequest::create('/api/v1/roles/1/permissions', 'PUT', [
             'permissions' => ['roles.view', 'users.view'],
         ]);
         $valid->setContainer($this->app);
-        $this->assertFalse($valid->getValidatorInstance()->fails());
+        $this->assertFalse(self::makeValidator($valid)->fails());
         $this->assertSame(['roles.view', 'users.view'], $valid->permissionNames());
     }
 

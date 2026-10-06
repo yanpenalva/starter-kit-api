@@ -45,6 +45,14 @@ final class UpdateRolePermissionsRequest extends FormRequest
             return [];
         }
 
-        return array_values(array_map(static fn (mixed $permission): string => (string) $permission, $permissions));
+        $names = [];
+
+        foreach ($permissions as $permission) {
+            if (is_string($permission)) {
+                $names[] = $permission;
+            }
+        }
+
+        return array_values($names);
     }
 }

@@ -46,6 +46,14 @@ final class AssignUserRolesRequest extends FormRequest
             return [];
         }
 
-        return array_values(array_map(static fn (mixed $role): string => (string) $role, $roles));
+        $names = [];
+
+        foreach ($roles as $role) {
+            if (is_string($role)) {
+                $names[] = $role;
+            }
+        }
+
+        return array_values($names);
     }
 }
