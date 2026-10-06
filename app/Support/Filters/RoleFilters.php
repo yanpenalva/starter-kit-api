@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Spatie\Permission\Models\Role;
 
 /**
  * Wave B contract: allowlisted query filters for role lists.
@@ -12,9 +13,9 @@ use Illuminate\Database\Eloquent\Builder;
 final class RoleFilters
 {
     /**
-     * @param  Builder<\Spatie\Permission\Models\Role>  $query
+     * @param  Builder<Role>  $query
      * @param  array<string, string>  $filters
-     * @return Builder<\Spatie\Permission\Models\Role>
+     * @return Builder<Role>
      */
     public static function apply(Builder $query, array $filters): Builder
     {

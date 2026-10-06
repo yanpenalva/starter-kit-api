@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Filters;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -13,9 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
 final class UserFilters
 {
     /**
-     * @param  Builder<\App\Models\User>  $query
+     * @param  Builder<User>  $query
      * @param  array<string, string>  $filters
-     * @return Builder<\App\Models\User>
+     * @return Builder<User>
      */
     public static function apply(Builder $query, array $filters): Builder
     {
