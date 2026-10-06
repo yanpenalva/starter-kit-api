@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests\Users;
 
 use App\Enums\Permission;
-use App\Models\User;
 use App\Http\Requests\HasRules;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
