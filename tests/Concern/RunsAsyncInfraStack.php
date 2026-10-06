@@ -55,12 +55,19 @@ trait RunsAsyncInfraStack
      */
     private function workerEnvironment(): array
     {
+        // Hosts accept explicit overrides so the same tests run against
+        // ephemeral local services (sqlite-first policy); CI keeps using
+        // the default service hostnames.
+        $redisHost = getenv('REDIS_HOST');
+        $dbHost = getenv('ASYNC_WORKER_DB_HOST');
+        $mailHost = getenv('ASYNC_WORKER_MAIL_HOST');
+
         return [
             'APP_ENV' => 'testing',
             'APP_DEBUG' => 'false',
             'APP_KEY' => $this->stringConfig('app.key', ''),
             'DB_CONNECTION' => 'pgsql',
-            'DB_HOST' => $this->stringConfig('database.connections.pgsql.host', 'postgres-test'),
+            'DB_HOST' => is_string($dbHost) && $dbHost !== '' ? $dbHost : $this->stringConfig('database.connections.pgsql.host', 'postgres-test'),
             'DB_PORT' => '5432',
             'DB_DATABASE' => $this->stringConfig('database.connections.pgsql.database', 'starter_api_test'),
             'DB_USERNAME' => $this->stringConfig('database.connections.pgsql.username', 'starter_api_test'),
@@ -68,12 +75,12 @@ trait RunsAsyncInfraStack
             'CACHE_STORE' => 'array',
             'SESSION_DRIVER' => 'array',
             'QUEUE_CONNECTION' => 'redis',
-            'REDIS_HOST' => $this->stringConfig('database.redis.default.host', 'redis-test'),
+            'REDIS_HOST' => is_string($redisHost) && $redisHost !== '' ? $redisHost : $this->stringConfig('database.redis.default.host', 'redis-test'),
             'REDIS_PORT' => '6379',
             'REDIS_QUEUE' => 'testqueue',
             'QUEUE_AFTER_COMMIT' => 'true',
             'MAIL_MAILER' => 'smtp',
-            'MAIL_HOST' => $this->stringConfig('mail.mailers.smtp.host', 'mailpit-test'),
+            'MAIL_HOST' => is_string($mailHost) && $mailHost !== '' ? $mailHost : $this->stringConfig('mail.mailers.smtp.host', 'mailpit-test'),
             'MAIL_PORT' => '1025',
             'MAIL_FROM_ADDRESS' => 'no-reply@example.test',
             'MAIL_FROM_NAME' => 'Starter Kit API',

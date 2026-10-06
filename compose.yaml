@@ -38,10 +38,7 @@ x-api: &api
     DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
     CACHE_STORE: file
     SESSION_DRIVER: file
-    # Safe defaults: the base API stack must not require the async
-    # services (no Redis/Mailpit DNS dependency). The async slice
-    # (worker/scheduler/test) overrides these explicitly.
-    QUEUE_CONNECTION: sync
+    QUEUE_AFTER_COMMIT: "true"
     MAIL_MAILER: log
     LOG_CHANNEL: stderr
 
@@ -121,14 +118,12 @@ services:
       DB_PASSWORD: ${TEST_DB_PASSWORD:?Run the documented local environment setup first}
       CACHE_STORE: array
       SESSION_DRIVER: array
-      QUEUE_CONNECTION: redis
+      QUEUE_CONNECTION: database
       QUEUE_AFTER_COMMIT: "true"
       REDIS_HOST: redis-test
       REDIS_PORT: "6379"
       REDIS_QUEUE: testqueue
-      MAIL_MAILER: smtp
-      MAIL_HOST: mailpit-test
-      MAIL_PORT: "1025"
+      MAIL_MAILER: log
       # Explicit (F6): Mailpit HTTP API base used by test verification code.
       # Pinned to the internal test service name so tests never depend on an
       # ambient env default; override only if you relocate the test Mailpit.
@@ -204,7 +199,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
       CACHE_STORE: file
       SESSION_DRIVER: file
-      QUEUE_CONNECTION: redis
+      QUEUE_CONNECTION: database
       QUEUE_AFTER_COMMIT: "true"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -218,7 +213,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: [php, artisan, queue:work, redis, "--queue=default", "--tries=3", "--backoff=5,15,60", "--max-jobs=100", "--max-time=3600"]
+    command: [php, artisan, queue:work, database, "--queue=default", "--tries=3", "--backoff=5,15,60", "--max-jobs=100", "--max-time=3600"]
     # Dev-only limitation (F4): this healthcheck proves only Redis
     # connectivity and marker writes (via infra:probe). It does NOT prove
     # job consumption — that payloads are actually picked up and processed
@@ -248,7 +243,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
       CACHE_STORE: file
       SESSION_DRIVER: file
-      QUEUE_CONNECTION: redis
+      QUEUE_CONNECTION: database
       QUEUE_AFTER_COMMIT: "true"
       REDIS_HOST: redis
       REDIS_PORT: "6379"

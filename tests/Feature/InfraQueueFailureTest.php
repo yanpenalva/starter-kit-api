@@ -28,6 +28,7 @@ final class InfraQueueFailureTest extends TestCase
     public function test_failing_job_is_retried_with_backoff_then_stored_in_failed_jobs(): void
     {
         config()->set('queue.default', 'redis');
+        config()->set('queue.connections.redis.after_commit', false);
 
         $token = (string) Str::uuid();
         InfraFailingJob::dispatch($token);
