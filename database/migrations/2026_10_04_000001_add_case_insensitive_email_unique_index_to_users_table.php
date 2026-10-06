@@ -9,11 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Fail-closed check: if preexisting case-colliding accounts exist, abort
-        // cleanly without rewriting, modifying, or deleting any existing records.
+        // Portable collision check first: lower(trim(email)) behaves the
+        // same on PostgreSQL and SQLite; the engine-level expression index
+        // below is PostgreSQL-only and skipped elsewhere (local sqlite runs).
         $hasCollisions = DB::table('users')
             ->selectRaw('1')
-            ->groupByRaw('lower(btrim(email, E\' \\t\\n\\r\\x0B\'))')
+            ->groupByRaw('lower(trim(email))')
             ->havingRaw('count(*) > 1')
             ->exists();
 
@@ -21,6 +22,10 @@ return new class extends Migration
             throw new RuntimeException(
                 'Cannot add case-insensitive email unique index: conflicting case-variant email addresses exist in users table.',
             );
+        }
+
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            return;
         }
 
         // Minimal PostgreSQL expression index on lower(btrim(email, E' \t\n\r\x0B')).
