@@ -217,9 +217,16 @@ final class ScaffoldTest extends TestCase
 
         $this->assertSame([
             'api/v1',
+            'api/v1/activity-log',
             'api/v1/auth/my-profile',
             'api/v1/login',
             'api/v1/logout',
+            'api/v1/roles',
+            'api/v1/roles/{role}/permissions',
+            'api/v1/users',
+            'api/v1/users/{user}',
+            'api/v1/users/{user}/roles',
+            'api/v1/users/{user}/status',
             'docs/api',
             'docs/api.json',
             'sanctum/csrf-cookie',
