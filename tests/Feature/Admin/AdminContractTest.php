@@ -271,7 +271,7 @@ final class AdminContractTest extends TestCase
         $request = Request::create('/api/v1/users', 'GET');
         $request->setUserResolver(static fn (): User => $unprivileged);
 
-        $payload = (new UserResource($target))->toArray($request);
+        $payload = (new UserResource($target))->resolve($request);
         $this->assertArrayNotHasKey('cpf', $payload);
         $this->assertSame($target->id, $payload['id']);
         $this->assertSame($target->email, $payload['email']);
@@ -283,7 +283,7 @@ final class AdminContractTest extends TestCase
         $reader->givePermissionTo(Permission::UsersReadCpf->value);
         $request->setUserResolver(static fn (): User => $reader);
 
-        $payload = (new UserResource($target))->toArray($request);
+        $payload = (new UserResource($target))->resolve($request);
         $this->assertSame($target->cpf, $payload['cpf']);
 
         // A permission alone never satisfies the policy eligibility gate.
@@ -291,7 +291,7 @@ final class AdminContractTest extends TestCase
         $unverified->givePermissionTo(Permission::UsersReadCpf->value);
         $request->setUserResolver(static fn (): User => $unverified);
 
-        $payload = (new UserResource($target))->toArray($request);
+        $payload = (new UserResource($target))->resolve($request);
         $this->assertArrayNotHasKey('cpf', $payload);
     }
 
@@ -299,7 +299,7 @@ final class AdminContractTest extends TestCase
     {
         $admin = RoleModel::where('name', Role::Admin->value)->firstOrFail();
 
-        $payload = (new RoleResource($admin))->toArray(Request::create('/api/v1/roles', 'GET'));
+        $payload = (new RoleResource($admin))->resolve(Request::create('/api/v1/roles', 'GET'));
 
         $this->assertSame($admin->id, $payload['id']);
         $this->assertSame('admin', $payload['name']);
