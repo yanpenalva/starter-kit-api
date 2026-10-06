@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -33,6 +34,28 @@ final class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($key);
         });
+        RateLimiter::for('register', static function (Request $request): Limit {
+            return Limit::perMinute(5)->by((string) $request->ip());
+        });
+        RateLimiter::for('verification', static function (Request $request): Limit {
+            $identifier = $request->user()?->getAuthIdentifier();
+
+            return Limit::perMinute(3)->by(
+                is_int($identifier) || is_string($identifier) ? (string) $identifier : (string) $request->ip(),
+            );
+        });
+        RateLimiter::for('forgot', static function (Request $request): Limit {
+            return Limit::perMinute(3)->by((string) $request->ip());
+        });
+        RateLimiter::for('reset', static function (Request $request): Limit {
+            $rawEmail = $request->input('email');
+            $normalizedEmail = mb_strtolower(trim(is_string($rawEmail) ? $rawEmail : ''));
+            $key = hash('sha256', $normalizedEmail.'|'.(string) $request->ip());
+
+            return Limit::perMinute(5)->by($key);
+        });
+
+        Password::defaults(static fn (): Password => Password::min(12));
 
         $this->registerCatalogueGates();
     }

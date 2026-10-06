@@ -54,6 +54,36 @@ final class ContractOperationOverlay
             return;
         }
 
+        if ($this->isRegister($normalizedPath, $method)) {
+            $this->applyRegister($operation);
+
+            return;
+        }
+
+        if ($this->isVerificationSend($normalizedPath, $method)) {
+            $this->applyVerificationSend($operation);
+
+            return;
+        }
+
+        if ($this->isVerify($normalizedPath, $method)) {
+            $this->applyVerify($operation);
+
+            return;
+        }
+
+        if ($this->isForgotPassword($normalizedPath, $method)) {
+            $this->applyForgotPassword($operation);
+
+            return;
+        }
+
+        if ($this->isResetPassword($normalizedPath, $method)) {
+            $this->applyResetPassword($operation);
+
+            return;
+        }
+
         $operation->security = [];
     }
 
@@ -81,6 +111,39 @@ final class ContractOperationOverlay
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
         $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::UNAUTHENTICATED));
         $this->ensureResponse($operation, $this->responses->messageResponse(403, ApiMessage::DEACTIVATED));
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyRegister(Operation $operation): void
+    {
+        $operation->security = [];
+        $this->ensureXsrfHeaderParam($operation);
+        $this->ensureResponse($operation, $this->responses->messageResponse(419, ApiMessage::CSRF));
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyVerificationSend(Operation $operation): void
+    {
+        $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
+        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyVerify(Operation $operation): void
+    {
+        $operation->security = [];
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyForgotPassword(Operation $operation): void
+    {
+        $operation->security = [];
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyResetPassword(Operation $operation): void
+    {
+        $operation->security = [];
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
@@ -135,5 +198,30 @@ final class ContractOperationOverlay
     private function isProfile(string $path, string $method): bool
     {
         return $method === 'get' && str_ends_with($path, 'auth/my-profile');
+    }
+
+    private function isRegister(string $path, string $method): bool
+    {
+        return $method === 'post' && str_ends_with($path, 'register');
+    }
+
+    private function isVerificationSend(string $path, string $method): bool
+    {
+        return $method === 'post' && str_ends_with($path, 'email/verification-notification');
+    }
+
+    private function isVerify(string $path, string $method): bool
+    {
+        return $method === 'get' && str_contains($path, 'email/verify/');
+    }
+
+    private function isForgotPassword(string $path, string $method): bool
+    {
+        return $method === 'post' && str_ends_with($path, 'forgot-password');
+    }
+
+    private function isResetPassword(string $path, string $method): bool
+    {
+        return $method === 'post' && str_ends_with($path, 'reset-password');
     }
 }
