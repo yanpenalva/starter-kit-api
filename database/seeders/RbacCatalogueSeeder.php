@@ -32,7 +32,7 @@ final class RbacCatalogueSeeder extends Seeder
             ['name' => Role::Admin->value, 'guard_name' => self::GUARD],
             ['created_at' => now(), 'updated_at' => now()],
         );
-        RoleModel::firstOrCreate(
+        $user = RoleModel::firstOrCreate(
             ['name' => Role::User->value, 'guard_name' => self::GUARD],
             ['created_at' => now(), 'updated_at' => now()],
         );
@@ -41,6 +41,10 @@ final class RbacCatalogueSeeder extends Seeder
             static fn (Permission $permission): string => $permission->value,
             Permission::cases(),
         ));
+
+        // The plain role carries no administrative permissions, ever: a
+        // rerun also strips anything granted outside the approved set.
+        $user->syncPermissions([]);
 
         // Idempotency contract: a second run keeps exactly the approved set.
         $this->assertCatalogueIntegrity();
@@ -53,19 +57,31 @@ final class RbacCatalogueSeeder extends Seeder
 
     private function assertCatalogueIntegrity(): void
     {
-        $permissionCount = (int) DB::table('permissions')
+        $permissionNames = DB::table('permissions')
             ->where('guard_name', self::GUARD)
-            ->count();
+            ->orderBy('name')
+            ->pluck('name')
+            ->map(static fn (mixed $name): string => (string) $name)
+            ->all();
 
-        if ($permissionCount !== count(Permission::cases())) {
+        $expectedPermissions = Permission::values();
+        sort($expectedPermissions);
+
+        if (array_values($permissionNames) !== $expectedPermissions) {
             throw new RuntimeException('Permission catalogue diverged from the approved set.');
         }
 
-        $roleCount = (int) DB::table('roles')
+        $roleNames = DB::table('roles')
             ->where('guard_name', self::GUARD)
-            ->count();
+            ->orderBy('name')
+            ->pluck('name')
+            ->map(static fn (mixed $name): string => (string) $name)
+            ->all();
 
-        if ($roleCount !== count(Role::cases())) {
+        $expectedRoles = Role::values();
+        sort($expectedRoles);
+
+        if (array_values($roleNames) !== $expectedRoles) {
             throw new RuntimeException('Role catalogue diverged from the approved set.');
         }
     }

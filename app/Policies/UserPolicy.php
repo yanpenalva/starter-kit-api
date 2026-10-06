@@ -36,7 +36,13 @@ final class UserPolicy
             && $actor->hasPermissionTo(Permission::UsersReadCpf->value);
     }
 
-    public function setStatus(User $actor, User $target): bool
+    /**
+     * The requested transition: 'active' or 'deactivated'. An admin can never
+     * administratively deactivate themselves, and deactivating an admin must
+     * always leave at least one active admin standing. Reactivation only
+     * requires an eligible actor.
+     */
+    public function setStatus(User $actor, User $target, string $status): bool
     {
         if (! $this->canOperate($actor)) {
             return false;
@@ -47,7 +53,21 @@ final class UserPolicy
         }
 
         // An admin can never administratively deactivate themselves.
-        return ! $actor->is($target);
+        if ($actor->is($target)) {
+            return false;
+        }
+
+        if ($status === 'deactivated'
+            && $target->deactivated_at === null
+            && $target->hasRole(Role::Admin->value)) {
+            $targetId = $target->getKey();
+
+            if (! is_int($targetId) || ! User::otherAdminsRemain($targetId)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
