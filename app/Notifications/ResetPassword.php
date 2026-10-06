@@ -14,6 +14,11 @@ final class ResetPassword extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    /** @var list<int> */
+    public array $backoff = [5, 15, 60];
+
     public function __construct(public string $token) {}
 
     /**

@@ -23,9 +23,9 @@ curl --fail http://localhost:8080/up
 
 The environment script creates `.env` once with distinct random local database passwords and the current Linux UID/GID. It refuses to overwrite an existing configuration. No secrets are printed or versioned. Set `HTTP_PORT` in `.env` to change the default HTTP port; `APP_DEBUG` stays false. PHP-FPM uses the same UID/GID as the checkout so generated files remain owned by the developer.
 
-`GET /api/v1` returns `{"status":"ok"}`. `/up` is Laravel's framework health endpoint; it verifies application boot, not dependency readiness. `/` has no frontend. API errors render JSON; authentication and its middleware will be implemented in their own issues. There are no business migrations or default users/admin accounts.
+`GET /api/v1` returns `{"status":"ok"}`. `/up` is Laravel's framework health endpoint; it verifies application boot, not dependency readiness. `/` has no frontend. API errors render JSON; authentication and its middleware will be implemented in their own issues. There are no default users/admin accounts.
 
-Development migration command, when migrations are introduced:
+Development migrations:
 
 ```sh
 docker compose exec api php artisan migrate --no-interaction
@@ -54,7 +54,7 @@ docker compose logs --tail=100 api nginx
 docker compose down
 ```
 
-The optional Compose `async` profile adds the local queue stack: Redis, Mailpit (local SMTP capture) and dev-only `worker`/`scheduler` containers. The worker runs bounded (`--max-jobs`/`--max-time`) and both async services are healthchecked; those healthchecks only probe Redis connectivity — they do not prove job consumption. Application defaults stay `QUEUE_CONNECTION=sync` and `MAIL_MAILER=log`: the base stack boots without Redis/Mailpit, and starting the async containers changes nothing for the API until jobs/mail are actually dispatched in that profile's environment.
+The application uses the database queue with after-commit dispatch by default in local and test environments; set `QUEUE_CONNECTION=sync` to run work inline. Mail defaults to `log`. Configure `MAIL_MAILER=smtp` and the `MAIL_*` settings in `.env` to use an SMTP server. The optional Compose `async` profile adds Redis, Mailpit (local SMTP capture) and dev-only `worker`/`scheduler` containers; its worker consumes the database queue and sends mail through Mailpit. The worker runs bounded (`--max-jobs`/`--max-time`). Production supervision is not included in this slice.
 
 Drive the async stack through the helper script, which pins a dedicated Compose project name, 127.0.0.1-only ports (18080/18025 by default), runs a synthetic smoke check through the real worker and cleans up with a project-scoped teardown:
 
@@ -65,6 +65,8 @@ ENV_FILE=/path/to/primary/.env sh scripts/async_dev.sh up|smoke|cleanup
 If you operate Compose manually — especially in extra worktrees — always pass a unique project name (`docker compose -p <unique-name> …`): `compose.yaml` fixes the shared project name `starter-kit-api`, so two checkouts without distinct `-p` values would share containers, networks and the development database volume. Never run destructive commands such as `down --volumes` against that shared name, and do not rely on an ambient `COMPOSE_PROJECT_NAME` as a substitute — a shell without it silently falls back to the shared name.
 
 Mailpit UI is available only on localhost, default port 8025 (`MAILPIT_PORT` overrides it; the async helper script defaults it to 18025). Redis and SMTP have no host ports. Logs go to stderr; Nginx access logs are disabled to avoid capturing query strings. Never add credentials or personal data to logs. Correlation IDs/redaction for business inputs belong to the HTTP/observability feature deliveries.
+
+To process queued work in the development Compose stack, enable its worker via `docker compose --profile async up -d worker scheduler`. To run a one-off worker without the profile, use `docker compose exec api php artisan queue:work database --queue=default --tries=3 --backoff=5,15,60 --max-jobs=100 --max-time=3600`. Failed jobs are pruned daily after seven days; expired password reset tokens and unverified registrations older than the 24-hour email verification window are also pruned daily.
 
 `docker compose down` preserves the development database volume. Do not use `down --volumes` as a routine reset. The test database's tmpfs is disposable when its container is removed. On database authentication errors, check the local `.env` against the credentials used when the development volume was initialized; do not silently reset that volume. On permission errors, regenerate only UID/GID configuration as needed, not secrets or existing data. Docker daemon access is required; failures before image/container execution are environment limitations, not passing checks.
 
