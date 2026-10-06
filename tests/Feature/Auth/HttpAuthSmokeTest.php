@@ -314,7 +314,9 @@ final class HttpAuthSmokeTest extends TestCase
     }
 
     /**
-     * Fails closed before any database query or process start.
+     * Fails closed before any database query or process start. Non-pgsql
+     * local runs (sqlite-first policy) skip: these tests drive a real HTTP
+     * server against the isolated pgsql stack.
      */
     private function assertIsolatedTestingRuntime(): void
     {
@@ -322,6 +324,10 @@ final class HttpAuthSmokeTest extends TestCase
             app()->environment('testing'),
             'Smoke tests require the testing environment.',
         );
+
+        if (config('database.default') !== 'pgsql') {
+            $this->markTestSkipped('Real-HTTP smoke tests require the isolated pgsql stack.');
+        }
 
         $this->assertSame(
             'pgsql',

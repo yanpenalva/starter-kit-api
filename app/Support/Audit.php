@@ -24,6 +24,17 @@ final class Audit
     private const ALLOWED_PROPERTY_KEYS = ['correlation_id', 'actor_type', 'actor_id'];
 
     /**
+     * The single-sourced event allowlist, also exposed to the read feed so
+     * its filters can never invent an event outside the approved set.
+     *
+     * @return list<string>
+     */
+    public static function allowedEvents(): array
+    {
+        return self::ALLOWED_EVENTS;
+    }
+
+    /**
      * @param  array<string, mixed>  $properties
      */
     public static function record(

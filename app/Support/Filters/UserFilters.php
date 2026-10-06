@@ -6,6 +6,7 @@ namespace App\Support\Filters;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Wave B contract: allowlisted query filters for user lists. Unknown keys
@@ -25,9 +26,18 @@ final class UserFilters
         if (is_string($search) && $search !== '') {
             $escaped = self::escapeLike($search);
 
+            // Explicit ESCAPE keeps the backslash escaping portable: SQLite
+            // LIKE has no default escape character, PostgreSQL does.
             $query->where(static function (Builder $query) use ($escaped): void {
-                $query->where('name', 'ilike', '%'.$escaped.'%')
-                    ->orWhere('email', 'ilike', '%'.$escaped.'%');
+                if (DB::connection()->getDriverName() === 'pgsql') {
+                    $query->whereRaw("name ilike ? ESCAPE '\\'", ['%'.$escaped.'%'])
+                        ->orWhereRaw("email ilike ? ESCAPE '\\'", ['%'.$escaped.'%']);
+
+                    return;
+                }
+
+                $query->whereRaw("name like ? ESCAPE '\\'", ['%'.$escaped.'%'])
+                    ->orWhereRaw("email like ? ESCAPE '\\'", ['%'.$escaped.'%']);
             });
         }
 

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\ApiMessage;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 final class LoginController
@@ -24,10 +25,16 @@ final class LoginController
             abort(401, ApiMessage::INVALID_CREDENTIALS);
         }
 
+        $query = User::query();
+
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            $query->whereRaw('lower(btrim(email, E\' \\t\\n\\r\\x0B\')) = ?', [$normalizedEmail]);
+        } else {
+            $query->whereRaw('lower(trim(email)) = ?', [$normalizedEmail]);
+        }
+
         /** @var User|null $user */
-        $user = User::query()
-            ->whereRaw('lower(btrim(email, E\' \\t\\n\\r\\x0B\')) = ?', [$normalizedEmail])
-            ->first();
+        $user = $query->first();
 
         if ($user === null) {
             Hash::check($password, self::DUMMY_HASH);
