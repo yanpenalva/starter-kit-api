@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests\Roles;
 
 use App\Enums\Permission;
-use App\Http\Requests\HasRules;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -15,7 +14,7 @@ use Illuminate\Validation\Rule;
  * permissions. The wave owning the route enforces RolePolicy::updatePermissions
  * (admin role immutable) for the resolved role inside a PrivilegeTransaction.
  */
-final class UpdateRolePermissionsRequest extends FormRequest implements HasRules
+final class UpdateRolePermissionsRequest extends FormRequest
 {
     public function authorize(): bool
     {

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests\Users;
 
 use App\Enums\Permission;
-use App\Http\Requests\HasRules;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -15,7 +14,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * PrivilegeTransaction; this request carries only the actor ability gate
  * and the input shape.
  */
-final class UpdateUserRequest extends FormRequest implements HasRules
+final class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {

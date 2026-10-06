@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests\Roles;
 
 use App\Enums\Permission;
-use App\Http\Requests\HasRules;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -13,7 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * Wave B contract: list the catalogue roles with allowlisted filters and
  * bounded pagination. No route binds this request yet.
  */
-final class IndexRolesRequest extends FormRequest implements HasRules
+final class IndexRolesRequest extends FormRequest
 {
     public const DEFAULT_PER_PAGE = 15;
 

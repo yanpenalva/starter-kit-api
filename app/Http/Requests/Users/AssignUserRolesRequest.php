@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests\Users;
 
 use App\Enums\Permission;
-use App\Http\Requests\HasRules;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -16,7 +15,7 @@ use Illuminate\Validation\Rule;
  * last active admin preserved) for the resolved target inside a
  * PrivilegeTransaction.
  */
-final class AssignUserRolesRequest extends FormRequest implements HasRules
+final class AssignUserRolesRequest extends FormRequest
 {
     public function authorize(): bool
     {
