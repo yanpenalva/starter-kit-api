@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -24,7 +25,13 @@ final class RoleFilters
         if (is_string($search) && $search !== '') {
             $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
 
-            $query->where('name', 'ilike', '%'.$escaped.'%');
+            if (DB::connection()->getDriverName() === 'pgsql') {
+                $query->whereRaw("name ilike ? ESCAPE '\\'", ['%'.$escaped.'%']);
+
+                return $query;
+            }
+
+            $query->whereRaw("name like ? ESCAPE '\\'", ['%'.$escaped.'%']);
         }
 
         return $query;

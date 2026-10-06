@@ -62,9 +62,14 @@ final class AdminContractTest extends TestCase
     {
         parent::setUp();
 
-        $database = config('database.connections.pgsql.database');
-        $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        $connection = config('database.default');
+        $this->assertContains($connection, ['pgsql', 'sqlite']);
+
+        if ($connection === 'pgsql') {
+            $database = config('database.connections.pgsql.database');
+            $this->assertIsString($database);
+            $this->assertSame('starter_api_test', $database);
+        }
 
         $this->seed(RbacCatalogueSeeder::class);
     }

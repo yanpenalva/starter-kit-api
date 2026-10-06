@@ -64,13 +64,29 @@ final class IndexUsersRequest extends FormRequest
     {
         $page = $this->validated('page', 1);
 
-        return is_int($page) ? $page : 1;
+        if (is_int($page)) {
+            return $page;
+        }
+
+        if (is_string($page) && ctype_digit($page)) {
+            return (int) $page;
+        }
+
+        return 1;
     }
 
     public function perPage(): int
     {
         $perPage = $this->validated('per_page', self::DEFAULT_PER_PAGE);
 
-        return is_int($perPage) ? $perPage : self::DEFAULT_PER_PAGE;
+        if (is_int($perPage)) {
+            return $perPage;
+        }
+
+        if (is_string($perPage) && ctype_digit($perPage)) {
+            return (int) $perPage;
+        }
+
+        return self::DEFAULT_PER_PAGE;
     }
 }
