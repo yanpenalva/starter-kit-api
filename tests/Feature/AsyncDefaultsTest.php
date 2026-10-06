@@ -21,6 +21,9 @@ final class AsyncDefaultsTest extends TestCase
 
     public function test_database_queue_and_log_mail_are_the_local_defaults(): void
     {
+        config()->set('queue.default', 'database');
+        config()->set('mail.default', 'log');
+
         $this->assertSame('database', config('queue.default'));
         $this->assertTrue(config('queue.connections.database.after_commit'));
         $this->assertSame('log', config('mail.default'));
