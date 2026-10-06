@@ -36,6 +36,9 @@ final class AdminContractTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * @return array<string, array<int, string>>
+     */
     private static function validationErrors(FormRequest $request): array
     {
         try {
