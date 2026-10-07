@@ -10,7 +10,9 @@ use App\Models\User;
 use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
@@ -204,6 +206,72 @@ final class AuditFeedTest extends TestCase
         $this->getJson('/api/v1/activity-log?per_page=101')
             ->assertStatus(422)
             ->assertJsonValidationErrors('per_page');
+    }
+
+    public function test_feed_filters_by_date_range_and_responsible_user(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::LogsView->value);
+        $otherActor = User::factory()->verified()->create();
+        $this->createAuditEntry($actor, '2026-10-01 12:00:00');
+        $this->createAuditEntry($actor, '2026-10-04 12:00:00');
+        $this->createAuditEntry($otherActor, '2026-10-03 12:00:00');
+
+        self::actingAsSanctum($actor);
+        $response = $this->getJson('/api/v1/activity-log?from=2026-10-02&to=2026-10-04&causer_id='.$actor->id);
+
+        $response->assertOk()->assertJsonPath('meta.total', 1);
+        $entries = $response->json('data');
+        $this->assertIsArray($entries);
+        $this->assertCount(1, $entries);
+        $entry = $entries[0] ?? null;
+        $this->assertIsArray($entry);
+        $this->assertSame('2026-10-04T12:00:00Z', $entry['created_at'] ?? null);
+    }
+
+    public function test_feed_validates_period_and_responsible_filters(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::LogsView->value);
+        self::actingAsSanctum($actor);
+
+        $this->getJson('/api/v1/activity-log?from=not-a-date')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('from');
+
+        $this->getJson('/api/v1/activity-log?from=2026-10-05&to=2026-10-01')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('to');
+
+        $this->getJson('/api/v1/activity-log?causer_id=invalid')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('causer_id');
+    }
+
+    public function test_activity_log_has_composite_event_id_index(): void
+    {
+        $indexes = Schema::getIndexes('activity_log');
+        $compositeIndex = collect($indexes)->first(static function (mixed $index): bool {
+            return is_array($index) && ($index['columns'] ?? []) === ['event', 'id'];
+        });
+
+        $this->assertNotNull($compositeIndex);
+    }
+
+    private function createAuditEntry(User $causer, string $createdAt): void
+    {
+        Activity::query()->create([
+            'log_name' => 'privilege',
+            'description' => Audit::EVENT_PRIVILEGED_CHANGE,
+            'event' => Audit::EVENT_PRIVILEGED_CHANGE,
+            'subject_type' => User::class,
+            'subject_id' => $causer->id,
+            'causer_type' => User::class,
+            'causer_id' => $causer->id,
+            'properties' => [],
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ]);
     }
 
     public function test_feed_paginates_with_bounded_page_sizes(): void

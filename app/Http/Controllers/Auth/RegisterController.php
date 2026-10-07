@@ -6,7 +6,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class RegisterController
 {
@@ -15,16 +19,34 @@ final class RegisterController
         /** @var array{name: string, email: string, password: string, cpf: string|null} $validated */
         $validated = $request->validated();
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'cpf' => $validated['cpf'] ?? null,
-            'email_verified_at' => null,
-            'deactivated_at' => null,
-        ]);
+        try {
+            $user = DB::transaction(static fn (): User => User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'cpf' => $validated['cpf'] ?? null,
+                'email_verified_at' => null,
+                'deactivated_at' => null,
+            ]));
+        } catch (QueryException $exception) {
+            if (! $this->isUniqueConstraintViolation($exception)) {
+                throw $exception;
+            }
 
-        $user->sendEmailVerificationNotification();
+            throw ValidationException::withMessages([
+                $this->conflictingIdentityField($exception) => $this->conflictingIdentityMessage($exception),
+            ]);
+        }
+
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Sua conta foi criada, mas não foi possível enviar o e-mail de verificação. Entre e solicite um novo envio.',
+            ], 503);
+        }
 
         return response()->json([
             'id' => $user->id,
@@ -32,5 +54,29 @@ final class RegisterController
             'email' => $user->email,
             'email_verified_at' => $user->email_verified_at,
         ], 201);
+    }
+
+    private function isUniqueConstraintViolation(QueryException $exception): bool
+    {
+        $errorInfo = $exception->errorInfo;
+        $driverCode = is_array($errorInfo) && is_int($errorInfo[1] ?? null) ? $errorInfo[1] : null;
+
+        return $exception->getCode() === '23505'
+            || ($exception->getCode() === '23000' && $driverCode === 19);
+    }
+
+    private function conflictingIdentityField(QueryException $exception): string
+    {
+        $driverMessage = $exception->getPrevious()?->getMessage() ?? '';
+
+        return preg_match('/(?:users\.)?cpf|\(cpf\)=/i', $driverMessage) === 1 ? 'cpf' : 'email';
+    }
+
+    private function conflictingIdentityMessage(QueryException $exception): string
+    {
+        return match ($this->conflictingIdentityField($exception)) {
+            'cpf' => 'Este CPF já está cadastrado.',
+            default => 'Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.',
+        };
     }
 }

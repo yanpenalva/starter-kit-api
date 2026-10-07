@@ -26,13 +26,16 @@ final class AppServiceProvider extends ServiceProvider
                 is_int($identifier) || is_string($identifier) ? (string) $identifier : (string) $request->ip(),
             );
         });
-        RateLimiter::for('login', static function (Request $request): Limit {
+        RateLimiter::for('login', static function (Request $request): array {
             $rawEmail = $request->input('email');
             $normalizedEmail = mb_strtolower(trim(is_string($rawEmail) ? $rawEmail : ''));
             $ip = (string) $request->ip();
             $key = hash('sha256', $normalizedEmail.'|'.$ip);
 
-            return Limit::perMinute(5)->by($key);
+            return [
+                Limit::perMinute(5)->by($key),
+                Limit::perMinute(20)->by('login-ip|'.$ip),
+            ];
         });
         RateLimiter::for('register', static function (Request $request): Limit {
             return Limit::perMinute(5)->by((string) $request->ip());

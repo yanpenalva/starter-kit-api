@@ -32,6 +32,24 @@ final class ActivityFilters
             $query->where('subject_type', $subjectType);
         }
 
+        $from = $filters['from'] ?? null;
+
+        if (is_string($from) && $from !== '') {
+            $query->whereDate('created_at', '>=', $from);
+        }
+
+        $to = $filters['to'] ?? null;
+
+        if (is_string($to) && $to !== '') {
+            $query->whereDate('created_at', '<=', $to);
+        }
+
+        $causerId = $filters['causer_id'] ?? null;
+
+        if (is_string($causerId) && $causerId !== '') {
+            $query->where('causer_id', $causerId);
+        }
+
         return $query;
     }
 }

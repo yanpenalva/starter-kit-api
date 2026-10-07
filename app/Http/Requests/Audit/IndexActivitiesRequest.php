@@ -41,6 +41,9 @@ final class IndexActivitiesRequest extends FormRequest
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
             'event' => ['sometimes', 'string', Rule::in(Audit::allowedEvents())],
             'subject_type' => ['sometimes', 'string', Rule::in(self::SUBJECT_TYPES)],
+            'from' => ['sometimes', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'causer_id' => ['sometimes', 'integer', 'min:1'],
         ];
     }
 
@@ -51,11 +54,11 @@ final class IndexActivitiesRequest extends FormRequest
     {
         $filters = [];
 
-        foreach (['event', 'subject_type'] as $key) {
+        foreach (['event', 'subject_type', 'from', 'to', 'causer_id'] as $key) {
             $value = $this->validated($key, null);
 
-            if (is_string($value) && $value !== '') {
-                $filters[$key] = $value;
+            if ((is_string($value) && $value !== '') || is_int($value)) {
+                $filters[$key] = (string) $value;
             }
         }
 
