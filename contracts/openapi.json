@@ -1671,7 +1671,9 @@
                     },
                     "properties": {
                         "type": "object",
-                        "additionalProperties": {}
+                        "additionalProperties": {
+                            "type": "string"
+                        }
                     },
                     "created_at": {
                         "type": [

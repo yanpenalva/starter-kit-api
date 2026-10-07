@@ -36,7 +36,13 @@ final class ActivityResource extends JsonResource
 
         /** @var array<string, mixed> $storedProperties */
         $storedProperties = $activity->properties?->all() ?? [];
-        $properties = Audit::minimalProperties($storedProperties);
+
+        $allowed = Audit::minimalProperties($storedProperties);
+        /** @var array<string, string> $properties */
+        $properties = collect($allowed)
+            ->filter(static fn (mixed $value): bool => is_scalar($value))
+            ->map(static fn (mixed $value): string => (string) $value)
+            ->all();
 
         $createdAt = $activity->created_at !== null
             ? $activity->created_at->clone()->utc()->format('Y-m-d\TH:i:s\Z')

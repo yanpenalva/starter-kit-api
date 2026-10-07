@@ -156,7 +156,7 @@ final class AuditFeedTest extends TestCase
         /** @var array<string, mixed> $mutationProperties */
         $mutationProperties = $mutation['properties'];
         $this->assertSame('user', $mutationProperties['actor_type']);
-        $this->assertSame($actor->id, $mutationProperties['actor_id']);
+        $this->assertSame((string) $actor->id, $mutationProperties['actor_id']);
 
         $this->assertStringNotContainsString('auditado@example.test', (string) $response->getContent());
         $this->assertStringNotContainsString((string) $target->cpf, (string) $response->getContent());
