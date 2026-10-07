@@ -9,12 +9,11 @@ use App\Enums\Role;
 use App\Models\User;
 
 /**
- * Policy foundation for the approved privilege mutations. No public endpoint
- * consumes these yet; the wave owning each route wires them in. Every actor
- * must be verified and active before any ability is considered — a granted
- * permission alone never satisfies an eligibility gate. Basic-profile public
- * endpoints (future wave) are unaffected: these policies cover privileged
- * admin operations only.
+ * Policy foundation for the approved privilege mutations consumed by the
+ * admin user/role endpoints in routes/api.php. Every actor must be verified
+ * and active before any ability is considered — a granted permission alone
+ * never satisfies an eligibility gate. Basic-profile public endpoints are
+ * unaffected: these policies cover privileged admin operations only.
  */
 final class UserPolicy
 {
