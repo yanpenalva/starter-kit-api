@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Auth;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class EmailVerificationNotificationController
 {
@@ -18,6 +19,6 @@ final class EmailVerificationNotificationController
             $user->sendEmailVerificationNotification();
         }
 
-        return response()->json(['message' => 'Se o email ainda não foi verificado, reenviamos o link.'], 202);
+        return response()->json(['message' => 'Se o email ainda não foi verificado, reenviamos o link.'], Response::HTTP_ACCEPTED);
     }
 }

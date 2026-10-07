@@ -8,6 +8,7 @@ use App\Support\EmailLookup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Symfony\Component\HttpFoundation\Response;
 
 final class ForgotPasswordController
 {
@@ -24,6 +25,6 @@ final class ForgotPasswordController
             Password::broker()->sendResetLink(['email' => $user->email]);
         }
 
-        return response()->json(['message' => 'Se o email existir, enviamos o link.'], 202);
+        return response()->json(['message' => 'Se o email existir, enviamos o link.'], Response::HTTP_ACCEPTED);
     }
 }

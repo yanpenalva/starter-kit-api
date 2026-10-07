@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpFoundation\Response;
 
 final class RoleController
 {
@@ -53,7 +54,7 @@ final class RoleController
 
         $role = $this->storeRole->run($actor, $name);
 
-        return (new RoleResource($role))->response()->setStatusCode(201);
+        return (new RoleResource($role))->response()->setStatusCode(Response::HTTP_CREATED);
     }
 
     public function destroy(Request $request, Role $role): JsonResponse
@@ -65,7 +66,7 @@ final class RoleController
 
         $this->destroyRole->run($actor, $role);
 
-        return response()->json([], 204);
+        return response()->json([], Response::HTTP_NO_CONTENT);
     }
 
     public function updatePermissions(UpdateRolePermissionsRequest $request, Role $role): RoleResource

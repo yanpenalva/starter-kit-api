@@ -10,6 +10,7 @@ use App\Support\PrivilegeTransaction;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\HttpFoundation\Response;
 
 final class DestroyRole
 {
@@ -21,7 +22,7 @@ final class DestroyRole
             $target = Role::query()->lockForUpdate()->whereKey($role->getKey())->firstOrFail();
 
             if ($target->users()->exists()) {
-                abort(422, 'A role assigned to users cannot be deleted.');
+                abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'A role assigned to users cannot be deleted.');
             }
 
             $this->auditRoleChange($actor, $target);

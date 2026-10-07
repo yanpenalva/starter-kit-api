@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Support\ReadinessChecks;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 final class HealthController extends Controller
 {
@@ -17,6 +18,6 @@ final class HealthController extends Controller
         return response()->json([
             'status' => $healthy ? 'ok' : 'error',
             'checks' => $checks,
-        ], $healthy ? 200 : 503);
+        ], $healthy ? Response::HTTP_OK : Response::HTTP_SERVICE_UNAVAILABLE);
     }
 }

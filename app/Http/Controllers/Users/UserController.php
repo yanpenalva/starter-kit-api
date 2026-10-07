@@ -22,6 +22,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\Response;
 
 final class UserController
 {
@@ -60,7 +61,7 @@ final class UserController
 
         $user = $this->storeUser->run($actor, $payload);
 
-        return (new UserResource($user))->response()->setStatusCode(201);
+        return (new UserResource($user))->response()->setStatusCode(Response::HTTP_CREATED);
     }
 
     public function destroy(Request $request, User $user): JsonResponse
@@ -72,7 +73,7 @@ final class UserController
 
         $this->destroyUser->run($actor, $user);
 
-        return response()->json([], 204);
+        return response()->json([], Response::HTTP_NO_CONTENT);
     }
 
     public function show(Request $request, User $user): UserResource

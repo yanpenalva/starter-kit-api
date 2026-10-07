@@ -15,6 +15,7 @@ use Dedoc\Scramble\Support\Generator\Types\ArrayType;
 use Dedoc\Scramble\Support\Generator\Types\IntegerType;
 use Dedoc\Scramble\Support\Generator\Types\ObjectType;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final class ContractDocumentTransformer
 {
@@ -142,7 +143,7 @@ final class ContractDocumentTransformer
         $operation->security = [];
 
         /** @var Response $success */
-        $success = Response::make(204);
+        $success = Response::make(HttpResponse::HTTP_NO_CONTENT);
         $success->setDescription('Sem conteúdo; cookies emitidos através dos cabeçalhos Set-Cookie.');
         $operation->responses = [$success];
 

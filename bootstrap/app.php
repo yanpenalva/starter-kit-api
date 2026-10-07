@@ -56,7 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return response()->json(['message' => ApiMessage::UNAUTHENTICATED], 401);
+            return response()->json(['message' => ApiMessage::UNAUTHENTICATED], Response::HTTP_UNAUTHORIZED);
         });
 
         $exceptions->render(function (Throwable $e, Request $request): ?JsonResponse {
@@ -75,6 +75,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 );
             }
 
-            return response()->json(['message' => ApiMessage::SERVER_ERROR], 500);
+            return response()->json(['message' => ApiMessage::SERVER_ERROR], Response::HTTP_INTERNAL_SERVER_ERROR);
         });
     })->create();

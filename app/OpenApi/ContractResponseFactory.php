@@ -11,6 +11,7 @@ use Dedoc\Scramble\Support\Generator\Schema;
 use Dedoc\Scramble\Support\Generator\Types\IntegerType;
 use Dedoc\Scramble\Support\Generator\Types\ObjectType;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final class ContractResponseFactory
 {
@@ -34,7 +35,7 @@ final class ContractResponseFactory
 
     public function rateLimitedResponse(): Response
     {
-        $response = $this->messageResponse(429, ApiMessage::THROTTLED);
+        $response = $this->messageResponse(HttpResponse::HTTP_TOO_MANY_REQUESTS, ApiMessage::THROTTLED);
         $header = new Header(description: 'Segundos até que o cliente possa tentar novamente.');
         /** @var Schema $schema */
         $schema = Schema::fromType(new IntegerType);
@@ -47,10 +48,10 @@ final class ContractResponseFactory
     public function errorDescription(int $code): string
     {
         return match ($code) {
-            401 => 'Não autenticado ou credenciais inválidas; nunca revela se uma conta existe.',
-            403 => 'Autenticado, mas explicitamente bloqueado (conta desativada).',
-            419 => 'Token CSRF ausente ou inválido.',
-            429 => 'Limite de requisições excedido.',
+            HttpResponse::HTTP_UNAUTHORIZED => 'Não autenticado ou credenciais inválidas; nunca revela se uma conta existe.',
+            HttpResponse::HTTP_FORBIDDEN => 'Autenticado, mas explicitamente bloqueado (conta desativada).',
+            ApiMessage::PAGE_EXPIRED => 'Token CSRF ausente ou inválido.',
+            HttpResponse::HTTP_TOO_MANY_REQUESTS => 'Limite de requisições excedido.',
             default => 'Erro na requisição.',
         };
     }

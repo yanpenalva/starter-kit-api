@@ -11,6 +11,7 @@ use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\HttpFoundation\Response;
 
 final class AssignUserRoles
 {
@@ -26,7 +27,7 @@ final class AssignUserRoles
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
             if (! app(UserPolicy::class)->assignRoles($actor, $target)) {
-                abort(403, ApiMessage::UNAUTHORIZED);
+                abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
 
             $target->syncRoles($roleNames);

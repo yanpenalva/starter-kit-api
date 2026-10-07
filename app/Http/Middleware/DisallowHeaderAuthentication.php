@@ -17,7 +17,7 @@ final class DisallowHeaderAuthentication
         $authorization = $request->header('Authorization');
 
         if (is_string($authorization) && trim($authorization) !== '') {
-            abort(401, ApiMessage::UNAUTHENTICATED);
+            abort(Response::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED);
         }
 
         $response = $next($request);

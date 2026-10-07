@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 final class ResetPasswordController
 {
@@ -61,6 +62,6 @@ final class ResetPasswordController
             throw ValidationException::withMessages(['email' => [$message]]);
         }
 
-        return response()->json(['message' => (string) trans('passwords.reset')], 200);
+        return response()->json(['message' => (string) trans('passwords.reset')], Response::HTTP_OK);
     }
 }
