@@ -8,6 +8,7 @@ use App\Models\User;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -35,12 +36,16 @@ final class HttpAuthSmokeTest extends TestCase
 
         $this->assertIsolatedTestingRuntime();
 
+        Cache::store('file')->flush();
+
         User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL])->delete();
     }
 
     protected function tearDown(): void
     {
         $this->assertIsolatedTestingRuntime();
+
+        Cache::store('file')->flush();
 
         User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL])->delete();
 
