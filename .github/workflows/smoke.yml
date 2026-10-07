@@ -1,0 +1,49 @@
+name: Post-deploy smoke
+
+on:
+  workflow_call:
+    inputs:
+      api_base_url:
+        required: true
+        type: string
+      origin:
+        required: true
+        type: string
+    secrets:
+      smoke_email:
+        required: true
+      smoke_password:
+        required: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login, read profile and logout over HTTP
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url }}
+          SMOKE_ORIGIN: ${{ inputs.origin }}
+          SMOKE_EMAIL: ${{ secrets.smoke_email }}
+          SMOKE_PASSWORD: ${{ secrets.smoke_password }}
+        run: |
+          set -euo pipefail
+          cookie_jar=$(mktemp)
+          trap 'rm -f "$cookie_jar"' EXIT
+          origin="$SMOKE_ORIGIN"
+          curl --fail --silent --show-error --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
+            -H "Origin: $origin" "$API_BASE_URL/sanctum/csrf-cookie" --output /dev/null
+          xsrf_cookie=$(awk '$6 == "XSRF-TOKEN" { value=$7 } END { print value }' "$cookie_jar")
+          xsrf_token=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' "$xsrf_cookie")
+          python3 -c 'import json, os; print(json.dumps({"email":os.environ["SMOKE_EMAIL"],"password":os.environ["SMOKE_PASSWORD"]}))' \
+            | curl --fail --silent --show-error --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
+            -H "Origin: $origin" -H "Referer: $origin/" -H "X-XSRF-TOKEN: $xsrf_token" \
+            -H 'Content-Type: application/json' \
+            --data-binary @- \
+            "$API_BASE_URL/api/v1/login" --output /dev/null
+          curl --fail --silent --show-error --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
+            -H "Origin: $origin" "$API_BASE_URL/api/v1/auth/my-profile" --output /dev/null
+          xsrf_cookie=$(awk '$6 == "XSRF-TOKEN" { value=$7 } END { print value }' "$cookie_jar")
+          xsrf_token=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' "$xsrf_cookie")
+          curl --fail --silent --show-error --cookie-jar "$cookie_jar" --cookie "$cookie_jar" \
+            -H "Origin: $origin" -H "Referer: $origin/" -H "X-XSRF-TOKEN: $xsrf_token" \
+            -X POST "$API_BASE_URL/api/v1/logout" --output /dev/null

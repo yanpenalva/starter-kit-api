@@ -50,6 +50,7 @@ final class OpenApiSnapshotTest extends TestCase
         /** @var array<string, mixed> $paths */
         $paths = $document['paths'];
         $this->assertArrayHasKey('/api/v1', $paths);
+        $this->assertArrayHasKey('/api/v1/health', $paths);
         $this->assertArrayHasKey('/api/v1/login', $paths);
         $this->assertArrayHasKey('/api/v1/logout', $paths);
         $this->assertArrayHasKey('/api/v1/auth/my-profile', $paths);
@@ -67,11 +68,17 @@ final class OpenApiSnapshotTest extends TestCase
         );
 
         $serverUrl = $servers[0]['url'];
-        foreach (['/api/v1', '/api/v1/login', '/api/v1/logout', '/api/v1/auth/my-profile', '/sanctum/csrf-cookie'] as $expectedPath) {
+        foreach (['/api/v1', '/api/v1/health', '/api/v1/login', '/api/v1/logout', '/api/v1/auth/my-profile', '/sanctum/csrf-cookie'] as $expectedPath) {
             $resolvedUrl = '/'.ltrim($serverUrl, '/').ltrim($expectedPath, '/');
             $this->assertSame($expectedPath, $resolvedUrl);
             $this->assertContains($resolvedUrl, $registeredUris);
         }
+
+        /** @var array<string, mixed> $healthPath */
+        $healthPath = $paths['/api/v1/health'];
+        /** @var array<string, mixed> $healthGet */
+        $healthGet = $healthPath['get'];
+        $this->assertSame([], $healthGet['security']);
 
         /** @var array<string, mixed> $csrfRoute */
         $csrfRoute = $paths['/sanctum/csrf-cookie'];
