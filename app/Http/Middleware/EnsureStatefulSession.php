@@ -15,7 +15,7 @@ final class EnsureStatefulSession
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->hasSession()) {
-            abort(419, ApiMessage::CSRF);
+            abort(ApiMessage::PAGE_EXPIRED, ApiMessage::CSRF);
         }
 
         $response = $next($request);

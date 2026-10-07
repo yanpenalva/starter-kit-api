@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Policies\UserPolicy;
 use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
+use Symfony\Component\HttpFoundation\Response;
 
 final class DestroyUser
 {
@@ -20,7 +21,7 @@ final class DestroyUser
             $target = User::query()->lockForUpdate()->whereKey($user->getKey())->firstOrFail();
 
             if (! app(UserPolicy::class)->delete($actor, $target)) {
-                abort(403, ApiMessage::UNAUTHORIZED);
+                abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
 
             $this->auditUserChange($actor, $target);

@@ -12,6 +12,7 @@ use Dedoc\Scramble\Support\Generator\Response;
 use Dedoc\Scramble\Support\Generator\Schema;
 use Dedoc\Scramble\Support\Generator\SecurityRequirement;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final class ContractOperationOverlay
 {
@@ -91,9 +92,9 @@ final class ContractOperationOverlay
     {
         $operation->security = [];
         $this->ensureXsrfHeaderParam($operation);
-        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::INVALID_CREDENTIALS));
-        $this->ensureResponse($operation, $this->responses->messageResponse(403, ApiMessage::DEACTIVATED));
-        $this->ensureResponse($operation, $this->responses->messageResponse(419, ApiMessage::CSRF));
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::INVALID_CREDENTIALS));
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(ApiMessage::PAGE_EXPIRED, ApiMessage::CSRF));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
@@ -101,16 +102,16 @@ final class ContractOperationOverlay
     {
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
         $this->ensureXsrfHeaderParam($operation);
-        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::UNAUTHENTICATED));
-        $this->ensureResponse($operation, $this->responses->messageResponse(419, ApiMessage::CSRF));
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(ApiMessage::PAGE_EXPIRED, ApiMessage::CSRF));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
     private function applyProfile(Operation $operation): void
     {
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
-        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::UNAUTHENTICATED));
-        $this->ensureResponse($operation, $this->responses->messageResponse(403, ApiMessage::DEACTIVATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
@@ -118,14 +119,14 @@ final class ContractOperationOverlay
     {
         $operation->security = [];
         $this->ensureXsrfHeaderParam($operation);
-        $this->ensureResponse($operation, $this->responses->messageResponse(419, ApiMessage::CSRF));
+        $this->ensureResponse($operation, $this->responses->messageResponse(ApiMessage::PAGE_EXPIRED, ApiMessage::CSRF));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
     private function applyVerificationSend(Operation $operation): void
     {
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
-        $this->ensureResponse($operation, $this->responses->messageResponse(401, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 

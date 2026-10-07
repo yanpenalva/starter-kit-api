@@ -11,6 +11,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 final class LoginController
 {
@@ -22,7 +23,7 @@ final class LoginController
         $password = $request->input('password');
 
         if (! is_string($password)) {
-            abort(401, ApiMessage::INVALID_CREDENTIALS);
+            abort(SymfonyResponse::HTTP_UNAUTHORIZED, ApiMessage::INVALID_CREDENTIALS);
         }
 
         $query = User::query();
@@ -39,15 +40,15 @@ final class LoginController
         if ($user === null) {
             Hash::check($password, self::DUMMY_HASH);
 
-            abort(401, ApiMessage::INVALID_CREDENTIALS);
+            abort(SymfonyResponse::HTTP_UNAUTHORIZED, ApiMessage::INVALID_CREDENTIALS);
         }
 
         if (! Hash::check($password, $user->password)) {
-            abort(401, ApiMessage::INVALID_CREDENTIALS);
+            abort(SymfonyResponse::HTTP_UNAUTHORIZED, ApiMessage::INVALID_CREDENTIALS);
         }
 
         if ($user->deactivated_at !== null) {
-            abort(403, ApiMessage::DEACTIVATED);
+            abort(SymfonyResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED);
         }
 
         if (Hash::needsRehash($user->password)) {

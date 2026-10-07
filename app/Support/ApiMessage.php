@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 final class ApiMessage
 {
+    public const PAGE_EXPIRED = 419;
     public const INVALID_CREDENTIALS = 'Credenciais inválidas.';
 
     public const UNAUTHENTICATED = 'Não autenticado.';
@@ -53,12 +55,12 @@ final class ApiMessage
     public static function forStatus(int $status): string
     {
         return match ($status) {
-            401 => self::UNAUTHENTICATED,
-            403 => self::UNAUTHORIZED,
-            404 => self::NOT_FOUND,
-            405 => self::METHOD_NOT_ALLOWED,
-            419 => self::CSRF,
-            429 => self::THROTTLED,
+            Response::HTTP_UNAUTHORIZED => self::UNAUTHENTICATED,
+            Response::HTTP_FORBIDDEN => self::UNAUTHORIZED,
+            Response::HTTP_NOT_FOUND => self::NOT_FOUND,
+            Response::HTTP_METHOD_NOT_ALLOWED => self::METHOD_NOT_ALLOWED,
+            self::PAGE_EXPIRED => self::CSRF,
+            Response::HTTP_TOO_MANY_REQUESTS => self::THROTTLED,
             default => self::REQUEST_FAILED,
         };
     }

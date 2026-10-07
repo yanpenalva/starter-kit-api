@@ -10,6 +10,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 final class RegisterController
@@ -45,7 +46,7 @@ final class RegisterController
 
             return response()->json([
                 'message' => 'Sua conta foi criada, mas não foi possível enviar o e-mail de verificação. Entre e solicite um novo envio.',
-            ], 503);
+            ], Response::HTTP_SERVICE_UNAVAILABLE);
         }
 
         return response()->json([
@@ -53,7 +54,7 @@ final class RegisterController
             'name' => $user->name,
             'email' => $user->email,
             'email_verified_at' => $user->email_verified_at,
-        ], 201);
+        ], Response::HTTP_CREATED);
     }
 
     private function isUniqueConstraintViolation(QueryException $exception): bool
