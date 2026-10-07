@@ -18,9 +18,14 @@ final class LoginTest extends TestCase
     {
         parent::setUp();
 
-        $database = config('database.connections.pgsql.database');
-        $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        $connection = config('database.default');
+        $this->assertContains($connection, ['pgsql', 'sqlite']);
+
+        if ($connection === 'pgsql') {
+            $database = config('database.connections.pgsql.database');
+            $this->assertIsString($database);
+            $this->assertSame('starter_api_test', $database);
+        }
 
         RateLimiter::clear(hash('sha256', 'user@example.test|127.0.0.1'));
     }
@@ -242,6 +247,40 @@ final class LoginTest extends TestCase
         $differentIdentity->assertStatus(401);
 
         RateLimiter::clear($normalizedKey);
+    }
+
+    public function test_login_rate_limiting_caps_distinct_emails_per_ip(): void
+    {
+        $ipKey = 'login-ip|127.0.0.1';
+        RateLimiter::clear($ipKey);
+
+        for ($attempt = 1; $attempt <= 20; $attempt++) {
+            $response = $this->withSession([])
+                ->withHeaders([
+                    'Origin' => 'http://localhost:5173',
+                    'Referer' => 'http://localhost:5173/',
+                ])
+                ->postJson('/api/v1/login', [
+                    'email' => "identity-{$attempt}@example.test",
+                    'password' => 'wrong',
+                ]);
+
+            $response->assertStatus(401);
+        }
+
+        $blocked = $this->withSession([])
+            ->withHeaders([
+                'Origin' => 'http://localhost:5173',
+                'Referer' => 'http://localhost:5173/',
+            ])
+            ->postJson('/api/v1/login', [
+                'email' => 'twenty-first@example.test',
+                'password' => 'wrong',
+            ]);
+
+        $blocked->assertStatus(429);
+        $this->assertTrue($blocked->headers->has('Retry-After'));
+        RateLimiter::clear($ipKey);
     }
 
     public function test_bypassing_stateful_session_is_rejected_with_419(): void
