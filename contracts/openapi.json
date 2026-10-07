@@ -285,6 +285,27 @@
                 "security": []
             }
         },
+        "/api/v1/health": {
+            "get": {
+                "operationId": "health",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
         "/api/v1/login": {
             "post": {
                 "operationId": "auth.login",
