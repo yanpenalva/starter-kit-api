@@ -31,6 +31,7 @@ COPY --from=vendor --chown=app:app /app/vendor ./vendor
 COPY docker/production/nginx.conf /etc/nginx/nginx.conf
 COPY docker/production/supervisord.conf /etc/supervisor/conf.d/app.conf
 COPY docker/production/php-fpm.conf /usr/local/etc/php-fpm.d/zz-app.conf
+COPY docker/production/php.ini /usr/local/etc/php/conf.d/zz-app.ini
 RUN php artisan package:discover --ansi \
     && chown -R app:app storage bootstrap/cache
 
