@@ -896,6 +896,52 @@
             }
         },
         "/api/v1/roles": {
+            "post": {
+                "operationId": "role.store",
+                "tags": [
+                    "Role"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/RoleResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            },
             "get": {
                 "operationId": "role.index",
                 "tags": [
@@ -958,6 +1004,52 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/roles/{role}": {
+            "delete": {
+                "operationId": "role.destroy",
+                "tags": [
+                    "Role"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "minItems": 0,
+                                    "maxItems": 0
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 },
                 "security": []
@@ -1026,6 +1118,52 @@
             }
         },
         "/api/v1/users": {
+            "post": {
+                "operationId": "user.store",
+                "tags": [
+                    "User"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`UserResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            },
             "get": {
                 "operationId": "user.index",
                 "tags": [
@@ -1113,6 +1251,50 @@
             }
         },
         "/api/v1/users/{user}": {
+            "delete": {
+                "operationId": "user.destroy",
+                "tags": [
+                    "User"
+                ],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "description": "The user ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "minItems": 0,
+                                    "maxItems": 0
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                },
+                "security": []
+            },
             "get": {
                 "operationId": "user.show",
                 "tags": [
@@ -1489,9 +1671,7 @@
                     },
                     "properties": {
                         "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
+                        "additionalProperties": {}
                     },
                     "created_at": {
                         "type": [
@@ -1664,6 +1844,53 @@
                 ],
                 "title": "SetUserStatusRequest"
             },
+            "StoreRoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "StoreRoleRequest"
+            },
+            "StoreUserRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 254
+                    },
+                    "cpf": {
+                        "type": "string",
+                        "pattern": "^\\d{11}$"
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 12,
+                        "maxLength": 255
+                    },
+                    "ativo": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name",
+                    "email",
+                    "cpf",
+                    "password",
+                    "ativo"
+                ],
+                "title": "StoreUserRequest"
+            },
             "UpdateRolePermissionsRequest": {
                 "type": "object",
                 "description": "Wave B contract: replace a role's permission set with catalogue\npermissions. The wave owning the route enforces RolePolicy::updatePermissions\n(admin role immutable) for the resolved role inside a PrivilegeTransaction.",
@@ -1678,8 +1905,10 @@
                                 "users.set-status",
                                 "users.assign-roles",
                                 "users.read-cpf",
+                                "users.manage",
                                 "roles.view",
                                 "roles.update-permissions",
+                                "roles.manage",
                                 "logs.view"
                             ]
                         },
