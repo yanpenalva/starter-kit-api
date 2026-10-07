@@ -46,7 +46,7 @@ Esboço de superfície proposto (nomes definitivos na wave B):
 | --- | --- | --- | --- |
 | POST | `/api/v1/users` | `users.manage` | `StoreUserRequest` |
 | GET | `/api/v1/users` | `users.view` | `IndexUsersRequest` |
-| DELETE | `/api/v1/users/{user}` | `users.manage` | — |
+| DELETE | `/api/v1/users/{user}` | `users.manage` | — (hard delete; suspensão temporária usa `POST .../status`) |
 | PATCH | `/api/v1/users/{user}` | `users.update` | `UpdateUserRequest` |
 | POST | `/api/v1/users/{user}/status` | `users.set-status` | `SetUserStatusRequest` |
 | PUT | `/api/v1/users/{user}/roles` | `users.assign-roles` | `AssignUserRolesRequest` |
