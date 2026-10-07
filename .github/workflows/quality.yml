@@ -94,7 +94,7 @@ jobs:
         with:
           php-version: '8.5'
           extensions: mbstring, pdo_pgsql, redis
-          coverage: pcov
+          coverage: none
           tools: composer:v2
       - run: composer validate --strict
       - run: composer install --no-interaction --prefer-dist
@@ -103,6 +103,53 @@ jobs:
       - run: composer lint
       - run: composer analyse
       - run: composer test
+
+  coverage:
+    name: Coverage gate (pcov, min 85%)
+    runs-on: ubuntu-latest
+    services:
+      postgres-test:
+        image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_DB: starter_api_test
+          POSTGRES_USER: starter_api_test
+          POSTGRES_PASSWORD: ci-ephemeral-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U starter_api_test -d starter_api_test"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      APP_NAME: 'Starter Kit API'
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_DATABASE: starter_api_test
+      DB_USERNAME: starter_api_test
+      DB_PASSWORD: ci-ephemeral-test-only
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      QUEUE_AFTER_COMMIT: 'true'
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '6379'
+      REDIS_QUEUE: testqueue
+      MAIL_HOST: 127.0.0.1
+      MAIL_PORT: '1025'
+      MAILPIT_API_URL: http://127.0.0.1:8025
+    steps:
+      - uses: actions/checkout@v7
+      - run: touch .env
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, pdo_pgsql, redis
+          coverage: pcov
+          tools: composer:v2
+      - run: composer validate --strict
+      - run: composer install --no-interaction --prefer-dist
       - run: vendor/bin/pest --coverage --min=85
 
   contract:
