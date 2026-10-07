@@ -48,7 +48,7 @@ jobs:
             echo "Refusing to overwrite existing immutable image tag: $IMAGE" >&2
             exit 1
           fi
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           push: true
