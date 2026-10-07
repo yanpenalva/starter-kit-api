@@ -73,7 +73,6 @@ final class ProfileTest extends TestCase
         $this->assertIsString($emailVerifiedAt);
         $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $emailVerifiedAt);
 
-        // Roles and permissions are sorted lists
         $roles = $data['roles'];
         $this->assertIsArray($roles);
         $this->assertContains(Role::User->value, $roles);
@@ -82,7 +81,6 @@ final class ProfileTest extends TestCase
         $this->assertIsArray($permissions);
         $this->assertContains(Permission::UsersView->value, $permissions);
 
-        // Sensitive and unapproved fields are absent
         $this->assertArrayNotHasKey('cpf', $data);
         $this->assertArrayNotHasKey('password', $data);
         $this->assertArrayNotHasKey('remember_token', $data);
@@ -96,7 +94,6 @@ final class ProfileTest extends TestCase
             'deactivated_at' => null,
         ]);
 
-        // Even if accidentally assigned admin role and direct permissions in DB
         $user->assignRole(Role::Admin->value);
         $user->givePermissionTo(Permission::UsersAssignRoles->value);
 

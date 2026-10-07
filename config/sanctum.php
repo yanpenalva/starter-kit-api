@@ -15,7 +15,6 @@ return [
         Sanctum::currentApplicationUrlWithPort(),
     ))),
 
-    // The SPA authenticates with session cookies; no PAT guard exists.
     'guard' => ['web'],
 
     'expiration' => null,

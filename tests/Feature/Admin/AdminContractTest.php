@@ -242,7 +242,6 @@ final class AdminContractTest extends TestCase
             UserFilters::apply(User::query(), ['search' => 'example.test'])->orderBy('id')->pluck('id')->all(),
         );
 
-        // Unknown keys are ignored, never applied.
         $this->assertSame(
             [$alice->id],
             UserFilters::apply(User::query(), ['unknown' => 'alice', 'search' => 'ali'])->pluck('id')->all(),
@@ -291,7 +290,6 @@ final class AdminContractTest extends TestCase
         $payload = (new UserResource($target))->resolve($request);
         $this->assertSame($target->cpf, $payload['cpf']);
 
-        // A permission alone never satisfies the policy eligibility gate.
         $unverified = User::factory()->unverified()->create();
         $unverified->givePermissionTo(Permission::UsersReadCpf->value);
         $request->setUserResolver(static fn (): User => $unverified);

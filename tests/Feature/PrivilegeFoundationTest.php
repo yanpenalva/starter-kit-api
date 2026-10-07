@@ -198,10 +198,6 @@ final class PrivilegeFoundationTest extends TestCase
         $targetKey = $target->getKey();
         $this->assertIsInt($targetKey);
 
-        // Real failure path: the audit store disappears inside the test
-        // transaction (PostgreSQL rolls DDL back with it afterwards), so the
-        // mutation can only survive by committing without its audit record —
-        // which must never happen.
         Schema::drop('activity_log');
 
         try {

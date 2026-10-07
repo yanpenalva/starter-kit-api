@@ -144,15 +144,10 @@ final class CorrelationRedactionTest extends TestCase
         $second = User::factory()->create();
         $second->assignRole('admin');
 
-        // Connection A already changed an admin inside the open test
-        // transaction; the global advisory lock must make connection B wait
-        // on it (short lock timeout proves the serialization point), so a
-        // second writer can never race past the last-admin accounting.
         $this->assertNotNull(
             DB::table('model_has_roles')->where('model_id', $second->getKey())->first(),
         );
 
-        // Writer A holds the global privilege lock inside its transaction.
         DB::selectOne('select pg_advisory_xact_lock(?) as acquired', [727423]);
 
         DB::table('model_has_roles')->where('model_id', $second->getKey())->delete();

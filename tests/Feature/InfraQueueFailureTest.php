@@ -36,13 +36,11 @@ final class InfraQueueFailureTest extends TestCase
         $worker = $this->runBoundedWorker(tries: 2, extra: ['--backoff=1', '--once']);
         $this->assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
 
-        // First attempt exhausted: no failure record yet, job waiting out the backoff.
         $this->assertSame(0, (int) DB::table('failed_jobs')->count());
 
         $delayed = (int) Redis::connection()->zcard('queues:testqueue:delayed');
         $this->assertSame(1, $delayed, 'job should sit in the delayed zset during backoff');
 
-        // Wait out the 1s backoff, then drain the retry with a bounded worker.
         usleep(1_200_000);
 
         $retryWorker = $this->runBoundedWorker(tries: 2, extra: ['--backoff=1']);
@@ -59,7 +57,6 @@ final class InfraQueueFailureTest extends TestCase
         $this->assertIsString($exception);
         $this->assertStringContainsString('infra synthetic failure', $exception);
 
-        // Queue fully drained: nothing left pending or delayed.
         $this->assertSame(0, (int) Redis::connection()->llen('queues:testqueue'));
         $this->assertSame(0, (int) Redis::connection()->zcard('queues:testqueue:delayed'));
     }

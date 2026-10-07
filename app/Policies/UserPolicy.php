@@ -52,7 +52,6 @@ final class UserPolicy
             return false;
         }
 
-        // An admin can never administratively deactivate themselves.
         if ($actor->is($target)) {
             return false;
         }

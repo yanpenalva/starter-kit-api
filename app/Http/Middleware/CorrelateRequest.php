@@ -14,9 +14,7 @@ final class CorrelateRequest
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Client-supplied correlation ids are honored only outside production
-        // (local|testing); any other environment ignores the header and gets a
-        // freshly generated UUID.
+
         $headerValue = app()->environment('local', 'testing')
             ? $request->headers->get(Correlation::HEADER)
             : null;

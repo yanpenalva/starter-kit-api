@@ -156,7 +156,6 @@ final class AuditFeedTest extends TestCase
         $this->assertSame('user', $mutationProperties['actor_type']);
         $this->assertSame($actor->id, $mutationProperties['actor_id']);
 
-        // No PII ever leaves the feed.
         $this->assertStringNotContainsString('auditado@example.test', (string) $response->getContent());
         $this->assertStringNotContainsString((string) $target->cpf, (string) $response->getContent());
     }

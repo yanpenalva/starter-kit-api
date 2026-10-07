@@ -182,7 +182,6 @@ final class EmailUniquenessConstraintTest extends TestCase
             );
         }
 
-        // Verify data was NOT deleted or rewritten
         $this->assertSame(
             3,
             DB::table('users')
@@ -197,7 +196,6 @@ final class EmailUniquenessConstraintTest extends TestCase
                 ->all(),
         );
 
-        // Clean up colliding data so subsequent tests or teardown are clean
         DB::table('users')
             ->whereIn('email', ['COLLISION@EXAMPLE.TEST', "\t  collision@example.test \r\n"])
             ->delete();
@@ -217,22 +215,18 @@ final class EmailUniquenessConstraintTest extends TestCase
 
         $migration->down();
 
-        // Index should no longer exist in pg_indexes
         $indexExists = DB::selectOne(
             "SELECT 1 FROM pg_indexes WHERE tablename = 'users' AND indexname = 'users_email_lower_unique'",
         );
         $this->assertNull($indexExists);
 
-        // Original unique index still exists
         $originalIndex = DB::selectOne(
             "SELECT 1 FROM pg_indexes WHERE tablename = 'users' AND indexname = 'users_email_unique'",
         );
         $this->assertNotNull($originalIndex);
 
-        // Data is preserved intact
         $this->assertTrue(DB::table('users')->where('id', $user->id)->exists());
 
-        // Restore index
         $migration->up();
     }
 

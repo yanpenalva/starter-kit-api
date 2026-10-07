@@ -42,14 +42,10 @@ final class RbacCatalogueSeeder extends Seeder
             Permission::cases(),
         ));
 
-        // The plain role carries no administrative permissions, ever: a
-        // rerun also strips anything granted outside the approved set.
         $user->syncPermissions([]);
 
-        // Idempotency contract: a second run keeps exactly the approved set.
         $this->assertCatalogueIntegrity();
 
-        // No user accounts are created, promoted or granted roles here.
         $this->assertNoUserAssignments();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

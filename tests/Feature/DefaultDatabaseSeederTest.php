@@ -27,8 +27,6 @@ final class DefaultDatabaseSeederTest extends TestCase
     {
         parent::setUp();
 
-        // Guard runs BEFORE any migrate/seed execution (none above this point):
-        // refuse to touch anything outside the isolated testing environment.
         $this->assertIsolatedSeedRuntime();
     }
 
@@ -71,8 +69,7 @@ final class DefaultDatabaseSeederTest extends TestCase
 
     public function test_guard_rejects_a_database_url_override(): void
     {
-        // Synthetic value only ever lives in the config repository: no
-        // connection is opened and migrate:fresh is never invoked here.
+
         config()->set('database.connections.pgsql.url', 'postgres://synthetic:synthetic@127.0.0.1:5/none');
 
         $this->expectException(AssertionFailedError::class);
@@ -87,8 +84,7 @@ final class DefaultDatabaseSeederTest extends TestCase
 
     public function test_guard_rejects_a_parallel_runner_token(): void
     {
-        // The string "0" is non-empty: it must be rejected exactly like any
-        // other TEST_TOKEN value emitted by a parallel runner (para-test).
+
         putenv('TEST_TOKEN=0');
 
         $this->expectException(AssertionFailedError::class);
@@ -121,15 +117,11 @@ final class DefaultDatabaseSeederTest extends TestCase
             'Seeder tests must target the dedicated starter_api_test database.',
         );
 
-        // A database URL would take precedence over the pinned host/name
-        // pair and could redirect migrate:fresh at an arbitrary server.
         $this->assertNull(
             config('database.connections.pgsql.url'),
             'Refusing to seed: the pgsql connection resolves through a database URL, which could override the pinned starter_api_test target.',
         );
 
-        // TEST_TOKEN is exported by parallel runners; its presence (including
-        // the string "0") means migrate:fresh could race other workers.
         $this->assertSame(
             '',
             (string) getenv('TEST_TOKEN'),

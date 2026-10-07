@@ -48,9 +48,7 @@ final class UserFactory extends Factory
     {
         return $this->state(function () use ($cpf): array {
             if (is_string($cpf)) {
-                // Normalize before the state resolves; leading zeros survive
-                // because the value stays a string. Garbage normalizes to an
-                // empty string and fails validation below, never generating.
+
                 $cpf = preg_replace('/\D/', '', $cpf) ?? '';
             }
 

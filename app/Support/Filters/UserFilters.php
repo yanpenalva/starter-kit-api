@@ -26,8 +26,6 @@ final class UserFilters
         if (is_string($search) && $search !== '') {
             $escaped = self::escapeLike($search);
 
-            // Explicit ESCAPE keeps the backslash escaping portable: SQLite
-            // LIKE has no default escape character, PostgreSQL does.
             $query->where(static function (Builder $query) use ($escaped): void {
                 if (DB::connection()->getDriverName() === 'pgsql') {
                     $query->whereRaw("name ilike ? ESCAPE '\\'", ['%'.$escaped.'%'])

@@ -8,8 +8,6 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // Exact, credentialed origins only. Never derive trust from the Host
-    // header. Production origins remain NOT FOUND until their owning wave.
     'allowed_origins' => [
         'http://localhost:5173',
     ],
