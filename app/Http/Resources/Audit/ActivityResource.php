@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Audit;
 
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Activitylog\Models\Activity;
@@ -33,8 +34,15 @@ final class ActivityResource extends JsonResource
     {
         $activity = $this->resource;
 
-        /** @var array<string, mixed> $properties */
-        $properties = $activity->properties?->all() ?? [];
+        /** @var array<string, mixed> $storedProperties */
+        $storedProperties = $activity->properties?->all() ?? [];
+
+        $allowed = Audit::minimalProperties($storedProperties);
+        /** @var array<string, string> $properties */
+        $properties = collect($allowed)
+            ->filter(static fn (mixed $value): bool => is_scalar($value))
+            ->map(static fn (mixed $value): string => (string) $value)
+            ->all();
 
         $createdAt = $activity->created_at !== null
             ? $activity->created_at->clone()->utc()->format('Y-m-d\TH:i:s\Z')
@@ -45,7 +53,7 @@ final class ActivityResource extends JsonResource
             'event' => (string) $activity->event,
             'subject_type' => (string) $activity->subject_type,
             'subject_id' => (int) $activity->subject_id,
-            'description' => (string) $activity->description,
+            'description' => (string) $activity->event,
             'properties' => $properties,
             'created_at' => $createdAt,
         ];

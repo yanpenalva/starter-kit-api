@@ -35,3 +35,4 @@ Artisan::command('auth:prune-expired-tokens', function (): void {
 
 Schedule::command('queue:prune-failed --hours=168')->daily();
 Schedule::command('auth:prune-expired-tokens')->daily();
+Schedule::command('activitylog:clean')->daily();

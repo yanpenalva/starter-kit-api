@@ -156,10 +156,56 @@ final class AuditFeedTest extends TestCase
         /** @var array<string, mixed> $mutationProperties */
         $mutationProperties = $mutation['properties'];
         $this->assertSame('user', $mutationProperties['actor_type']);
-        $this->assertSame($actor->id, $mutationProperties['actor_id']);
+        $this->assertSame((string) $actor->id, $mutationProperties['actor_id']);
 
         $this->assertStringNotContainsString('auditado@example.test', (string) $response->getContent());
         $this->assertStringNotContainsString((string) $target->cpf, (string) $response->getContent());
+    }
+
+    public function test_feed_redacts_sensitive_properties_written_outside_the_audit_writer(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::LogsView->value);
+        Activity::query()->create([
+            'log_name' => 'privilege',
+            'description' => 'Sensitive user data for person@example.test',
+            'event' => Audit::EVENT_PRIVILEGED_CHANGE,
+            'subject_type' => User::class,
+            'subject_id' => $actor->id,
+            'causer_type' => User::class,
+            'causer_id' => $actor->id,
+            'properties' => [
+                'correlation_id' => 'person@example.test',
+                'email' => 'person@example.test',
+                'cpf' => '12345678901',
+                'secret' => 'hidden-value',
+                'actor_type' => 'person@example.test',
+                'actor_id' => 'person@example.test',
+            ],
+        ]);
+
+        self::actingAsSanctum($actor);
+        $response = $this->getJson('/api/v1/activity-log')->assertOk();
+        $content = (string) $response->getContent();
+        $this->assertStringNotContainsString('person@example.test', $content);
+        $this->assertStringNotContainsString('12345678901', $content);
+        $this->assertStringNotContainsString('hidden-value', $content);
+    }
+
+    public function test_feed_filters_writer_generated_mutations_by_responsible_actor(): void
+    {
+        $target = User::factory()->verified()->create();
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo([Permission::UsersSetStatus->value, Permission::LogsView->value]);
+
+        self::actingAsSanctum($actor);
+        $this->postJson("/api/v1/users/{$target->id}/status", ['status' => 'deactivated'])->assertOk();
+        $activity = Activity::query()->where('subject_id', $target->id)->firstOrFail();
+        $this->assertSame($actor->id, $activity->causer_id);
+
+        self::actingAsSanctum($actor);
+        $this->getJson('/api/v1/activity-log?causer_id='.$actor->id)
+            ->assertOk()->assertJsonPath('meta.total', 1);
     }
 
     public function test_feed_applies_allowlisted_filters_and_ignores_unknown_keys(): void

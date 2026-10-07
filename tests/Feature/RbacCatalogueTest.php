@@ -29,7 +29,7 @@ final class RbacCatalogueTest extends TestCase
         $this->seed(RbacCatalogueSeeder::class);
         $this->seed(RbacCatalogueSeeder::class);
 
-        $this->assertSame(8, DB::table('permissions')->where('guard_name', 'web')->count());
+        $this->assertSame(count(Permission::cases()), DB::table('permissions')->where('guard_name', 'web')->count());
         $this->assertSame(2, DB::table('roles')->where('guard_name', 'web')->count());
 
         $permissionNames = DB::table('permissions')->orderBy('name')->pluck('name')->all();
@@ -44,7 +44,7 @@ final class RbacCatalogueTest extends TestCase
         $adminPermissions = DB::table('role_has_permissions')
             ->where('role_id', $admin->id)
             ->count();
-        $this->assertSame(8, $adminPermissions);
+        $this->assertSame(count(Permission::cases()), $adminPermissions);
 
         $plain = DB::table('roles')->where('name', Role::User->value)->first();
         $this->assertNotNull($plain);

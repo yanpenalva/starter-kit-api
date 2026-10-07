@@ -5,12 +5,13 @@
 
 ## Contexto
 
-O catálogo RBAC (8 permissões, roles `admin`/`user`, guard `web`) foi aprovado no FEAT-16 e integrado. A revisão wave A reexamina a matriz contra as regras protegidas e fecha as lacunas de última instância antes de qualquer CRUD administrativo (wave B): desativação do último admin e integridade exata do catálogo.
+O catálogo RBAC inicial (8 permissões, roles `admin`/`user`, guard `web`) foi aprovado no FEAT-16 e integrado. Esta revisão inclui as capacidades administrativas `users.manage` e `roles.manage`, necessárias para criar/remover contas e roles; as definições permanecem sob enum/seeder conforme ADR 0008.
 
-## Matriz revisada (inalterada no conjunto aprovado)
+## Matriz aprovada e extensões administrativas do Bloco 3
 
 | Permissão | Habilidade | Proteções de objeto |
 | --- | --- | --- |
+| `users.manage` | Criar/remover contas | sem autoexclusão; preserva o último admin ativo |
 | `users.view` | Listar/ver contas | nenhuma de objeto (gate) |
 | `users.update` | Editar atributos básicos | nenhuma de objeto |
 | `users.set-status` | Ativar/desativar conta | sem autodesativação; desativar admin exige outro admin ativo |
@@ -18,9 +19,10 @@ O catálogo RBAC (8 permissões, roles `admin`/`user`, guard `web`) foi aprovado
 | `users.read-cpf` | Ler CPF do alvo | titular por perfil próprio; gestão só com a permissão |
 | `roles.view` | Listar/ver roles | nenhuma de objeto (gate) |
 | `roles.update-permissions` | Reescrever permissões de role | role `admin` imutável |
+| `roles.manage` | Criar/remover roles | remoção negada quando a role está atribuída |
 | `logs.view` | Listar trilha de auditoria | nenhuma de objeto (gate; consumidor wave 6) |
 
-Roles: `admin` carrega as 8 permissões; `user` carrega nenhuma permissão administrativa (o seeder sincroniza vazio em toda execução).
+Roles: `admin` carrega todas as permissões do catálogo; `user` carrega nenhuma permissão administrativa (o seeder sincroniza vazio em toda execução).
 
 ## Regras protegidas (revisadas)
 
@@ -42,11 +44,15 @@ Esboço de superfície proposto (nomes definitivos na wave B):
 
 | Método | Caminho | Habilidade | Request |
 | --- | --- | --- | --- |
+| POST | `/api/v1/users` | `users.manage` | `StoreUserRequest` |
 | GET | `/api/v1/users` | `users.view` | `IndexUsersRequest` |
+| DELETE | `/api/v1/users/{user}` | `users.manage` | — |
 | PATCH | `/api/v1/users/{user}` | `users.update` | `UpdateUserRequest` |
 | POST | `/api/v1/users/{user}/status` | `users.set-status` | `SetUserStatusRequest` |
 | PUT | `/api/v1/users/{user}/roles` | `users.assign-roles` | `AssignUserRolesRequest` |
 | GET | `/api/v1/roles` | `roles.view` | `IndexRolesRequest` |
+| POST | `/api/v1/roles` | `roles.manage` | `StoreRoleRequest` |
+| DELETE | `/api/v1/roles/{role}` | `roles.manage` | — |
 | PUT | `/api/v1/roles/{role}/permissions` | `roles.update-permissions` | `UpdateRolePermissionsRequest` |
 
 - Requests (`app/Http/Requests/Users`, `app/Http/Requests/Roles`): `authorize()` aplica o gate da habilidade; validações definem a forma dos payloads (filtros `search`/`status`/`role`, paginação `page`/`per_page` limitada a 100, `roles.*`/`permissions.*` restritos ao catálogo).

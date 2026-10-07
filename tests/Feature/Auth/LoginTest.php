@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Auth;
 
+use App\Http\Controllers\Auth\LoginController;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -360,5 +361,13 @@ final class LoginTest extends TestCase
 
         $response->assertNoContent();
         $this->assertAuthenticatedAs($user, 'web');
+    }
+
+    public function test_dummy_hash_matches_the_current_hashing_policy(): void
+    {
+        $dummy = (new \ReflectionClass(LoginController::class))->getConstant('DUMMY_HASH');
+        $this->assertIsString($dummy);
+
+        $this->assertFalse(Hash::needsRehash($dummy));
     }
 }

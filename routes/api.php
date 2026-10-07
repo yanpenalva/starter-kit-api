@@ -51,7 +51,9 @@ Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(
     Route::post('/logout', LogoutController::class);
 
     Route::prefix('users')->name('users.')->group(static function (): void {
+        Route::post('/', [UserController::class, 'store'])->middleware('can:users.manage');
         Route::get('/', [UserController::class, 'index'])->middleware('can:users.view');
+        Route::delete('/{user}', [UserController::class, 'destroy'])->middleware('can:users.manage');
         Route::get('/{user}', [UserController::class, 'show'])->middleware('can:users.view');
         Route::patch('/{user}', [UserController::class, 'update'])->middleware('can:users.update');
         Route::post('/{user}/status', [UserController::class, 'setStatus'])->middleware('can:users.set-status');
@@ -59,7 +61,9 @@ Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(
     });
 
     Route::prefix('roles')->name('roles.')->group(static function (): void {
+        Route::post('/', [RoleController::class, 'store'])->middleware('can:roles.manage');
         Route::get('/', [RoleController::class, 'index'])->middleware('can:roles.view');
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->middleware('can:roles.manage');
         Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])->middleware('can:roles.update-permissions');
     });
 

@@ -46,9 +46,56 @@ final class RolesAdminHttpTest extends TestCase
     public function test_anonymous_requests_return_401(): void
     {
         $this->getJson('/api/v1/roles')->assertStatus(401);
+        $this->postJson('/api/v1/roles', [])->assertStatus(401);
 
         $role = RoleModel::where('name', Role::User->value)->firstOrFail();
         $this->putJson("/api/v1/roles/{$role->id}/permissions", ['permissions' => []])->assertStatus(401);
+        $this->deleteJson("/api/v1/roles/{$role->id}")->assertStatus(401);
+    }
+
+    public function test_create_role_validates_unique_name_and_persists(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo('roles.manage');
+        self::actingAsSanctum($actor);
+
+        $this->postJson('/api/v1/roles', [])->assertStatus(422)->assertJsonValidationErrors('name');
+        $this->postJson('/api/v1/roles', ['name' => Role::Admin->value])
+            ->assertStatus(422)->assertJsonValidationErrors('name');
+
+        $this->postJson('/api/v1/roles', ['name' => 'auditor'])
+            ->assertCreated()->assertJsonPath('data.name', 'auditor');
+        $this->assertDatabaseHas('roles', ['name' => 'auditor', 'guard_name' => 'web']);
+    }
+
+    public function test_delete_role_rejects_roles_in_use_and_deletes_unused_role(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo('roles.manage');
+        $usedRole = RoleModel::where('name', Role::User->value)->firstOrFail();
+        $target = User::factory()->verified()->create();
+        $target->assignRole($usedRole);
+        $unusedRole = RoleModel::create(['name' => 'temporary', 'guard_name' => 'web']);
+        self::actingAsSanctum($actor);
+
+        $this->deleteJson("/api/v1/roles/{$usedRole->id}")->assertStatus(422);
+        $this->assertDatabaseHas('roles', ['id' => $usedRole->id]);
+        $this->deleteJson("/api/v1/roles/{$unusedRole->id}")->assertNoContent();
+        $this->assertDatabaseMissing('roles', ['id' => $unusedRole->id]);
+    }
+
+    public function test_role_crud_requires_the_manage_permission_and_eligible_actor(): void
+    {
+        $role = RoleModel::create(['name' => 'custom', 'guard_name' => 'web']);
+        $actor = User::factory()->verified()->create();
+        self::actingAsSanctum($actor);
+        $this->postJson('/api/v1/roles', ['name' => 'new-role'])->assertStatus(403);
+        $this->deleteJson("/api/v1/roles/{$role->id}")->assertStatus(403);
+
+        $unverified = User::factory()->unverified()->create();
+        $unverified->givePermissionTo('roles.manage');
+        self::actingAsSanctum($unverified);
+        $this->postJson('/api/v1/roles', ['name' => 'new-role'])->assertStatus(403);
     }
 
     public function test_index_returns_the_catalogue_with_permission_sets(): void

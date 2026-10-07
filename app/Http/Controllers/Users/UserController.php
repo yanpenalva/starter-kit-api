@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Users;
 use App\Http\Requests\Users\AssignUserRolesRequest;
 use App\Http\Requests\Users\IndexUsersRequest;
 use App\Http\Requests\Users\SetUserStatusRequest;
+use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Http\Resources\Users\UserResource;
 use App\Models\User;
@@ -16,6 +17,7 @@ use App\Support\Audit;
 use App\Support\Correlation;
 use App\Support\Filters\UserFilters;
 use App\Support\PrivilegeTransaction;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +40,52 @@ final class UserController
             ->paginate($request->perPage(), ['*'], 'page', $request->page());
 
         return UserResource::collection($users);
+    }
+
+    public function store(StoreUserRequest $request): JsonResponse
+    {
+        $actor = $request->user();
+        assert($actor instanceof User);
+        $payload = $request->validated();
+
+        $user = PrivilegeTransaction::run(function () use ($actor, $payload): User {
+            if (! app(UserPolicy::class)->manage($actor)) {
+                abort(403, ApiMessage::UNAUTHORIZED);
+            }
+
+            $user = User::query()->create([
+                'name' => $payload['name'],
+                'email' => $payload['email'],
+                'cpf' => $payload['cpf'],
+                'password' => $payload['password'],
+                'deactivated_at' => $payload['active'] ? null : now(),
+            ]);
+
+            $this->auditUserChange($actor, $user);
+
+            return $user;
+        });
+
+        return (new UserResource($user))->response()->setStatusCode(201);
+    }
+
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        $actor = $request->user();
+        assert($actor instanceof User);
+
+        PrivilegeTransaction::run(function () use ($actor, $user): void {
+            $target = User::query()->lockForUpdate()->whereKey($user->getKey())->firstOrFail();
+
+            if (! app(UserPolicy::class)->delete($actor, $target)) {
+                abort(403, ApiMessage::UNAUTHORIZED);
+            }
+
+            $this->auditUserChange($actor, $target);
+            $target->delete();
+        });
+
+        return response()->json([], 204);
     }
 
     public function show(Request $request, User $user): UserResource

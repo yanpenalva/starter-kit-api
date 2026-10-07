@@ -49,4 +49,19 @@ final class InfraSchedulerTest extends TestCase
 
         $this->assertNotNull($probe, 'infra:probe fixture must be scheduled');
     }
+
+    public function test_activitylog_clean_is_registered_on_the_schedule(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+
+        $found = false;
+        foreach ($schedule->events() as $event) {
+            if (str_contains((string) $event->command, 'activitylog:clean')) {
+                $found = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($found, 'activitylog:clean must be scheduled');
+    }
 }

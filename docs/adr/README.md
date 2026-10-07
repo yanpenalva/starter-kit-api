@@ -2,7 +2,7 @@
 
 Origem: [API #1](https://github.com/yanpenalva/starter-kit-api/issues/1). Data: 2026-10-01.
 
-A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As seis decisões arquiteturais foram aceitas por yanpenalva nesta conversa, conforme [registro de aprovação](../../.context/work/FEAT-1/approval.md). Aprovação arquitetural não comprova implementação: o repositório ainda contém somente documentação e tooling CSD.
+A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As decisões arquiteturais foram aceitas por yanpenalva, conforme [registro de aprovação](../../.context/work/FEAT-1/approval.md) e decisões posteriores registradas nesta pasta. Aprovação arquitetural não comprova implementação.
 
 | ADR | Tema | Estado | Aplicação |
 | --- | --- | --- | --- |
@@ -13,6 +13,7 @@ A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As seis d
 | [0005](0005-auditoria.md) | Activitylog v5 e retenção de 90 dias | Aceito | Primeira mutação auditável |
 | 0006 (histórico) | Legado | Incorporado nos ADRs [0001](0001-api-spa-independentes.md), [0002](0002-autenticacao-spa.md) e [0004](0004-identidade-rbac.md) | Registro original em FEAT-1 |
 | [0007](0007-matriz-rbac.md) | Matriz RBAC revisada, regras protegidas e contrato de administração | Aceito | Wave A (RBAC) / wave B (CRUD users/roles) |
+| [0008](0008-catalogo-permissoes.md) | Catálogo fechado de permissões, sem CRUD HTTP | Aceito | CRUD administrativo |
 
 Owner e aprovador arquitetural: yanpenalva. Owner operacional: NOT FOUND. Preparação técnica: Codex. Work item: [FEAT-1](../../.context/work/FEAT-1/work-item.json).
 

@@ -11,8 +11,10 @@ enum Permission: string
     case UsersSetStatus = 'users.set-status';
     case UsersAssignRoles = 'users.assign-roles';
     case UsersReadCpf = 'users.read-cpf';
+    case UsersManage = 'users.manage';
     case RolesView = 'roles.view';
     case RolesUpdatePermissions = 'roles.update-permissions';
+    case RolesManage = 'roles.manage';
     case LogsView = 'logs.view';
 
     /** @return list<string> */
