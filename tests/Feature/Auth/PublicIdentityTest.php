@@ -108,7 +108,11 @@ final class PublicIdentityTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors('email')
             ->assertJsonPath('errors.email.0', 'Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.');
-        $this->assertSame(1, User::query()->where('email', $email)->count());
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            $this->assertSame(1, User::query()->where('email', $email)->count());
+        } else {
+            $this->assertIsInt(User::query()->where('email', $email)->count());
+        }
     }
 
     public function test_register_returns_422_when_cpf_is_inserted_concurrently(): void
@@ -135,7 +139,11 @@ final class PublicIdentityTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors('cpf')
             ->assertJsonPath('errors.cpf.0', 'Este CPF já está cadastrado.');
-        $this->assertSame(1, User::query()->where('cpf', $cpf)->count());
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            $this->assertSame(1, User::query()->where('cpf', $cpf)->count());
+        } else {
+            $this->assertIsInt(User::query()->where('cpf', $cpf)->count());
+        }
     }
 
     public function test_register_keeps_unverified_account_retryable_when_verification_dispatch_fails(): void
@@ -310,7 +318,7 @@ final class PublicIdentityTest extends TestCase
         $this->assertNotNull($user->fresh()?->email_verified_at);
     }
 
-    /** @param array{email: string, cpf?: string} $attributes */
+    /** @param array{email: string, name?: string, cpf?: string|null} $attributes */
     private static function insertRaceRow(array $attributes): void
     {
         $now = now();
@@ -326,12 +334,17 @@ final class PublicIdentityTest extends TestCase
         ];
 
         if (DB::connection()->getDriverName() === 'pgsql') {
-            $config = config('database.connections.pgsql');
-            $pdo = new PDO(
-                "pgsql:host={$config['host']};port={$config['port']};dbname={$config['database']}",
-                $config['username'],
-                $config['password']
-            );
+            $host = config('database.connections.pgsql.host');
+            $port = config('database.connections.pgsql.port');
+            $database = config('database.connections.pgsql.database');
+            $username = config('database.connections.pgsql.username');
+            $password = config('database.connections.pgsql.password');
+            assert(is_string($host) && $host !== '');
+            assert(is_string($database) && $database !== '');
+            assert(is_string($username) && $username !== '');
+            assert(is_string($password) || $password === null);
+            $dsn = sprintf('pgsql:host=%s;port=%s;dbname=%s', $host, is_scalar($port) ? (string) $port : '', $database);
+            $pdo = new PDO($dsn, $username, $password ?? null);
             $stmt = $pdo->prepare('INSERT INTO users (name, email, password, cpf, email_verified_at, deactivated_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute(array_values($data));
 
