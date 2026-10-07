@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\MyProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Roles\RoleController;
 use App\Http\Controllers\Users\UserController;
 use App\Http\Middleware\DisallowHeaderAuthentication;
@@ -19,6 +20,7 @@ use App\Http\Middleware\EnsureStatefulSession;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', static fn (): array => ['status' => 'ok']);
+Route::get('/health', HealthController::class);
 
 Route::post('/login', LoginController::class)
     ->middleware([DisallowHeaderAuthentication::class, 'throttle:login', EnsureStatefulSession::class]);

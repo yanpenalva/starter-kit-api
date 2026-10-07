@@ -222,6 +222,7 @@ final class ScaffoldTest extends TestCase
             'api/v1/email/verification-notification',
             'api/v1/email/verify/{id}/{hash}',
             'api/v1/forgot-password',
+            'api/v1/health',
             'api/v1/login',
             'api/v1/logout',
             'api/v1/register',
