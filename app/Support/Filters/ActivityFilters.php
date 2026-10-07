@@ -20,36 +20,37 @@ final class ActivityFilters
      */
     public static function apply(Builder $query, array $filters): Builder
     {
-        $event = $filters['event'] ?? null;
+        $event = self::present($filters['event'] ?? null);
+        $subjectType = self::present($filters['subject_type'] ?? null);
+        $from = self::present($filters['from'] ?? null);
+        $to = self::present($filters['to'] ?? null);
+        $causerId = self::present($filters['causer_id'] ?? null);
 
-        if (is_string($event) && $event !== '') {
-            $query->where('event', $event);
-        }
+        return $query
+            ->when($event !== null, static function (Builder $filtered) use ($event): void {
+                assert(is_string($event));
+                $filtered->where('event', $event);
+            })
+            ->when($subjectType !== null, static function (Builder $filtered) use ($subjectType): void {
+                assert(is_string($subjectType));
+                $filtered->where('subject_type', $subjectType);
+            })
+            ->when($from !== null, static function (Builder $filtered) use ($from): void {
+                assert(is_string($from));
+                $filtered->whereDate('created_at', '>=', $from);
+            })
+            ->when($to !== null, static function (Builder $filtered) use ($to): void {
+                assert(is_string($to));
+                $filtered->whereDate('created_at', '<=', $to);
+            })
+            ->when($causerId !== null, static function (Builder $filtered) use ($causerId): void {
+                assert(is_string($causerId));
+                $filtered->where('causer_id', $causerId);
+            });
+    }
 
-        $subjectType = $filters['subject_type'] ?? null;
-
-        if (is_string($subjectType) && $subjectType !== '') {
-            $query->where('subject_type', $subjectType);
-        }
-
-        $from = $filters['from'] ?? null;
-
-        if (is_string($from) && $from !== '') {
-            $query->whereDate('created_at', '>=', $from);
-        }
-
-        $to = $filters['to'] ?? null;
-
-        if (is_string($to) && $to !== '') {
-            $query->whereDate('created_at', '<=', $to);
-        }
-
-        $causerId = $filters['causer_id'] ?? null;
-
-        if (is_string($causerId) && $causerId !== '') {
-            $query->where('causer_id', $causerId);
-        }
-
-        return $query;
+    private static function present(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

@@ -21,45 +21,57 @@ final class UserFilters
      */
     public static function apply(Builder $query, array $filters): Builder
     {
-        $search = $filters['search'] ?? null;
+        $search = self::present($filters['search'] ?? null);
+        $status = self::present($filters['status'] ?? null);
+        $role = self::present($filters['role'] ?? null);
 
-        if (is_string($search) && $search !== '') {
-            $escaped = self::escapeLike($search);
-
-            $query->where(static function (Builder $query) use ($escaped): void {
-                if (DB::connection()->getDriverName() === 'pgsql') {
-                    $query->whereRaw("name ilike ? ESCAPE '\\'", ['%'.$escaped.'%'])
-                        ->orWhereRaw("email ilike ? ESCAPE '\\'", ['%'.$escaped.'%']);
-
-                    return;
-                }
-
-                $query->whereRaw("name like ? ESCAPE '\\'", ['%'.$escaped.'%'])
-                    ->orWhereRaw("email like ? ESCAPE '\\'", ['%'.$escaped.'%']);
+        return $query
+            ->when($search !== null, static function (Builder $filtered) use ($search): void {
+                assert(is_string($search));
+                self::applySearch($filtered, $search);
+            })
+            ->when($status === 'active', static fn (Builder $filtered): Builder => $filtered->whereNull('deactivated_at'))
+            ->when($status === 'deactivated', static fn (Builder $filtered): Builder => $filtered->whereNotNull('deactivated_at'))
+            ->when($role !== null, static function (Builder $filtered) use ($role): void {
+                assert(is_string($role));
+                $filtered->whereHas('roles', static function (Builder $byName) use ($role): void {
+                    $byName->where('name', $role);
+                });
             });
-        }
+    }
 
-        $status = $filters['status'] ?? null;
+    /**
+     * @param  Builder<User>  $query
+     */
+    private static function applySearch(Builder $query, string $search): void
+    {
+        $escaped = '%'.self::escapeLike($search).'%';
 
-        if ($status === 'active') {
-            $query->whereNull('deactivated_at');
-        } elseif ($status === 'deactivated') {
-            $query->whereNotNull('deactivated_at');
-        }
+        $query->where(static function (Builder $nested) use ($escaped): void {
+            $nested
+                ->when(self::isPostgres(), static function (Builder $postgres) use ($escaped): void {
+                    $postgres->whereRaw("name ilike ? ESCAPE '\\'", [$escaped])
+                        ->orWhereRaw("email ilike ? ESCAPE '\\'", [$escaped]);
+                })
+                ->when(! self::isPostgres(), static function (Builder $fallback) use ($escaped): void {
+                    $fallback->whereRaw("name like ? ESCAPE '\\'", [$escaped])
+                        ->orWhereRaw("email like ? ESCAPE '\\'", [$escaped]);
+                });
+        });
+    }
 
-        $role = $filters['role'] ?? null;
-
-        if (is_string($role) && $role !== '') {
-            $query->whereHas('roles', static function (Builder $query) use ($role): void {
-                $query->where('name', $role);
-            });
-        }
-
-        return $query;
+    private static function isPostgres(): bool
+    {
+        return DB::connection()->getDriverName() === 'pgsql';
     }
 
     private static function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private static function present(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }
