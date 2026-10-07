@@ -58,7 +58,7 @@ final class UserController
                 'email' => $payload['email'],
                 'cpf' => $payload['cpf'],
                 'password' => $payload['password'],
-                'deactivated_at' => $payload['ativo'] ? null : now(),
+                'deactivated_at' => $payload['active'] ? null : now(),
             ]);
 
             $this->auditUserChange($actor, $user);

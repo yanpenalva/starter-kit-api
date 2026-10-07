@@ -47,7 +47,7 @@ final class StoreUserRequest extends FormRequest
             ],
             'cpf' => ['required', 'string', 'regex:/^\d{11}$/', Rule::unique('users', 'cpf')],
             'password' => ['required', 'string', 'min:12', 'max:255'],
-            'ativo' => ['required', 'boolean'],
+            'active' => ['required', 'boolean'],
         ];
     }
 }

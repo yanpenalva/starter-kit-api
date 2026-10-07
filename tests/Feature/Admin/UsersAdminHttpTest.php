@@ -62,23 +62,23 @@ final class UsersAdminHttpTest extends TestCase
         self::actingAsSanctum($actor);
 
         $this->postJson('/api/v1/users', [])->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'cpf', 'password', 'ativo']);
+            ->assertJsonValidationErrors(['name', 'email', 'cpf', 'password', 'active']);
 
         User::factory()->create(['email' => 'duplicate@example.test']);
         $this->postJson('/api/v1/users', [
             'name' => 'Duplicado',
             'email' => 'DUPLICATE@example.test',
             'cpf' => '12345678902',
-            'password' => 'VerySecure123!',
-            'ativo' => true,
+            'password' => 'test-password-01',
+            'active' => true,
         ])->assertStatus(422)->assertJsonValidationErrors('email');
 
         $response = $this->postJson('/api/v1/users', [
             'name' => 'Novo Usuário',
             'email' => 'novo@example.test',
             'cpf' => '12345678901',
-            'password' => 'VerySecure123!',
-            'ativo' => true,
+            'password' => 'test-password-01',
+            'active' => true,
         ]);
 
         $response->assertCreated()->assertJsonPath('data.name', 'Novo Usuário');
@@ -95,8 +95,8 @@ final class UsersAdminHttpTest extends TestCase
             'name' => 'New User',
             'email' => 'new@example.test',
             'cpf' => '98765432100',
-            'password' => 'VerySecure123!',
-            'ativo' => true,
+            'password' => 'test-password-01',
+            'active' => true,
         ];
         $unprivileged = User::factory()->verified()->create();
         self::actingAsSanctum($unprivileged);
