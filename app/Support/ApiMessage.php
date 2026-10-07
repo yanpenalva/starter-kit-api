@@ -10,6 +10,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 final class ApiMessage
 {
     public const PAGE_EXPIRED = 419;
+
     public const INVALID_CREDENTIALS = 'Credenciais inválidas.';
 
     public const UNAUTHENTICATED = 'Não autenticado.';
