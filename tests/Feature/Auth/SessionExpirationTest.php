@@ -6,10 +6,14 @@ namespace Tests\Feature\Auth;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Session\DatabaseSessionHandler;
+use Illuminate\Session\SessionManager;
+use Illuminate\Session\Store;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use SessionHandlerInterface;
 use Tests\TestCase;
 
 final class SessionExpirationTest extends TestCase
@@ -41,7 +45,9 @@ final class SessionExpirationTest extends TestCase
 
     public function test_idle_session_beyond_lifetime_is_rejected(): void
     {
-        $lifetime = (int) config('session.lifetime');
+        $rawLifetime = config('session.lifetime');
+        $this->assertIsInt($rawLifetime);
+        $lifetime = $rawLifetime;
         $this->assertGreaterThan(0, $lifetime);
 
         $id = Str::random(40);
@@ -51,7 +57,12 @@ final class SessionExpirationTest extends TestCase
 
         app()->forgetInstance('session');
 
-        $handler = app('session')->driver()->getHandler();
+        $manager = app('session');
+        $this->assertInstanceOf(SessionManager::class, $manager);
+        $store = $manager->driver();
+        $this->assertInstanceOf(Store::class, $store);
+        $handler = $store->getHandler();
+        $this->assertInstanceOf(SessionHandlerInterface::class, $handler);
 
         $this->assertSame('', $handler->read($id));
     }
@@ -62,20 +73,33 @@ final class SessionExpirationTest extends TestCase
         $payload = base64_encode('session-data');
         $this->seedSessionRow($id, Carbon::now()->getTimestamp(), $payload);
 
-        $handler = app('session')->driver()->getHandler();
+        $manager = app('session');
+        $this->assertInstanceOf(SessionManager::class, $manager);
+        $store = $manager->driver();
+        $this->assertInstanceOf(Store::class, $store);
+        $handler = $store->getHandler();
+        $this->assertInstanceOf(SessionHandlerInterface::class, $handler);
 
         $this->assertSame('session-data', $handler->read($id));
     }
 
     public function test_session_lifetime_is_wired_from_configuration(): void
     {
-        $lifetime = (int) config('session.lifetime');
-        $this->assertSame(120, $lifetime);
+        $rawLifetime = config('session.lifetime');
+        $this->assertIsInt($rawLifetime);
+        $this->assertSame(120, $rawLifetime);
 
-        $handler = app('session')->driver()->getHandler();
+        $manager = app('session');
+        $this->assertInstanceOf(SessionManager::class, $manager);
+        $store = $manager->driver();
+        $this->assertInstanceOf(Store::class, $store);
+        $handler = $store->getHandler();
+        $this->assertInstanceOf(DatabaseSessionHandler::class, $handler);
         $minutes = new \ReflectionProperty($handler, 'minutes');
+        $wired = $minutes->getValue($handler);
+        $this->assertIsInt($wired);
 
-        $this->assertSame($lifetime, $minutes->getValue($handler));
+        $this->assertSame($rawLifetime, $wired);
     }
 
     private function seedSessionRow(string $id, int $lastActivity, string $payload = ''): void
