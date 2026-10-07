@@ -51,6 +51,100 @@ final class UsersAdminHttpTest extends TestCase
         $this->patchJson('/api/v1/users/1', ['name' => 'X'])->assertStatus(401);
         $this->postJson('/api/v1/users/1/status', ['status' => 'deactivated'])->assertStatus(401);
         $this->putJson('/api/v1/users/1/roles', ['roles' => ['user']])->assertStatus(401);
+        $this->postJson('/api/v1/users', [])->assertStatus(401);
+        $this->deleteJson('/api/v1/users/1')->assertStatus(401);
+    }
+
+    public function test_create_user_validates_and_persists_without_authenticating(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo('users.manage');
+        self::actingAsSanctum($actor);
+
+        $this->postJson('/api/v1/users', [])->assertStatus(422)
+            ->assertJsonValidationErrors(['name', 'email', 'cpf', 'password', 'ativo']);
+
+        User::factory()->create(['email' => 'duplicate@example.test']);
+        $this->postJson('/api/v1/users', [
+            'name' => 'Duplicado',
+            'email' => 'DUPLICATE@example.test',
+            'cpf' => '12345678902',
+            'password' => 'VerySecure123!',
+            'ativo' => true,
+        ])->assertStatus(422)->assertJsonValidationErrors('email');
+
+        $response = $this->postJson('/api/v1/users', [
+            'name' => 'Novo Usuário',
+            'email' => 'novo@example.test',
+            'cpf' => '12345678901',
+            'password' => 'VerySecure123!',
+            'ativo' => true,
+        ]);
+
+        $response->assertCreated()->assertJsonPath('data.name', 'Novo Usuário');
+        $this->assertDatabaseHas('users', ['email' => 'novo@example.test', 'cpf' => '12345678901']);
+        $createdId = $response->json('data.id');
+        $this->assertIsInt($createdId);
+        $this->assertDatabaseMissing('model_has_roles', ['model_id' => $createdId]);
+        $this->assertAuthenticatedAs($actor);
+    }
+
+    public function test_create_user_requires_manage_permission_and_eligible_actor(): void
+    {
+        $payload = [
+            'name' => 'New User',
+            'email' => 'new@example.test',
+            'cpf' => '98765432100',
+            'password' => 'VerySecure123!',
+            'ativo' => true,
+        ];
+        $unprivileged = User::factory()->verified()->create();
+        self::actingAsSanctum($unprivileged);
+        $this->postJson('/api/v1/users', $payload)->assertStatus(403);
+
+        $unverified = User::factory()->unverified()->create();
+        $unverified->givePermissionTo('users.manage');
+        self::actingAsSanctum($unverified);
+        $this->postJson('/api/v1/users', $payload)->assertStatus(403);
+
+        $deactivated = User::factory()->deactivated()->create();
+        $deactivated->givePermissionTo('users.manage');
+        self::actingAsSanctum($deactivated);
+        $this->postJson('/api/v1/users', $payload)->assertStatus(403);
+    }
+
+    public function test_delete_user_denies_self_and_last_admin(): void
+    {
+        $admin = User::factory()->verified()->create();
+        $admin->assignRole(Role::Admin->value);
+        $admin->givePermissionTo('users.manage');
+        self::actingAsSanctum($admin);
+
+        $this->deleteJson("/api/v1/users/{$admin->id}")->assertStatus(403);
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+        $admin->removeRole(Role::Admin->value);
+
+        $lastAdmin = User::factory()->verified()->create();
+        $lastAdmin->assignRole(Role::Admin->value);
+        $manager = User::factory()->verified()->create();
+        $manager->givePermissionTo('users.manage');
+        self::actingAsSanctum($manager);
+        $this->deleteJson("/api/v1/users/{$lastAdmin->id}")->assertStatus(403);
+        $this->assertDatabaseHas('users', ['id' => $lastAdmin->id]);
+    }
+
+    public function test_delete_user_removes_non_admin_target_and_requires_manage_permission(): void
+    {
+        $target = User::factory()->verified()->create();
+        $actor = User::factory()->verified()->create();
+
+        self::actingAsSanctum($actor);
+        $this->deleteJson("/api/v1/users/{$target->id}")->assertStatus(403);
+
+        $actor->givePermissionTo('users.manage');
+        self::actingAsSanctum($actor);
+        $this->deleteJson("/api/v1/users/{$target->id}")->assertNoContent();
+        $this->assertDatabaseMissing('users', ['id' => $target->id]);
     }
 
     public function test_index_paginates_and_applies_allowlisted_filters(): void

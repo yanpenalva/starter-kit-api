@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Audit;
 
 use App\Http\Requests\Audit\IndexActivitiesRequest;
 use App\Http\Resources\Audit\ActivityResource;
+use App\Support\Audit;
 use App\Support\Filters\ActivityFilters;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Spatie\Activitylog\Models\Activity;
@@ -24,6 +25,7 @@ final class ActivityLogController
     {
         $activities = ActivityFilters::apply(Activity::query(), $request->filters())
             ->where('log_name', 'privilege')
+            ->whereIn('event', Audit::allowedEvents())
             ->orderByDesc('id')
             ->paginate($request->perPage(), ['*'], 'page', $request->page());
 

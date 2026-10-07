@@ -11,6 +11,17 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 final class RolePolicy
 {
+    public function manage(User $actor): bool
+    {
+        return $this->canOperate($actor)
+            && $actor->hasPermissionTo(Permission::RolesManage->value);
+    }
+
+    public function delete(User $actor, SpatieRole $role): bool
+    {
+        return $this->manage($actor) && $role->users()->doesntExist();
+    }
+
     public function view(User $actor): bool
     {
         return $this->canOperate($actor)

@@ -18,6 +18,27 @@ use App\Models\User;
  */
 final class UserPolicy
 {
+    public function manage(User $actor): bool
+    {
+        return $this->canOperate($actor)
+            && $actor->hasPermissionTo(Permission::UsersManage->value);
+    }
+
+    public function delete(User $actor, User $target): bool
+    {
+        if (! $this->manage($actor) || $actor->is($target)) {
+            return false;
+        }
+
+        if (! $target->hasRole(Role::Admin->value)) {
+            return true;
+        }
+
+        $targetId = $target->getKey();
+
+        return is_int($targetId) && User::otherAdminsRemain($targetId);
+    }
+
     public function view(User $actor, User $target): bool
     {
         return $this->canOperate($actor)

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\User;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 
@@ -57,8 +59,11 @@ final class Audit
             'event' => $event,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
-            'causer_type' => null,
-            'causer_id' => null,
+            'causer_type' => ($properties['actor_type'] ?? null) === 'user' ? User::class : null,
+            'causer_id' => ($properties['actor_type'] ?? null) === 'user'
+                && is_int($properties['actor_id'] ?? null)
+                ? $properties['actor_id']
+                : null,
             'properties' => $properties,
         ]);
 
@@ -82,12 +87,19 @@ final class Audit
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>
      */
-    private static function minimalProperties(array $properties): array
+    public static function minimalProperties(array $properties): array
     {
         $minimal = [];
 
         foreach ($properties as $key => $value) {
-            if (in_array($key, self::ALLOWED_PROPERTY_KEYS, true)) {
+            $isAllowedValue = match ($key) {
+                'correlation_id' => is_string($value) && Str::isUuid($value),
+                'actor_type' => in_array($value, ['user', 'cli'], true),
+                'actor_id' => $value === null || (is_int($value) && $value > 0),
+                default => false,
+            };
+
+            if (in_array($key, self::ALLOWED_PROPERTY_KEYS, true) && $isAllowedValue) {
                 $minimal[$key] = $value;
             }
         }

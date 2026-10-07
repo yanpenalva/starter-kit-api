@@ -35,7 +35,7 @@ final class DefaultDatabaseSeederTest extends TestCase
         $this->runMigrateFreshSeed();
         $this->runMigrateFreshSeed();
 
-        $this->assertSame(8, DB::table('permissions')->where('guard_name', 'web')->count());
+        $this->assertSame(count(Permission::cases()), DB::table('permissions')->where('guard_name', 'web')->count());
         $this->assertSame(2, DB::table('roles')->where('guard_name', 'web')->count());
 
         $permissionNames = DB::table('permissions')->orderBy('name')->pluck('name')->all();

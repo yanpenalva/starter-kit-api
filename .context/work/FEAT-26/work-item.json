@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-26",
+  "title": "Bloco 3: admin RBAC e audit feed",
+  "track": "product",
+  "type": "feature",
+  "phase": "execute",
+  "status": "active",
+  "risk": "high",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "high",
+    "impact": "cross-module",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": ["core", "project", "testing", "security", "architecture", "release"],
+    "deferred": ["incident"],
+    "triggers": ["admin authorization and account deletion", "audit feed identity and PII redaction", "commit/push delivery on feat/be-bloco3-rbac-audit"]
+  },
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute"],
+  "last_updated": "2026-10-07",
+  "policy_exceptions": ["EXC-0001"]
+}
