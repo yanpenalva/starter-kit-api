@@ -50,8 +50,7 @@ final class InfraProdEnvGuardTest extends TestCase
             'MAIL_MAILER' => 'log',
             'LOG_CHANNEL' => 'stderr',
             'LOG_LEVEL' => 'warning',
-            // Drop inherited vars explicitly: false removes them from the
-            // child process environment.
+
             'QUEUE_AFTER_COMMIT' => false,
             'REDIS_QUEUE' => false,
             ...$overrides,
@@ -79,8 +78,7 @@ final class InfraProdEnvGuardTest extends TestCase
 
     public function test_probe_invocation_outside_local_testing_is_success_without_redis(): void
     {
-        // Redis pointed at a closed port: the guard must exit SUCCESS
-        // without ever attempting a connection.
+
         [$process] = $this->runArtisanInEnv([
             'REDIS_HOST' => '127.0.0.1',
             'REDIS_PORT' => '6390',
@@ -89,7 +87,6 @@ final class InfraProdEnvGuardTest extends TestCase
         $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
         $this->assertStringContainsString('desativada fora de local/testing', $process->getOutput());
 
-        // No keys may have been created on the real test Redis either.
         $this->assertSame(0, (int) Redis::connection()->exists('infra:probe:last-guards'));
         $this->assertSame([], (array) Redis::connection()->keys('healthcheck:*'));
     }
@@ -99,9 +96,6 @@ final class InfraProdEnvGuardTest extends TestCase
         $apiUrl = rtrim($this->stringConfig('mail.infra_smoke.mailpit_api_url', 'http://mailpit-test:8025'), '/');
         $before = $this->mailpitTotal($apiUrl);
 
-        // SMTP + sync queue in the simulated production child: a leaked
-        // dispatch would execute inline and deliver into the isolated
-        // Mailpit. The guard must keep the inbox untouched and exit SUCCESS.
         [$process] = $this->runArtisanInEnv([
             'MAIL_MAILER' => 'smtp',
             'MAIL_HOST' => 'mailpit-test',
@@ -121,9 +115,6 @@ final class InfraProdEnvGuardTest extends TestCase
         }
         $before = (int) DB::table('failed_jobs')->count();
 
-        // sync queue: a leaked dispatch would execute the always-failing job
-        // inline and exit non-zero. The guard must exit SUCCESS, print the
-        // disabled marker and leave failed_jobs untouched.
         [$process] = $this->runArtisanInEnv([
             'REDIS_HOST' => '127.0.0.1',
             'REDIS_PORT' => '6390',

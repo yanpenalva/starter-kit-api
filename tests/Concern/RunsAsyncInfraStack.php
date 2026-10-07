@@ -55,9 +55,7 @@ trait RunsAsyncInfraStack
      */
     private function workerEnvironment(): array
     {
-        // Hosts accept explicit overrides so the same tests run against
-        // ephemeral local services (sqlite-first policy); CI keeps using
-        // the default service hostnames.
+
         $redisHost = getenv('REDIS_HOST');
         $dbHost = getenv('ASYNC_WORKER_DB_HOST');
         $mailHost = getenv('ASYNC_WORKER_MAIL_HOST');

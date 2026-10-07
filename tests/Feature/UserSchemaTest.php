@@ -21,7 +21,6 @@ final class UserSchemaTest extends TestCase
     {
         parent::setUp();
 
-        // Guarded destructive operations target the isolated test database only.
         $database = config('database.connections.pgsql.database');
         $this->assertIsString($database);
         $this->assertSame('starter_api_test', $database);
@@ -73,9 +72,6 @@ final class UserSchemaTest extends TestCase
     {
         $cpf = UserFactory::generateCpf();
 
-        // RefreshDatabase keeps this connection inside a transaction, so the
-        // inserted index entry is visible only to the constraint checks of a
-        // second connection after it waits (or when this transaction ends).
         User::factory()->withCpf($cpf)->create();
 
         config(['database.connections.conc' => config('database.connections.pgsql')]);

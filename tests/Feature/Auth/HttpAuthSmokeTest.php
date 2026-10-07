@@ -63,13 +63,11 @@ final class HttpAuthSmokeTest extends TestCase
             $jar = new CookieJar;
             $client = $this->waitUntilServerIsUp($this->createClient($jar), $server);
 
-            // 1. GET /sanctum/csrf-cookie
             $csrfResponse = $client->get('/sanctum/csrf-cookie', [
                 'headers' => ['Origin' => 'http://localhost:5173'],
             ]);
             $this->assertSame(204, $csrfResponse->getStatusCode());
 
-            // Prove SameSite attribute on raw response headers
             $rawSetCookies = $csrfResponse->getHeader('Set-Cookie');
             $this->assertNotEmpty($rawSetCookies);
             $hasSameSite = false;
@@ -89,10 +87,8 @@ final class HttpAuthSmokeTest extends TestCase
             $this->assertInstanceOf(SetCookie::class, $sessionCookie, 'Session cookie must be set');
             $this->assertTrue($sessionCookie->getHttpOnly(), 'Session cookie must be HttpOnly');
 
-            // Snapshot the pre-login cookie jar for the session fixation proof
             $preLoginJarSnapshot = clone $jar;
 
-            // 2. Negative CSRF: POST /login without CSRF token returns 419
             $missingCsrfResponse = $client->post('/api/v1/login', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
@@ -105,7 +101,6 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(419, $missingCsrfResponse->getStatusCode(), 'Missing CSRF must return 419');
 
-            // 3. Negative CSRF: POST /login with invalid CSRF token returns 419
             $invalidCsrfResponse = $client->post('/api/v1/login', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
@@ -119,7 +114,6 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(419, $invalidCsrfResponse->getStatusCode(), 'Invalid CSRF must return 419');
 
-            // 4. Denied CORS: unauthorized origin receives no CORS approval
             $deniedOriginResponse = $client->post('/api/v1/login', [
                 'headers' => [
                     'Origin' => 'http://evil.example',
@@ -136,7 +130,6 @@ final class HttpAuthSmokeTest extends TestCase
                 $deniedOriginResponse->getHeaderLine('Access-Control-Allow-Origin'),
             );
 
-            // 5. Non-stateful bypass rejection: request without stateful origin/referer returns 419
             $nonStatefulResponse = $client->post('/api/v1/login', [
                 'headers' => [
                     'Origin' => 'http://unsupported-host.invalid',
@@ -149,7 +142,6 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(419, $nonStatefulResponse->getStatusCode(), 'Non-stateful request must be rejected with 419');
 
-            // 6. Successful login with real cookie jar and valid XSRF token
             $loginResponse = $client->post('/api/v1/login', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
@@ -165,7 +157,6 @@ final class HttpAuthSmokeTest extends TestCase
             $this->assertSame('http://localhost:5173', $loginResponse->getHeaderLine('Access-Control-Allow-Origin'));
             $this->assertSame('true', $loginResponse->getHeaderLine('Access-Control-Allow-Credentials'));
 
-            // 7. Genuine session fixation proof: replay pre-login cookie snapshot -> 401; current jar -> 200
             $preLoginReplayClient = $this->createClient($preLoginJarSnapshot);
             $replayedPreLoginResponse = $preLoginReplayClient->get('/api/v1/auth/my-profile', [
                 'headers' => [
@@ -179,7 +170,6 @@ final class HttpAuthSmokeTest extends TestCase
                 'Replaying pre-login session cookie must return 401 unauthenticated (proves session fixation prevention)',
             );
 
-            // 8. GET /api/v1/auth/my-profile with authenticated cookie jar returns 200
             $profileResponse = $client->get('/api/v1/auth/my-profile', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
@@ -192,7 +182,6 @@ final class HttpAuthSmokeTest extends TestCase
             $this->assertSame($user->id, $profileData['data']['id']);
             $this->assertSame(self::SMOKE_EMAIL, $profileData['data']['email']);
 
-            // 8b. Disallowed Header Authentication: Bearer header is rejected with 401 even with authenticated cookies
             $headerResponse = $client->get('/api/v1/auth/my-profile', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
@@ -202,7 +191,6 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(401, $headerResponse->getStatusCode(), 'Bearer authorization header must return 401');
 
-            // 9. Existing-session deactivation interception: active session receives 403 once account is deactivated
             User::factory()->create([
                 'email' => self::DEACTIVATED_EMAIL,
                 'password' => 'secret123',
@@ -230,7 +218,6 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(204, $deactivatedLogin->getStatusCode());
 
-            // Deactivate account in database while session remains open
             User::query()->where('email', self::DEACTIVATED_EMAIL)->update(['deactivated_at' => now()]);
 
             $blockedResponse = $deactivatedClient->get('/api/v1/auth/my-profile', [
@@ -244,12 +231,10 @@ final class HttpAuthSmokeTest extends TestCase
             $blockedBody = json_decode((string) $blockedResponse->getBody(), true);
             $this->assertSame('Esta conta foi desativada.', $blockedBody['message']);
 
-            // 10. Logout and invalidation proof
             $authenticatedXsrfCookie = $jar->getCookieByName('XSRF-TOKEN');
             $this->assertInstanceOf(SetCookie::class, $authenticatedXsrfCookie);
             $authenticatedXsrfToken = rawurldecode((string) $authenticatedXsrfCookie->getValue());
 
-            // Snapshot the authenticated cookie jar BEFORE logout
             $authenticatedJarSnapshot = clone $jar;
 
             $logoutResponse = $client->post('/api/v1/logout', [
@@ -261,7 +246,6 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(204, $logoutResponse->getStatusCode());
 
-            // Replay the pre-logout authenticated cookie jar -> must return 401 (server-side invalidation)
             $replayedAuthClient = $this->createClient($authenticatedJarSnapshot);
             $staleProfileResponse = $replayedAuthClient->get('/api/v1/auth/my-profile', [
                 'headers' => [
@@ -275,7 +259,6 @@ final class HttpAuthSmokeTest extends TestCase
                 'Replaying pre-logout authenticated session cookie must return 401 (proves session invalidation)',
             );
 
-            // 11. Stale CSRF token rejection: state-changing POST with old CSRF token returns 419
             $staleCsrfResponse = $replayedAuthClient->post('/api/v1/logout', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
@@ -285,7 +268,6 @@ final class HttpAuthSmokeTest extends TestCase
             ]);
             $this->assertSame(419, $staleCsrfResponse->getStatusCode(), 'Stale CSRF token must return 419');
 
-            // 12. Fresh CSRF token supported: fresh token with bad credentials returns 401 (not 419)
             $freshJar = new CookieJar;
             $freshClient = $this->createClient($freshJar);
             $freshCsrfResponse = $freshClient->get('/sanctum/csrf-cookie', [

@@ -216,7 +216,6 @@ final class LoginTest extends TestCase
             $response->assertStatus(401);
         }
 
-        // 6th attempt should be blocked with 429
         $blocked = $this->withSession([])
             ->withHeaders([
                 'Origin' => 'http://localhost:5173',
@@ -231,7 +230,6 @@ final class LoginTest extends TestCase
         $this->assertTrue($blocked->headers->has('Retry-After'));
         $blocked->assertExactJson(['message' => 'Muitas tentativas. Por favor, tente novamente mais tarde.']);
 
-        // Different email on the same IP is not blocked
         $differentIdentity = $this->withSession([])
             ->withHeaders([
                 'Origin' => 'http://localhost:5173',
@@ -248,7 +246,7 @@ final class LoginTest extends TestCase
 
     public function test_bypassing_stateful_session_is_rejected_with_419(): void
     {
-        // No session started (simulating missing stateful pipeline or non-stateful client)
+
         $response = $this->postJson('/api/v1/login', [
             'email' => 'user@example.test',
             'password' => 'secret123',

@@ -52,23 +52,18 @@ final class HttpBoundarySmokeTest extends TestCase
         @mkdir(directory: dirname($fixtureFlag), permissions: 0775, recursive: true);
         touch($fixtureFlag);
 
-        // Simulated production configuration only: isolated test PG namespace,
-        // ephemeral server, guarded names; no real production deployment.
         $environment = array_merge($this->serverEnvironment(), ['APP_ENV' => 'production']);
 
         $server = $this->startServer(self::SERVER_PORT_ALT, $environment);
 
         try {
-            // Simulated production config: connect to the ephemeral local
-            // server while presenting an allowed production Host (TrustHosts
-            // rejects 127.0.0.1 outside local environments).
+
             $client = new Client([
                 'base_uri' => 'http://'.self::SERVER_HOST.':'.self::SERVER_PORT_ALT,
                 'cookies' => new CookieJar,
                 'http_errors' => false,
                 'timeout' => 5,
-                // Port-less Host header: Symfony trusted-host validation is
-                // port-sensitive, and localhost is the configured app URL host.
+
                 'headers' => ['Host' => 'localhost'],
             ]);
             $last = '';
@@ -115,9 +110,6 @@ final class HttpBoundarySmokeTest extends TestCase
         @mkdir(directory: dirname($fixtureFlag), permissions: 0775, recursive: true);
         touch($fixtureFlag);
 
-        // Direct single-process `php -S` (no artisan parent): stop() kills the
-        // server itself, so restarts are orphan-free and the array-cache
-        // throttle window restarts deterministically at zero.
         $server = $this->startServer(self::SERVER_PORT, $environment);
 
         try {
@@ -149,8 +141,7 @@ final class HttpBoundarySmokeTest extends TestCase
                 self::SERVER_HOST.':'.$port,
                 base_path('vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php'),
             ],
-            // The framework router requires index.php relative to the CWD:
-            // the public/ docroot is the correct front-controller root.
+
             cwd: base_path('public'),
             env: $environment,
         );
@@ -180,9 +171,7 @@ final class HttpBoundarySmokeTest extends TestCase
             'DB_PASSWORD' => $inherited('DB_PASSWORD'),
             'SESSION_DRIVER' => 'file',
             'SESSION_SECURE_COOKIE' => 'false',
-            // Persistent file store: the throttle window survives the
-            // classic per-request application boot (array store would reset
-            // every request and never reach the limit).
+
             'CACHE_STORE' => 'file',
         ];
     }
@@ -244,7 +233,6 @@ final class HttpBoundarySmokeTest extends TestCase
         $xsrf = $jar instanceof CookieJar ? $jar->getCookieByName('XSRF-TOKEN') : null;
         $this->assertNotNull($xsrf, 'The encrypted XSRF-TOKEN cookie must be set.');
 
-        // A browser exposes document.cookie percent-decoded; mirror that.
         $xsrfValue = rawurldecode((string) $xsrf->getValue());
 
         $missing = $client->post('/testing/csrf-echo');
@@ -281,9 +269,6 @@ final class HttpBoundarySmokeTest extends TestCase
         $this->assertSame('http://localhost:5173', $allowed->getHeaderLine('Access-Control-Allow-Origin'));
         $this->assertSame('true', $allowed->getHeaderLine('Access-Control-Allow-Credentials'));
 
-        // Fruitcake echoes the single allowed origin even for foreign
-        // requests; browsers only honor ACAO when it matches the request
-        // origin, so a foreign origin can never read the response.
         $foreign = $client->get('/api/v1', ['headers' => ['Origin' => 'http://evil.example']]);
         $this->assertNotSame('http://evil.example', $foreign->getHeaderLine('Access-Control-Allow-Origin'));
     }

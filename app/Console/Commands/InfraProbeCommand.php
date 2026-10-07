@@ -20,8 +20,7 @@ final class InfraProbeCommand extends Command
 
     public function handle(): int
     {
-        // Env guard (F1): outside local/testing this command must be a
-        // no-op SUCCESS — no Redis connection, no keys written.
+
         if (! in_array(app()->environment(), ['local', 'testing'], true)) {
             $this->info('Sonda de infra desativada fora de local/testing');
 

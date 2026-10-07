@@ -81,9 +81,7 @@ final class AfterCommitDispatchTest extends TestCase
 
     public function test_redis_connection_env_gates_after_commit(): void
     {
-        // The async test stack opts in explicitly via QUEUE_AFTER_COMMIT=true
-        // (compose). The global default (false without the env var) is proven
-        // separately in InfraProdEnvGuardTest.
+
         $raw = getenv('QUEUE_AFTER_COMMIT');
         $enabled = is_string($raw) && $raw !== '' && $raw !== '0' && filter_var($raw, FILTER_VALIDATE_BOOL);
         $this->assertSame($enabled, (bool) config('queue.connections.redis.after_commit'));

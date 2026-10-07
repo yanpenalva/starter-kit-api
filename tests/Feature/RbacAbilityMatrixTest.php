@@ -118,7 +118,6 @@ final class RbacAbilityMatrixTest extends TestCase
         $deactivatedAdmin = User::factory()->deactivated()->create();
         $deactivatedAdmin->assignRole(Role::Admin->value);
 
-        // The only other admin is deactivated: it does not stand.
         $this->assertFalse($policy->setStatus($actor, $activeAdmin, 'deactivated'));
 
         $standby = User::factory()->verified()->create();
@@ -166,7 +165,6 @@ final class RbacAbilityMatrixTest extends TestCase
         $deactivatedAdmin = User::factory()->deactivated()->create();
         $deactivatedAdmin->assignRole(Role::Admin->value);
 
-        // Removing the role from the only active admin leaves no standing admin.
         $this->assertFalse($policy->assignRoles($actor, $activeAdmin));
 
         $standby = User::factory()->verified()->create();
@@ -187,8 +185,7 @@ final class RbacAbilityMatrixTest extends TestCase
 
     public function test_seeder_rejects_a_rogue_entry_swapped_for_an_approved_one(): void
     {
-        // Same count, different set: the old count-based check would have
-        // missed this; the exact-set check must not.
+
         PermissionModel::where('name', Permission::UsersView->value)->delete();
         PermissionModel::create(['name' => 'users.delete', 'guard_name' => 'web']);
 

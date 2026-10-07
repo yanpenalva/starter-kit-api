@@ -54,7 +54,6 @@ final class LogoutTest extends TestCase
 
         $this->postJson('/api/v1/logout')->assertNoContent();
 
-        // Forget cached guard instances in test container so subsequent request reads fresh state
         $this->app['auth']->forgetGuards();
 
         $profileResponse = $this->getJson('/api/v1/auth/my-profile');

@@ -55,7 +55,7 @@ final class InfraMailDeliveryTest extends TestCase
 
     public function test_mailpit_is_actually_reachable_for_integration_tests(): void
     {
-        // Visible failure, never a silent skip: unreachable Mailpit is an error.
+
         $response = Http::timeout(5)->get($this->mailpitApiUrl().'/api/v1/messages');
         $this->assertTrue($response->successful(), $this->mailpitApiUrl());
     }

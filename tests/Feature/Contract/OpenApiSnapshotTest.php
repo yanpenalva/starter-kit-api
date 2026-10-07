@@ -61,7 +61,6 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertArrayHasKey('/api/v1/email/verification-notification', $paths);
         $this->assertArrayHasKey('/sanctum/csrf-cookie', $paths);
 
-        // URL resolution of generated operations against root-relative server
         $registeredUris = array_map(
             fn (\Illuminate\Routing\Route $route): string => '/'.ltrim($route->uri(), '/'),
             Route::getRoutes()->getRoutes(),
