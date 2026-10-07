@@ -328,6 +328,34 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertPrivilegedAudit($target, $actor);
     }
 
+    public function test_update_rejects_duplicate_email_and_cpf(): void
+    {
+        $existing = User::factory()->verified()->create([
+            'email' => 'taken@example.test',
+            'cpf' => '12345678901',
+        ]);
+        $target = User::factory()->verified()->create(['cpf' => '10987654321']);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersUpdate->value);
+
+        self::actingAsSanctum($actor);
+        $this->patchJson("/api/v1/users/{$target->id}", ['email' => 'TAKEN@example.test'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+
+        $this->patchJson("/api/v1/users/{$target->id}", ['cpf' => '12345678901'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['cpf']);
+
+        $this->patchJson("/api/v1/users/{$target->id}", [
+            'email' => $target->email,
+            'cpf' => $target->cpf,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('users', ['id' => $target->id, 'email' => $target->email]);
+    }
+
     public function test_update_requires_the_users_update_gate(): void
     {
         $target = User::factory()->verified()->create();
