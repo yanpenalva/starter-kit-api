@@ -119,6 +119,21 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U starter_api_test -d starter_api_test"
           --health-interval 5s --health-timeout 3s --health-retries 12
+      redis-test:
+        image: redis:alpine@sha256:6cbef353e480a8a6e7f10ec545f13d7d3fa85a212cdcc5ffaf5a1c818b9d3798
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+      mailpit-test:
+        image: axllent/mailpit@sha256:c076638db1e15662150be4fb62b8a6e96ef6ba5bde90c838a0239225854830f7
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "/mailpit readyz"
+          --health-interval 5s --health-timeout 3s --health-retries 12
     env:
       APP_NAME: 'Starter Kit API'
       APP_ENV: testing
