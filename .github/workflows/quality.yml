@@ -12,7 +12,7 @@ jobs:
   context:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v5
@@ -87,7 +87,7 @@ jobs:
       MAIL_PORT: '1025'
       MAILPIT_API_URL: http://127.0.0.1:8025
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # FEAT-24: racional em .context/work/FEAT-24/verification.md
       - run: touch .env
       - uses: shivammathur/setup-php@v2
@@ -135,7 +135,7 @@ jobs:
       LC_ALL: C
       TZ: UTC
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: shivammathur/setup-php@v2
