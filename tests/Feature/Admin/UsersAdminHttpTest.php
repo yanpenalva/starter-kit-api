@@ -369,6 +369,16 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $target->id, 'name' => $target->name]);
     }
 
+    public function test_show_requires_the_users_view_gate(): void
+    {
+        $target = User::factory()->verified()->create();
+
+        $unprivileged = User::factory()->verified()->create();
+
+        self::actingAsSanctum($unprivileged);
+        $this->getJson("/api/v1/users/{$target->id}")->assertStatus(403);
+    }
+
     public function test_set_status_deactivates_and_reactivates_with_audit(): void
     {
         $target = User::factory()->verified()->create();

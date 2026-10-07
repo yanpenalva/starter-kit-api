@@ -19,7 +19,7 @@ final class RolePolicy
 
     public function delete(User $actor, SpatieRole $role): bool
     {
-        return $this->manage($actor) && $role->users()->doesntExist();
+        return $this->manage($actor);
     }
 
     public function view(User $actor): bool

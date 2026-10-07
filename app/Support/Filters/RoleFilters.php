@@ -20,20 +20,42 @@ final class RoleFilters
      */
     public static function apply(Builder $query, array $filters): Builder
     {
-        $search = $filters['search'] ?? null;
+        $search = self::present($filters['search'] ?? null);
 
-        if (is_string($search) && $search !== '') {
-            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+        return $query->when($search !== null, static function (Builder $filtered) use ($search): void {
+            assert(is_string($search));
+            self::applySearch($filtered, $search);
+        });
+    }
 
-            if (DB::connection()->getDriverName() === 'pgsql') {
-                $query->whereRaw("name ilike ? ESCAPE '\\'", ['%'.$escaped.'%']);
+    /**
+     * @param  Builder<Role>  $query
+     */
+    private static function applySearch(Builder $query, string $search): void
+    {
+        $escaped = '%'.self::escapeLike($search).'%';
 
-                return $query;
-            }
+        $query
+            ->when(self::isPostgres(), static function (Builder $postgres) use ($escaped): void {
+                $postgres->whereRaw("name ilike ? ESCAPE '\\'", [$escaped]);
+            })
+            ->when(! self::isPostgres(), static function (Builder $fallback) use ($escaped): void {
+                $fallback->whereRaw("name like ? ESCAPE '\\'", [$escaped]);
+            });
+    }
 
-            $query->whereRaw("name like ? ESCAPE '\\'", ['%'.$escaped.'%']);
-        }
+    private static function isPostgres(): bool
+    {
+        return DB::connection()->getDriverName() === 'pgsql';
+    }
 
-        return $query;
+    private static function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private static function present(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

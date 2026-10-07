@@ -1,0 +1,38 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\Roles;
+
+use App\Actions\Concerns\RecordsPrivilegeAudit;
+use App\Models\User;
+use App\Support\PrivilegeTransaction;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+
+final class UpdateRolePermissions
+{
+    use RecordsPrivilegeAudit;
+
+    /**
+     * @param  list<string>  $permissionNames
+     */
+    public function run(User $actor, Role $role, array $permissionNames): Role
+    {
+        PrivilegeTransaction::run(function () use ($actor, $role, $permissionNames): void {
+            /** @var Role $target */
+            $target = Role::query()->lockForUpdate()->findOrFail($role->getKey());
+
+            $target->syncPermissions($permissionNames);
+
+            $this->auditRoleChange($actor, $target);
+
+            DB::afterCommit(static function (): void {
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
+            });
+        });
+
+        return $role->refresh();
+    }
+}
