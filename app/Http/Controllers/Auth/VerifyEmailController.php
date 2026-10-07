@@ -8,7 +8,6 @@ use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 final class VerifyEmailController
 {
@@ -17,14 +16,14 @@ final class VerifyEmailController
         $routeId = $request->route('id');
 
         if (! is_numeric($routeId)) {
-            abort(Response::HTTP_NOT_FOUND);
+            abort(404);
         }
 
         $user = User::findOrFail((int) $routeId);
 
         if (! is_string($request->route('hash'))
             || ! hash_equals(hash('sha256', $user->email), $request->route('hash'))) {
-            abort(Response::HTTP_FORBIDDEN);
+            abort(403);
         }
 
         if (! $user->hasVerifiedEmail()) {
