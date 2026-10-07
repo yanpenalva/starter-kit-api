@@ -7,6 +7,8 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
@@ -51,6 +53,33 @@ final class LoginTest extends TestCase
         $this->assertSame('', $response->getContent());
         $this->assertAuthenticatedAs($user, 'web');
 
+    }
+
+    public function test_successful_login_rehashes_a_legacy_bcrypt_password_using_argon2id(): void
+    {
+        $this->assertSame('argon2id', config('hashing.driver'));
+
+        $legacyHash = password_hash('secret123', PASSWORD_BCRYPT, ['cost' => 4]);
+        $user = User::factory()->create([
+            'email' => 'legacy@example.test',
+            'password' => 'secret123',
+        ]);
+        DB::table('users')->where('id', $user->getKey())->update(['password' => $legacyHash]);
+
+        $response = $this->withSession([])
+            ->withHeaders([
+                'Origin' => 'http://localhost:5173',
+                'Referer' => 'http://localhost:5173/',
+            ])
+            ->postJson('/api/v1/login', [
+                'email' => 'legacy@example.test',
+                'password' => 'secret123',
+            ]);
+
+        $response->assertNoContent();
+        $user->refresh();
+        $this->assertTrue(Hash::check('secret123', $user->password));
+        $this->assertSame('argon2id', password_get_info($user->password)['algoName']);
     }
 
     public function test_login_is_case_insensitive_and_whitespace_trimmed(): void

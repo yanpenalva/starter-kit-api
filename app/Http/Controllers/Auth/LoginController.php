@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Hash;
 
 final class LoginController
 {
-    private const DUMMY_HASH = '$2y$12$eA3Vz9kYgG76d9.7XQ5w5.Hn8HjZ4aA.xV31zX9N.zF3n0K8iUaW2';
+    private const DUMMY_HASH = '$argon2id$v=19$m=65536,t=4,p=1$Um9Ic3I1dklKc1RSclNUUg$oEBOGmmVHiKfWhxKBJr7KfEScyC2h3kqlm8fMFcgxlo';
 
     public function __invoke(LoginRequest $request): Response
     {
@@ -48,6 +48,10 @@ final class LoginController
 
         if ($user->deactivated_at !== null) {
             abort(403, ApiMessage::DEACTIVATED);
+        }
+
+        if (Hash::needsRehash($user->password)) {
+            $user->forceFill(['password' => Hash::make($password)])->save();
         }
 
         Auth::guard('web')->login($user);
