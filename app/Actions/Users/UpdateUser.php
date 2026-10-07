@@ -6,8 +6,6 @@ namespace App\Actions\Users;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
-use App\Policies\UserPolicy;
-use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
 
 final class UpdateUser
@@ -22,10 +20,6 @@ final class UpdateUser
         PrivilegeTransaction::run(function () use ($actor, $user, $payload): void {
             /** @var User $target */
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
-
-            if (! app(UserPolicy::class)->update($actor, $target)) {
-                abort(403, ApiMessage::UNAUTHORIZED);
-            }
 
             $target->fill($payload)->save();
 

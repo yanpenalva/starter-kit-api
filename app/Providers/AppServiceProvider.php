@@ -6,12 +6,15 @@ namespace App\Providers;
 
 use App\Enums\Permission;
 use App\Models\User;
+use App\Policies\RolePolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -59,6 +62,9 @@ final class AppServiceProvider extends ServiceProvider
         });
 
         Password::defaults(static fn (): Password => Password::min(12));
+
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(SpatieRole::class, RolePolicy::class);
 
         $this->registerCatalogueGates();
     }

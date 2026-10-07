@@ -13,6 +13,7 @@ use App\Http\Requests\Roles\StoreRoleRequest;
 use App\Http\Requests\Roles\UpdateRolePermissionsRequest;
 use App\Http\Resources\Roles\RoleResource;
 use App\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -20,6 +21,8 @@ use Spatie\Permission\Models\Role;
 
 final class RoleController
 {
+    use AuthorizesRequests;
+
     public function __construct(
         private IndexRoles $indexRoles,
         private StoreRole $storeRole,
@@ -58,6 +61,8 @@ final class RoleController
         $actor = $request->user();
         assert($actor instanceof User);
 
+        $this->authorize('delete', $role);
+
         $this->destroyRole->run($actor, $role);
 
         return response()->json([], 204);
@@ -67,6 +72,8 @@ final class RoleController
     {
         $actor = $request->user();
         assert($actor instanceof User);
+
+        $this->authorize('updatePermissions', $role);
 
         return new RoleResource($this->updateRolePermissions->run($actor, $role, $request->permissionNames()));
     }

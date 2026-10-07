@@ -6,8 +6,6 @@ namespace App\Actions\Users;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
-use App\Policies\UserPolicy;
-use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
 
 final class StoreUser
@@ -20,10 +18,6 @@ final class StoreUser
     public function run(User $actor, array $payload): User
     {
         return PrivilegeTransaction::run(function () use ($actor, $payload): User {
-            if (! app(UserPolicy::class)->manage($actor)) {
-                abort(403, ApiMessage::UNAUTHORIZED);
-            }
-
             $active = $payload['active'] ?? null;
             assert(is_bool($active));
 

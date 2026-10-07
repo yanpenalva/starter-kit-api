@@ -51,20 +51,20 @@ Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(
     Route::post('/logout', LogoutController::class);
 
     Route::prefix('users')->name('users.')->group(static function (): void {
-        Route::post('/', [UserController::class, 'store'])->middleware('can:users.manage');
-        Route::get('/', [UserController::class, 'index'])->middleware('can:users.view');
-        Route::delete('/{user}', [UserController::class, 'destroy'])->middleware('can:users.manage');
-        Route::get('/{user}', [UserController::class, 'show'])->middleware('can:users.view');
-        Route::patch('/{user}', [UserController::class, 'update'])->middleware('can:users.update');
-        Route::post('/{user}/status', [UserController::class, 'setStatus'])->middleware('can:users.set-status');
-        Route::put('/{user}/roles', [UserController::class, 'assignRoles'])->middleware('can:users.assign-roles');
+        Route::post('/', [UserController::class, 'store']);
+        Route::get('/', [UserController::class, 'index']);
+        Route::delete('/{user}', [UserController::class, 'destroy']);
+        Route::get('/{user}', [UserController::class, 'show']);
+        Route::patch('/{user}', [UserController::class, 'update']);
+        Route::post('/{user}/status', [UserController::class, 'setStatus']);
+        Route::put('/{user}/roles', [UserController::class, 'assignRoles']);
     });
 
     Route::prefix('roles')->name('roles.')->group(static function (): void {
-        Route::post('/', [RoleController::class, 'store'])->middleware('can:roles.manage');
-        Route::get('/', [RoleController::class, 'index'])->middleware('can:roles.view');
-        Route::delete('/{role}', [RoleController::class, 'destroy'])->middleware('can:roles.manage');
-        Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])->middleware('can:roles.update-permissions');
+        Route::post('/', [RoleController::class, 'store']);
+        Route::get('/', [RoleController::class, 'index']);
+        Route::delete('/{role}', [RoleController::class, 'destroy']);
+        Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions']);
     });
 
     Route::get('/activity-log', [ActivityLogController::class, 'index'])

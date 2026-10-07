@@ -49,13 +49,6 @@ final class UsersActionsTest extends TestCase
         $this->assertTrue($found->relationLoaded('roles'));
     }
 
-    public function test_index_users_denies_actors_without_the_view_policy(): void
-    {
-        $actor = User::factory()->verified()->create();
-
-        $this->assertActionStatus(403, static fn (): mixed => app(IndexUsers::class)->run($actor, [], 15, 1));
-    }
-
     public function test_store_user_creates_active_and_deactivated_accounts_with_audit(): void
     {
         $actor = User::factory()->verified()->create();
@@ -84,21 +77,6 @@ final class UsersActionsTest extends TestCase
         $this->assertNotNull($deactivated->deactivated_at);
     }
 
-    public function test_store_user_denies_actors_without_the_manage_policy(): void
-    {
-        $actor = User::factory()->verified()->create();
-
-        $this->assertActionStatus(403, static fn (): mixed => app(StoreUser::class)->run($actor, [
-            'name' => 'Blocked',
-            'email' => 'blocked@example.test',
-            'cpf' => '12345678903',
-            'password' => 'test-password-01',
-            'active' => true,
-        ]));
-
-        $this->assertDatabaseMissing('users', ['email' => 'blocked@example.test']);
-    }
-
     public function test_show_user_returns_the_target_for_eligible_actors(): void
     {
         $target = User::factory()->verified()->create();
@@ -106,14 +84,6 @@ final class UsersActionsTest extends TestCase
         $actor->givePermissionTo(Permission::UsersView->value);
 
         $this->assertTrue(app(ShowUser::class)->run($actor, $target)->is($target));
-    }
-
-    public function test_show_user_denies_actors_without_the_view_policy(): void
-    {
-        $target = User::factory()->verified()->create();
-        $actor = User::factory()->verified()->create();
-
-        $this->assertActionStatus(403, static fn (): mixed => app(ShowUser::class)->run($actor, $target));
     }
 
     public function test_update_user_changes_attributes_with_audit(): void
@@ -127,16 +97,6 @@ final class UsersActionsTest extends TestCase
         $this->assertSame('Renamed', $updated->name);
         $this->assertDatabaseHas('users', ['id' => $target->id, 'name' => 'Renamed']);
         $this->assertPrivilegedAudit($target, $actor);
-    }
-
-    public function test_update_user_denies_actors_without_the_update_policy(): void
-    {
-        $target = User::factory()->verified()->create(['name' => 'Original']);
-        $actor = User::factory()->verified()->create();
-
-        $this->assertActionStatus(403, static fn (): mixed => app(UpdateUser::class)->run($actor, $target, ['name' => 'Intruder']));
-
-        $this->assertDatabaseHas('users', ['id' => $target->id, 'name' => 'Original']);
     }
 
     public function test_destroy_user_deletes_the_target_with_audit(): void

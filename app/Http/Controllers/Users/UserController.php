@@ -18,12 +18,15 @@ use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Http\Resources\Users\UserResource;
 use App\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 final class UserController
 {
+    use AuthorizesRequests;
+
     public function __construct(
         private IndexUsers $indexUsers,
         private StoreUser $storeUser,
@@ -65,6 +68,8 @@ final class UserController
         $actor = $request->user();
         assert($actor instanceof User);
 
+        $this->authorize('delete', $user);
+
         $this->destroyUser->run($actor, $user);
 
         return response()->json([], 204);
@@ -74,6 +79,8 @@ final class UserController
     {
         $actor = $request->user();
         assert($actor instanceof User);
+
+        $this->authorize('view', $user);
 
         return new UserResource($this->showUser->run($actor, $user));
     }
@@ -86,6 +93,8 @@ final class UserController
         /** @var array<string, mixed> $payload */
         $payload = $request->validated();
 
+        $this->authorize('update', $user);
+
         return new UserResource($this->updateUser->run($actor, $user, $payload));
     }
 
@@ -94,6 +103,8 @@ final class UserController
         $actor = $request->user();
         assert($actor instanceof User);
 
+        $this->authorize('setStatus', [$user, $request->status()]);
+
         return new UserResource($this->setUserStatus->run($actor, $user, $request->status()));
     }
 
@@ -101,6 +112,8 @@ final class UserController
     {
         $actor = $request->user();
         assert($actor instanceof User);
+
+        $this->authorize('assignRoles', $user);
 
         return new UserResource($this->assignUserRoles->run($actor, $user, $request->roleNames()));
     }

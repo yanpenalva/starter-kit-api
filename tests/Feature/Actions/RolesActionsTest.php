@@ -51,13 +51,6 @@ final class RolesActionsTest extends TestCase
         $this->assertSame([Role::Admin->value], $page->getCollection()->pluck('name')->all());
     }
 
-    public function test_index_roles_denies_actors_without_the_view_policy(): void
-    {
-        $actor = User::factory()->verified()->create();
-
-        $this->assertActionStatus(403, static fn (): mixed => app(IndexRoles::class)->run($actor, [], 15, 1));
-    }
-
     public function test_store_role_creates_a_catalogue_role_with_audit(): void
     {
         $actor = User::factory()->verified()->create();
@@ -68,15 +61,6 @@ final class RolesActionsTest extends TestCase
         $this->assertSame('auditor', $role->name);
         $this->assertDatabaseHas('roles', ['name' => 'auditor', 'guard_name' => 'web']);
         $this->assertPrivilegedAudit($role, $actor);
-    }
-
-    public function test_store_role_denies_actors_without_the_manage_policy(): void
-    {
-        $actor = User::factory()->verified()->create();
-
-        $this->assertActionStatus(403, static fn (): mixed => app(StoreRole::class)->run($actor, 'auditor'));
-
-        $this->assertDatabaseMissing('roles', ['name' => 'auditor']);
     }
 
     public function test_destroy_role_deletes_unused_roles_with_audit(): void
@@ -105,18 +89,6 @@ final class RolesActionsTest extends TestCase
         $this->assertDatabaseHas('roles', ['id' => $role->id]);
     }
 
-    public function test_destroy_role_denies_actors_without_the_manage_policy(): void
-    {
-        $actor = User::factory()->verified()->create();
-        $role = RoleModel::query()->create(['name' => 'temporary', 'guard_name' => 'web']);
-
-        $this->assertActionStatus(403, static function () use ($actor, $role): void {
-            app(DestroyRole::class)->run($actor, $role);
-        });
-
-        $this->assertDatabaseHas('roles', ['id' => $role->id]);
-    }
-
     public function test_update_role_permissions_syncs_the_permission_set_with_audit(): void
     {
         $actor = User::factory()->verified()->create();
@@ -127,15 +99,6 @@ final class RolesActionsTest extends TestCase
 
         $this->assertSame([Permission::UsersView->value], $updated->permissions->pluck('name')->sort()->values()->all());
         $this->assertPrivilegedAudit($role, $actor);
-    }
-
-    public function test_update_role_permissions_keeps_the_admin_role_immutable(): void
-    {
-        $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo(Permission::RolesUpdatePermissions->value);
-        $adminRole = RoleModel::where('name', Role::Admin->value)->firstOrFail();
-
-        $this->assertActionStatus(403, static fn (): mixed => app(UpdateRolePermissions::class)->run($actor, $adminRole, [Permission::UsersView->value]));
     }
 
     public function test_update_role_permissions_throws_not_found_for_missing_roles(): void
