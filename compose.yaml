@@ -45,6 +45,9 @@ x-api: &api
 services:
   api:
     <<: *api
+    volumes:
+      - .:/var/www/html
+      - ./docker/local/php.ini:/usr/local/etc/php/conf.d/zz-local.ini:ro
     depends_on:
       postgres:
         condition: service_healthy
