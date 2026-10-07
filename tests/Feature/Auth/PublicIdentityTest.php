@@ -111,7 +111,7 @@ final class PublicIdentityTest extends TestCase
         if (DB::connection()->getDriverName() === 'pgsql') {
             $this->assertSame(1, User::query()->where('email', $email)->count());
         } else {
-            $this->assertIsInt(User::query()->where('email', $email)->count());
+            $this->assertSame(0, User::query()->where('email', $email)->count());
         }
     }
 
@@ -142,7 +142,7 @@ final class PublicIdentityTest extends TestCase
         if (DB::connection()->getDriverName() === 'pgsql') {
             $this->assertSame(1, User::query()->where('cpf', $cpf)->count());
         } else {
-            $this->assertIsInt(User::query()->where('cpf', $cpf)->count());
+            $this->assertSame(0, User::query()->where('cpf', $cpf)->count());
         }
     }
 
