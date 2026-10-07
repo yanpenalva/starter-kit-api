@@ -33,7 +33,7 @@ final class UserController
      */
     public function index(IndexUsersRequest $request): AnonymousResourceCollection
     {
-        $users = UserFilters::apply(User::query(), $request->filters())
+        $users = UserFilters::apply(User::query()->with('roles'), $request->filters())
             ->orderBy('id')
             ->paginate($request->perPage(), ['*'], 'page', $request->page());
 

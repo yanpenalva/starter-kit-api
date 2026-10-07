@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
@@ -94,6 +95,41 @@ final class UsersAdminHttpTest extends TestCase
         /** @var array<int, array{id: int}> $byRolePayload */
         $byRolePayload = $byRole->json('data');
         $this->assertSame([$alice->id], array_column($byRolePayload, 'id'));
+    }
+
+    public function test_index_loads_user_roles_without_n_plus_one_queries(): void
+    {
+        $alice = User::factory()->verified()->create();
+        $alice->assignRole(Role::User->value);
+
+        $bob = User::factory()->verified()->create();
+        $bob->assignRole(Role::Admin->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        self::actingAsSanctum($actor);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        try {
+            $response = $this->getJson('/api/v1/users');
+            $queries = DB::getQueryLog();
+        } finally {
+            DB::disableQueryLog();
+        }
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.roles', [Role::User->value])
+            ->assertJsonPath('data.1.roles', [Role::Admin->value]);
+
+        $roleQueries = array_filter(
+            $queries,
+            static fn (array $query): bool => str_contains(strtolower($query['query']), 'model_has_roles'),
+        );
+
+        $this->assertCount(2, $roleQueries);
     }
 
     public function test_index_ignores_unknown_filters_and_bounds_per_page(): void
