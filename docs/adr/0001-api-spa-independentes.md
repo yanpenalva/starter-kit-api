@@ -17,7 +17,7 @@ Monólito acoplaria as entregas; camadas genéricas antecipadas acrescentariam m
 
 ## Impactos e verificação futura
 
-Contratos compartilhados exigem mudanças compatíveis e coordenação entre releases. A primeira feature deve testar validação, autorização e formato JSON. Não definir módulos de negócio antes de conhecer seus casos de uso. Hosting, pipelines e estratégia de evolução além de `/api/v1`: NOT FOUND. Reversão desta entrega documental consiste em reverter a alteração documental, preservando a evidência de aprovação; não há migração ou alteração de runtime.
+Contratos compartilhados exigem mudanças compatíveis e coordenação entre releases. Evolução da API: mudanças aditivas (novos campos/endpoints opcionais) permanecem sob `/api/v1`; mudanças incompatíveis exigem novo prefixo (`/api/v2`) com período de convivência, nunca quebra silenciosa do v1. A primeira feature deve testar validação, autorização e formato JSON. Não definir módulos de negócio antes de conhecer seus casos de uso. Hosting e pipelines: ver docs/release.md e qualidade. Reversão desta entrega documental consiste em reverter a alteração documental, preservando a evidência de aprovação; não há migração ou alteração de runtime.
 
 ## Incorporação do ADR 0006
 
