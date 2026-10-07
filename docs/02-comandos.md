@@ -91,7 +91,6 @@ da auditoria falhar, a promoção é revertida junto.
 | `php artisan infra:smoke-mail` | Enfileira um e-mail sintético pela pilha assíncrona | Para testar entrega via Mailpit em desenvolvimento |
 | `php artisan cache:clear` | Limpa o cache da aplicação | Quando comportamento estranho sugere cache obsoleto |
 | `php artisan config:clear` / `config:cache` | Remove / reconstrói o cache de configuração | Após alterar `.env` com cache ativo; `clear` em dev, `cache` em release |
-| `php artisan inspire` | Exibe uma frase inspiradora | Para confirmar que o Artisan responde; sem efeito colateral |
 
 Os comandos `infra:*` são exclusivos de desenvolvimento e nunca vão para produção.
 
