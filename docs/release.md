@@ -33,3 +33,9 @@ docker compose -p "$project" --profile release down --volumes
 The stack and its database volume are removed by the final command. Keep the generated project name private to this test run and never use `down --volumes` with the shared development project.
 
 Readiness is exposed publicly at `GET /api/v1/health`. It returns HTTP 200 when `database`, `redis` and the recent `failed_jobs` check are healthy, and HTTP 503 with boolean per-check status otherwise. The recent failure window defaults to five minutes and is configurable with `HEALTH_FAILED_JOBS_WINDOW_MINUTES`.
+
+## TLS termination and log format
+
+TLS terminates at the edge (load balancer / CDN / ingress), never in the API container: the release profile serves plain HTTP on 8080 behind the proxy, and HSTS is enforced by the API security headers so browsers upgrade. Do not expose the release `API_PORT` directly to the internet without a TLS-terminating proxy in front.
+
+Release logs are JSON on stderr (`LOG_CHANNEL=stderr` with `Monolog\Formatter\JsonFormatter`), ready for a centralized collector (CloudWatch, Stackdriver, Loki). Local development keeps human-readable single-file logs.
