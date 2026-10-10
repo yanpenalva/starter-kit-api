@@ -134,6 +134,7 @@ final class ContractOperationOverlay
     {
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
         $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->redirectResponse());
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 

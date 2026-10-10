@@ -30,7 +30,7 @@ final class VerifyEmail extends Notification implements ShouldQueue
 
     public function toMail(User $notifiable): MailMessage
     {
-        $url = URL::temporarySignedRoute(
+        $signed = URL::temporarySignedRoute(
             'verification.verify',
             now()->addHours(24),
             [
@@ -38,6 +38,18 @@ final class VerifyEmail extends Notification implements ShouldQueue
                 'hash' => hash('sha256', (string) $notifiable->getEmailForVerification()),
             ]
         );
+
+        $parts = parse_url($signed);
+        $query = [];
+        if (is_array($parts) && isset($parts['query']) && $parts['query'] !== '') {
+            parse_str($parts['query'], $query);
+        }
+
+        $base = rtrim(config()->string('app.frontend_url', 'http://localhost:5173'), '/');
+        $url = $base.'/verify-email?'.http_build_query(array_merge([
+            'id' => $notifiable->getKey(),
+            'hash' => hash('sha256', (string) $notifiable->getEmailForVerification()),
+        ], $query));
 
         return (new MailMessage)
             ->subject('Verifique seu endereço de email')

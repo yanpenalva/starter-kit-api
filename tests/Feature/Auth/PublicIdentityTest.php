@@ -188,7 +188,7 @@ final class PublicIdentityTest extends TestCase
         ]);
 
         $response->assertStatus(503)
-            ->assertJsonPath('message', 'Sua solicitação foi recebida, mas não foi possível enviar o e-mail de verificação. Tente novamente mais tarde.');
+            ->assertJsonPath('message', 'Sua conta foi criada, mas não foi possível enviar o e-mail de verificação. Entre e solicite um novo envio.');
         $user = User::query()->where('email', 'retry@example.test')->first();
         $this->assertNotNull($user);
         $this->assertNull($user->email_verified_at);
@@ -379,9 +379,28 @@ final class PublicIdentityTest extends TestCase
         $notification = new VerifyEmail;
         $mail = $notification->toMail($user);
 
-        $this->get($mail->actionUrl)->assertUnauthorized();
+        $linkParts = parse_url((string) $mail->actionUrl);
+        $this->assertIsArray($linkParts);
+        $this->assertSame('frontend.test', $linkParts['host'] ?? null);
+        $this->assertSame('/verify-email', $linkParts['path'] ?? null);
+        parse_str((string) ($linkParts['query'] ?? ''), $linkQuery);
+        $this->assertArrayHasKey('signature', $linkQuery);
+
+        $id = $linkQuery['id'] ?? null;
+        $hash = $linkQuery['hash'] ?? null;
+        $expires = $linkQuery['expires'] ?? null;
+        $signature = $linkQuery['signature'] ?? null;
+        $this->assertIsString($id);
+        $this->assertIsString($hash);
+        $this->assertIsString($expires);
+        $this->assertIsString($signature);
+
+        $apiUrl = '/api/v1/email/verify/'.$id.'/'.$hash.'?'
+            .http_build_query(['expires' => $expires, 'signature' => $signature]);
+
+        $this->get($apiUrl)->assertUnauthorized();
         self::actingAsSanctum($user);
-        $this->get($mail->actionUrl)->assertRedirect('http://frontend.test/verify-email?ok=1');
+        $this->getJson($apiUrl)->assertOk()->assertJsonPath('message', 'Email verificado com sucesso.');
         $this->assertNotNull($user->fresh()?->email_verified_at);
     }
 

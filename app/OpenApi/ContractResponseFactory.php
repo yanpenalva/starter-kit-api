@@ -45,6 +45,15 @@ final class ContractResponseFactory
         return $response;
     }
 
+    public function redirectResponse(): Response
+    {
+        /** @var Response $response */
+        $response = Response::make(HttpResponse::HTTP_FOUND);
+        $response->setDescription($this->errorDescription(HttpResponse::HTTP_FOUND));
+
+        return $response;
+    }
+
     public function errorDescription(int $code): string
     {
         return match ($code) {
@@ -52,6 +61,7 @@ final class ContractResponseFactory
             HttpResponse::HTTP_FORBIDDEN => 'Autenticado, mas explicitamente bloqueado (conta desativada).',
             ApiMessage::PAGE_EXPIRED => 'Token CSRF ausente ou inválido.',
             HttpResponse::HTTP_TOO_MANY_REQUESTS => 'Limite de requisições excedido.',
+            HttpResponse::HTTP_FOUND => 'Redirecionamento para o frontend após verificação em navegação direta.',
             default => 'Erro na requisição.',
         };
     }

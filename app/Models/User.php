@@ -95,6 +95,8 @@ final class User extends Authenticatable implements MustVerifyEmailContract
                 Permission::UsersUpdate->value,
                 Permission::UsersSetStatus->value,
                 Permission::UsersAssignRoles->value,
+                Permission::UsersView->value,
+                Permission::UsersReadCpf->value,
                 Permission::RolesView->value,
                 Permission::RolesUpdatePermissions->value,
                 Permission::RolesManage->value,
