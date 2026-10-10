@@ -333,6 +333,11 @@ final class PublicIdentityTest extends TestCase
             'password' => 'password',
         ])->assertNoContent();
 
+        $this->sessionHeaders()->getJson('/api/v1/auth/my-profile')
+            ->assertOk()
+            ->assertJsonPath('data.email', 'pending-verify@example.test')
+            ->assertJsonPath('data.email_verified_at', null);
+
         $this->get($url)->assertRedirect('http://frontend.test/verify-email?ok=1');
         $this->assertNotNull($user->fresh()?->email_verified_at);
         $this->assertNotNull($user->fresh()->deactivated_at);
