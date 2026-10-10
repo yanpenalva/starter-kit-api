@@ -14,6 +14,7 @@ Este guia leva de um checkout limpo à suíte Pest verde. Os comandos pressupõe
 cp .env.example .env
 composer install
 php artisan key:generate
+sh scripts/install-hooks.sh
 ```
 
 Defina em `.env` valores locais descartáveis para `DB_PASSWORD` e `TEST_DB_PASSWORD` (o Compose exige ambos). Não use credenciais reais e não versione o arquivo `.env`. Para desenvolvimento local, o `.env.example` configura PostgreSQL no serviço `postgres`; a suíte de CI usa `postgres-test`, Redis e Mailpit separados.
