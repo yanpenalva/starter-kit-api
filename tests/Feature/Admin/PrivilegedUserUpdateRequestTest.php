@@ -38,6 +38,18 @@ final class PrivilegedUserUpdateRequestTest extends TestCase
         $request->validateResolved();
     }
 
+    public function test_update_request_denies_credentials_for_a_cpf_reader_target(): void
+    {
+        $target = User::factory()->verified()->create();
+        $target->givePermissionTo([Permission::UsersView->value, Permission::UsersReadCpf->value]);
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersUpdate->value);
+        $request = $this->request($actor, $target, 'email', 'cpf-reader-takeover@example.test');
+
+        $this->expectException(AuthorizationException::class);
+        $request->validateResolved();
+    }
+
     public function test_update_request_allows_an_admin_role_operator(): void
     {
         $target = User::factory()->verified()->create();

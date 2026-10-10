@@ -379,9 +379,28 @@ final class PublicIdentityTest extends TestCase
         $notification = new VerifyEmail;
         $mail = $notification->toMail($user);
 
-        $this->get($mail->actionUrl)->assertUnauthorized();
+        $linkParts = parse_url((string) $mail->actionUrl);
+        $this->assertIsArray($linkParts);
+        $this->assertSame('frontend.test', $linkParts['host'] ?? null);
+        $this->assertSame('/verify-email', $linkParts['path'] ?? null);
+        parse_str((string) ($linkParts['query'] ?? ''), $linkQuery);
+        $this->assertArrayHasKey('signature', $linkQuery);
+
+        $id = $linkQuery['id'] ?? null;
+        $hash = $linkQuery['hash'] ?? null;
+        $expires = $linkQuery['expires'] ?? null;
+        $signature = $linkQuery['signature'] ?? null;
+        $this->assertIsString($id);
+        $this->assertIsString($hash);
+        $this->assertIsString($expires);
+        $this->assertIsString($signature);
+
+        $apiUrl = '/api/v1/email/verify/'.$id.'/'.$hash.'?'
+            .http_build_query(['expires' => $expires, 'signature' => $signature]);
+
+        $this->get($apiUrl)->assertUnauthorized();
         self::actingAsSanctum($user);
-        $this->get($mail->actionUrl)->assertRedirect('http://frontend.test/verify-email?ok=1');
+        $this->get($apiUrl)->assertRedirect('http://frontend.test/verify-email?ok=1');
         $this->assertNotNull($user->fresh()?->email_verified_at);
     }
 
