@@ -91,23 +91,8 @@ final class HttpAuthSmokeTest extends TestCase
             $sessionCookie = $this->findSessionCookie($jar);
             $this->assertInstanceOf(SetCookie::class, $sessionCookie, 'Session cookie must be set');
             $this->assertTrue($sessionCookie->getHttpOnly(), 'Session cookie must be HttpOnly');
-            $xsrfSetCookieLine = null;
-            $sessionSetCookieLine = null;
-            $sessionCookieName = config('session.cookie');
-            $this->assertIsString($sessionCookieName);
-            foreach ($rawSetCookies as $rawSetCookie) {
-                if ($xsrfSetCookieLine === null && str_starts_with(strtolower($rawSetCookie), 'xsrf-token=')) {
-                    $xsrfSetCookieLine = $rawSetCookie;
-                }
-                if ($sessionSetCookieLine === null && str_starts_with(strtolower($rawSetCookie), strtolower($sessionCookieName.'='))) {
-                    $sessionSetCookieLine = $rawSetCookie;
-                }
-            }
-            $this->assertNotNull($xsrfSetCookieLine, 'XSRF-TOKEN Set-Cookie header not found');
-            $this->assertStringNotContainsStringIgnoringCase('httponly', $xsrfSetCookieLine, 'XSRF-TOKEN must stay readable by JavaScript');
-            $this->assertNotNull($sessionSetCookieLine, 'Session Set-Cookie header not found');
-            $this->assertStringContainsStringIgnoringCase('httponly', $sessionSetCookieLine, 'Session cookie must carry HttpOnly flag');
-            $this->assertStringNotContainsStringIgnoringCase('secure', $sessionSetCookieLine, 'HTTP profile must not emit Secure flag');
+            $this->assertFalse($sessionCookie->getSecure(), 'HTTP profile must not emit Secure flag');
+            $this->assertFalse($xsrfCookie->getHttpOnly(), 'XSRF-TOKEN must stay readable by JavaScript');
 
             $preLoginJarSnapshot = clone $jar;
 

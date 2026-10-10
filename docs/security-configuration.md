@@ -9,7 +9,7 @@ Defina estes valores no ambiente de execução da API antes de publicar:
 | `SANCTUM_STATEFUL_DOMAINS` | Lista separada por vírgulas dos hosts e portas da SPA e da API que devem iniciar autenticação stateful. Não inclua esquema. |
 | `SESSION_SECURE_COOKIE` | `true` em HTTPS/produção. Em HTTP local use `false` ou deixe ausente: o atributo `Secure` jamais deve ser enviado em HTTP, pois o navegador descarta o cookie. |
 | `SESSION_HTTP_ONLY` | `true` sempre. Mantém o cookie de sessão ilegível para JavaScript, mitigando roubo via XSS. |
-| `SESSION_SAME_SITE` | `lax` é o padrão adequado. `none` exige `SESSION_SECURE_COOKIE=true` e só faz sentido quando API e SPA compartilham de fato o mesmo domínio registrável. |
+| `SESSION_SAME_SITE` | `lax` é o padrão e a escolha correta quando API e SPA estão sob o mesmo domínio registrável (Same-Site, ex.: `api.empresa.com` + `app.empresa.com` com `SESSION_DOMAIN=.empresa.com`). `none` só seria exigido entre domínios registráveis distintos (Cross-Site) — cenário desaconselhado para sessão stateful, pois navegadores modernos bloqueiam cookies de terceiros. Nunca adote `none` como correção de 419. |
 
 O cookie de sessão da aplicação é `HttpOnly` e, portanto, ilegível para JavaScript: o frontend nunca o manipula diretamente, ele apenas acompanha as requisições. Já o cookie `XSRF-TOKEN` é intencionalmente legível ao JavaScript, pois o frontend lê seu valor e o espelha no cabeçalho `X-XSRF-TOKEN` de cada requisição stateful, permitindo a verificação CSRF no backend.
 
