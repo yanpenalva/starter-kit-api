@@ -45,7 +45,7 @@ final class RegisterController
             report($exception);
 
             return response()->json([
-                'message' => 'Sua solicitação foi recebida, mas não foi possível enviar o e-mail de verificação. Tente novamente mais tarde.',
+                'message' => 'Sua conta foi criada, mas não foi possível enviar o e-mail de verificação. Entre e solicite um novo envio.',
             ], Response::HTTP_SERVICE_UNAVAILABLE);
         }
 

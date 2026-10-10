@@ -188,7 +188,7 @@ final class PublicIdentityTest extends TestCase
         ]);
 
         $response->assertStatus(503)
-            ->assertJsonPath('message', 'Sua solicitação foi recebida, mas não foi possível enviar o e-mail de verificação. Tente novamente mais tarde.');
+            ->assertJsonPath('message', 'Sua conta foi criada, mas não foi possível enviar o e-mail de verificação. Entre e solicite um novo envio.');
         $user = User::query()->where('email', 'retry@example.test')->first();
         $this->assertNotNull($user);
         $this->assertNull($user->email_verified_at);
