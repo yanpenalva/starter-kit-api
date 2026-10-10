@@ -378,27 +378,6 @@
                     "204": {
                         "description": "No content"
                     },
-                    "401": {
-                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "examples": [
-                                                "Credenciais inv\u00e1lidas."
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
                     "403": {
                         "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
                         "content": {
@@ -410,6 +389,46 @@
                                             "type": "string",
                                             "examples": [
                                                 "Esta conta foi desativada."
+                                            ]
+                                        },
+                                        "reason": {
+                                            "type": "string",
+                                            "enum": [
+                                                "pending_approval",
+                                                "suspended"
+                                            ],
+                                            "examples": [
+                                                "suspended"
+                                            ]
+                                        },
+                                        "email_verified_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "reason",
+                                        "email_verified_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Credenciais inv\u00e1lidas."
                                             ]
                                         }
                                     },
@@ -635,10 +654,29 @@
                                             "examples": [
                                                 "Esta conta foi desativada."
                                             ]
+                                        },
+                                        "reason": {
+                                            "type": "string",
+                                            "enum": [
+                                                "pending_approval",
+                                                "suspended"
+                                            ],
+                                            "examples": [
+                                                "suspended"
+                                            ]
+                                        },
+                                        "email_verified_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
                                         }
                                     },
                                     "required": [
-                                        "message"
+                                        "message",
+                                        "reason",
+                                        "email_verified_at"
                                     ]
                                 }
                             }
