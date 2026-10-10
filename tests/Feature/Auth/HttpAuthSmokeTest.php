@@ -91,6 +91,8 @@ final class HttpAuthSmokeTest extends TestCase
             $sessionCookie = $this->findSessionCookie($jar);
             $this->assertInstanceOf(SetCookie::class, $sessionCookie, 'Session cookie must be set');
             $this->assertTrue($sessionCookie->getHttpOnly(), 'Session cookie must be HttpOnly');
+            $this->assertFalse($sessionCookie->getSecure(), 'HTTP profile must not emit Secure flag');
+            $this->assertFalse($xsrfCookie->getHttpOnly(), 'XSRF-TOKEN must stay readable by JavaScript');
 
             $preLoginJarSnapshot = clone $jar;
 
