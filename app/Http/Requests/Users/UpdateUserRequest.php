@@ -11,12 +11,6 @@ use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * Wave B contract: update basic account attributes. The wave owning the
- * route enforces UserPolicy::update for the resolved target inside a
- * PrivilegeTransaction; this request carries only the actor ability gate
- * and the input shape.
- */
 final class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
@@ -34,8 +28,7 @@ final class UpdateUserRequest extends FormRequest
 
         return ! $changesCredentials
             || ! $target instanceof User
-            || ! $target->isPrivilegedAccount()
-            || $actor->isPrivilegedOperator();
+            || $actor->can('updateCredentials', $target);
     }
 
     /**

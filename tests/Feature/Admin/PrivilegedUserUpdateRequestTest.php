@@ -8,6 +8,7 @@ use App\Enums\Permission;
 use App\Enums\Role;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Models\User;
+use App\Policies\UserPolicy;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,6 +62,25 @@ final class PrivilegedUserUpdateRequestTest extends TestCase
         $request->validateResolved();
 
         $this->assertSame('manager-updated@example.test', $request->validated()['email']);
+    }
+
+    public function test_update_policy_protects_privileged_credentials_from_lower_privilege_actors(): void
+    {
+        $target = User::factory()->verified()->create();
+        $target->givePermissionTo(Permission::RolesManage->value);
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersUpdate->value);
+        $policy = new UserPolicy;
+
+        $this->assertFalse($policy->updateCredentials($actor, $target));
+
+        $admin = User::factory()->verified()->create();
+        $admin->assignRole(Role::Admin->value);
+        $this->assertTrue($policy->updateCredentials($admin, $target));
+
+        $manager = User::factory()->verified()->create();
+        $manager->givePermissionTo([Permission::UsersUpdate->value, Permission::UsersManage->value]);
+        $this->assertTrue($policy->updateCredentials($manager, $target));
     }
 
     private function request(User $actor, User $target, string $field, string $value): UpdateUserRequest

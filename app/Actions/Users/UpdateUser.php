@@ -6,6 +6,7 @@ namespace App\Actions\Users;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
+use App\Policies\UserPolicy;
 use App\Support\PrivilegeTransaction;
 
 final class UpdateUser
@@ -20,16 +21,17 @@ final class UpdateUser
     public function run(User $actor, User $user, array $payload): User
     {
         $changesCredentials = array_intersect(self::CREDENTIAL_FIELDS, array_keys($payload)) !== [];
+        $policy = app(UserPolicy::class);
 
-        if ($changesCredentials && $user->isPrivilegedAccount() && ! $actor->isPrivilegedOperator()) {
+        if ($changesCredentials && ! $policy->updateCredentials($actor, $user)) {
             abort(403);
         }
 
-        PrivilegeTransaction::run(function () use ($actor, $user, $payload, $changesCredentials): void {
+        PrivilegeTransaction::run(function () use ($actor, $user, $payload, $changesCredentials, $policy): void {
             /** @var User $target */
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
-            if ($changesCredentials && $target->isPrivilegedAccount() && ! $actor->isPrivilegedOperator()) {
+            if ($changesCredentials && ! $policy->updateCredentials($actor, $target)) {
                 abort(403);
             }
 
