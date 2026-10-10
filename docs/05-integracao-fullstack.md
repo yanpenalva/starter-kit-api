@@ -61,7 +61,9 @@ Regras que valem sempre:
 - **Produção usa domínios reais.** Quando API e SPA passam a compartilhar um domínio
   pai, `SESSION_DOMAIN` recebe esse domínio para que o mesmo cookie valha nas duas
   pontas, com cookie seguro e `SameSite` ajustados ao contexto HTTPS. Os valores
-  `localhost` nunca são reutilizados em produção.
+  `localhost` nunca são reutilizados em produção. O perfil completo dos atributos
+  (`SESSION_SECURE_COOKIE`, `SESSION_HTTP_ONLY`, `SESSION_SAME_SITE`) está
+  documentado em `docs/security-configuration.md`.
 
 ```mermaid
 flowchart TD
