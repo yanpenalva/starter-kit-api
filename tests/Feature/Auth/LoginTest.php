@@ -167,9 +167,12 @@ final class LoginTest extends TestCase
 
     public function test_deactivated_account_with_correct_password_returns_403(): void
     {
-        User::factory()->deactivated()->create([
+        $verifiedAt = now()->floorSecond()->subDay();
+        User::factory()->create([
             'email' => 'deactivated@example.test',
             'password' => 'secret123',
+            'email_verified_at' => $verifiedAt,
+            'deactivated_at' => now()->floorSecond(),
         ]);
 
         $response = $this->withSession([])
@@ -183,7 +186,11 @@ final class LoginTest extends TestCase
             ]);
 
         $response->assertStatus(403)
-            ->assertExactJson(['message' => 'Esta conta foi desativada.']);
+            ->assertJson([
+                'message' => 'Esta conta foi desativada.',
+                'reason' => 'suspended',
+                'email_verified_at' => $verifiedAt->clone()->utc()->format('Y-m-d\TH:i:s\Z'),
+            ]);
         $this->assertFalse(Auth::guard('web')->check());
     }
 

@@ -113,30 +113,42 @@ final class ProfileTest extends TestCase
 
     public function test_deactivated_account_with_existing_session_returns_403(): void
     {
-        $user = User::factory()->deactivated()->create([
+        $verifiedAt = now()->floorSecond()->subDay();
+        $user = User::factory()->create([
             'email' => 'deactivated@example.test',
+            'email_verified_at' => $verifiedAt,
+            'deactivated_at' => now()->floorSecond(),
         ]);
 
         $response = $this->actingAs($user, 'web')
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(403)
-            ->assertExactJson(['message' => 'Esta conta foi desativada.']);
+            ->assertJson([
+                'message' => 'Esta conta foi desativada.',
+                'reason' => 'suspended',
+                'email_verified_at' => $verifiedAt->clone()->utc()->format('Y-m-d\TH:i:s\Z'),
+            ]);
     }
 
     public function test_verified_deactivated_account_remains_blocked_with_403(): void
     {
+        $verifiedAt = now()->floorSecond();
         $user = User::factory()->create([
             'email' => 'verified.deactivated@example.test',
-            'email_verified_at' => now(),
-            'deactivated_at' => now(),
+            'email_verified_at' => $verifiedAt,
+            'deactivated_at' => $verifiedAt->clone()->subDay(),
         ]);
 
         $response = $this->actingAs($user, 'web')
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(403)
-            ->assertExactJson(['message' => 'Esta conta foi desativada.']);
+            ->assertJson([
+                'message' => 'Esta conta foi desativada.',
+                'reason' => 'pending_approval',
+                'email_verified_at' => $verifiedAt->clone()->utc()->format('Y-m-d\TH:i:s\Z'),
+            ]);
     }
 
     public function test_pending_unverified_account_reads_own_profile_for_limited_session(): void

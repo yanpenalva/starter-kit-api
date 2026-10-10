@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\OpenApi;
 
 use App\Support\ApiMessage;
+use App\Support\BlockedAccount;
 use Dedoc\Scramble\Support\Generator\Header;
 use Dedoc\Scramble\Support\Generator\Response;
 use Dedoc\Scramble\Support\Generator\Schema;
@@ -22,6 +23,32 @@ final class ContractResponseFactory
         $message->examples([$example]);
         $type->addProperty('message', $message);
         $type->setRequired(['message']);
+
+        /** @var Schema $schema */
+        $schema = Schema::fromType($type);
+        /** @var Response $response */
+        $response = Response::make($code);
+        $response->setDescription($this->errorDescription($code));
+        $response->setContent('application/json', $schema);
+
+        return $response;
+    }
+
+    public function blockedResponse(int $code, string $example): Response
+    {
+        $type = new ObjectType;
+        $message = new StringType;
+        $message->examples([$example]);
+        $type->addProperty('message', $message);
+        $reason = new StringType;
+        $reason->enum([BlockedAccount::REASON_PENDING_APPROVAL, BlockedAccount::REASON_SUSPENDED]);
+        $reason->examples([BlockedAccount::REASON_SUSPENDED]);
+        $type->addProperty('reason', $reason);
+        $verifiedAt = new StringType;
+        $verifiedAt->format('date-time');
+        $verifiedAt->nullable(true);
+        $type->addProperty('email_verified_at', $verifiedAt);
+        $type->setRequired(['message', 'reason', 'email_verified_at']);
 
         /** @var Schema $schema */
         $schema = Schema::fromType($type);

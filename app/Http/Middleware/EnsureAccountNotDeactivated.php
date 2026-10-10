@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\User;
-use App\Support\ApiMessage;
+use App\Support\BlockedAccount;
 use Closure;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -18,7 +18,7 @@ final class EnsureAccountNotDeactivated
         $user = $request->user();
 
         if ($user instanceof User && $user->deactivated_at !== null && $user->hasVerifiedEmail()) {
-            abort(Response::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED);
+            return BlockedAccount::response($user);
         }
 
         $response = $next($request);
