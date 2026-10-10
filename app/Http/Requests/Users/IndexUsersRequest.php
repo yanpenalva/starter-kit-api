@@ -34,9 +34,9 @@ final class IndexUsersRequest extends FormRequest
         return [
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
-            'search' => ['sometimes', 'string', 'max:255'],
-            'status' => ['sometimes', 'string', Rule::in(['active', 'deactivated'])],
-            'role' => ['sometimes', 'string', 'max:64'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'status' => ['sometimes', 'nullable', 'string', Rule::in(['active', 'deactivated'])],
+            'role' => ['sometimes', 'nullable', 'string', 'max:64'],
         ];
     }
 

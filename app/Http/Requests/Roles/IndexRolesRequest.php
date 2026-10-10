@@ -33,7 +33,7 @@ final class IndexRolesRequest extends FormRequest
         return [
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
-            'search' => ['sometimes', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 

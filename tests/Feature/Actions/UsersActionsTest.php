@@ -99,6 +99,50 @@ final class UsersActionsTest extends TestCase
         $this->assertPrivilegedAudit($target, $actor);
     }
 
+    public function test_update_action_protects_privileged_email_even_when_called_directly(): void
+    {
+        $target = User::factory()->verified()->create(['email' => 'action-admin@example.test']);
+        $target->assignRole(Role::Admin->value);
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersUpdate->value);
+
+        $this->assertActionStatus(403, static fn (): mixed => app(UpdateUser::class)->run(
+            $actor,
+            $target,
+            ['email' => 'action-hijack@example.test'],
+        ));
+        $this->assertSame('action-admin@example.test', $target->fresh()?->email);
+
+        $operator = User::factory()->verified()->create();
+        $operator->givePermissionTo(Permission::UsersManage->value);
+        $updated = app(UpdateUser::class)->run($operator, $target, ['email' => 'changed-admin@example.test']);
+
+        $this->assertSame('changed-admin@example.test', $updated->email);
+    }
+
+    public function test_update_action_protects_privileged_credentials_even_when_called_directly(): void
+    {
+        $target = User::factory()->verified()->create();
+        $target->givePermissionTo(Permission::RolesManage->value);
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersUpdate->value);
+        $originalPassword = $target->password;
+
+        $this->assertActionStatus(403, static fn (): mixed => app(UpdateUser::class)->run(
+            $actor,
+            $target,
+            ['password' => 'hijacked-password-12'],
+        ));
+
+        $this->assertSame($originalPassword, $target->fresh()?->password);
+
+        $operator = User::factory()->verified()->create();
+        $operator->assignRole(Role::Admin->value);
+        $updated = app(UpdateUser::class)->run($operator, $target, ['password' => 'legitimate-password-12']);
+
+        $this->assertNotSame($originalPassword, $updated->password);
+    }
+
     public function test_destroy_user_deletes_the_target_with_audit(): void
     {
         $target = User::factory()->verified()->create();

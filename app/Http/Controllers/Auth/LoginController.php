@@ -47,7 +47,7 @@ final class LoginController
             abort(SymfonyResponse::HTTP_UNAUTHORIZED, ApiMessage::INVALID_CREDENTIALS);
         }
 
-        if ($user->deactivated_at !== null) {
+        if ($user->deactivated_at !== null && $user->hasVerifiedEmail()) {
             abort(SymfonyResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED);
         }
 

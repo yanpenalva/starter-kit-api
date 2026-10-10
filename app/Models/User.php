@@ -86,4 +86,25 @@ final class User extends Authenticatable implements MustVerifyEmailContract
             ->role(Role::Admin->value)
             ->exists();
     }
+
+    public function isPrivilegedAccount(): bool
+    {
+        return $this->hasRole(Role::Admin->value)
+            || $this->hasAnyPermission([
+                Permission::UsersManage->value,
+                Permission::UsersUpdate->value,
+                Permission::UsersSetStatus->value,
+                Permission::UsersAssignRoles->value,
+                Permission::RolesView->value,
+                Permission::RolesUpdatePermissions->value,
+                Permission::RolesManage->value,
+                Permission::LogsView->value,
+            ]);
+    }
+
+    public function isPrivilegedOperator(): bool
+    {
+        return $this->hasRole(Role::Admin->value)
+            || $this->hasPermissionTo(Permission::UsersManage->value);
+    }
 }

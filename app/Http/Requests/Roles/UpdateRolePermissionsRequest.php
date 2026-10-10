@@ -29,7 +29,7 @@ final class UpdateRolePermissionsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'permissions' => ['required', 'array'],
+            'permissions' => ['present', 'array'],
             'permissions.*' => ['string', 'distinct', Rule::in(Permission::values())],
         ];
     }

@@ -39,11 +39,11 @@ final class IndexActivitiesRequest extends FormRequest
         return [
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
-            'event' => ['sometimes', 'string', Rule::in(Audit::allowedEvents())],
-            'subject_type' => ['sometimes', 'string', Rule::in(self::SUBJECT_TYPES)],
-            'from' => ['sometimes', 'date_format:Y-m-d'],
-            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
-            'causer_id' => ['sometimes', 'integer', 'min:1'],
+            'event' => ['sometimes', 'nullable', 'string', Rule::in(Audit::allowedEvents())],
+            'subject_type' => ['sometimes', 'nullable', 'string', Rule::in(self::SUBJECT_TYPES)],
+            'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'causer_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
     }
 
