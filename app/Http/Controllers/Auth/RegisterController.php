@@ -27,7 +27,7 @@ final class RegisterController
                 'password' => $validated['password'],
                 'cpf' => $validated['cpf'] ?? null,
                 'email_verified_at' => null,
-                'deactivated_at' => null,
+                'deactivated_at' => now(),
             ]));
         } catch (QueryException $exception) {
             if (! $this->isUniqueConstraintViolation($exception)) {
@@ -45,7 +45,7 @@ final class RegisterController
             report($exception);
 
             return response()->json([
-                'message' => 'Sua conta foi criada, mas não foi possível enviar o e-mail de verificação. Entre e solicite um novo envio.',
+                'message' => 'Sua solicitação foi recebida, mas não foi possível enviar o e-mail de verificação. Tente novamente mais tarde.',
             ], Response::HTTP_SERVICE_UNAVAILABLE);
         }
 

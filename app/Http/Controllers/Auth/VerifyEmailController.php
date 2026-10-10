@@ -21,6 +21,8 @@ final class VerifyEmailController
 
         $user = User::findOrFail((int) $routeId);
 
+        abort_unless($request->user() instanceof User && $request->user()->is($user), 403);
+
         if (! is_string($request->route('hash'))
             || ! hash_equals(hash('sha256', $user->email), $request->route('hash'))) {
             abort(403);

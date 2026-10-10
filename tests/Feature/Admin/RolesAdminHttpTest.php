@@ -214,6 +214,21 @@ final class RolesAdminHttpTest extends TestCase
         $this->assertSame($expected, $adminRole->refresh()->permissions->pluck('name')->sort()->values()->all());
     }
 
+    public function test_update_permissions_clears_all_permissions_when_empty_set_is_sent(): void
+    {
+        $userRole = RoleModel::where('name', Role::User->value)->firstOrFail();
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::RolesUpdatePermissions->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/roles/{$userRole->id}/permissions", [
+            'permissions' => [],
+        ])->assertOk();
+
+        $this->assertSame([], $userRole->refresh()->permissions->pluck('name')->all());
+    }
+
     public function test_update_permissions_rejects_unknown_permissions_with_422(): void
     {
         $userRole = RoleModel::where('name', Role::User->value)->firstOrFail();
@@ -227,13 +242,6 @@ final class RolesAdminHttpTest extends TestCase
         ])
             ->assertStatus(422)
             ->assertJsonValidationErrors('permissions.0');
-
-        self::actingAsSanctum($actor);
-        $this->putJson("/api/v1/roles/{$userRole->id}/permissions", [
-            'permissions' => [],
-        ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('permissions');
     }
 
     public function test_update_permissions_returns_404_for_a_missing_role(): void

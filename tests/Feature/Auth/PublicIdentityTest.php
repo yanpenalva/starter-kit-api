@@ -16,10 +16,12 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use PDO;
+use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
 final class PublicIdentityTest extends TestCase
 {
+    use ActsAsSanctumUser;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -60,15 +62,41 @@ final class PublicIdentityTest extends TestCase
         ]);
         $this->assertGuest('web');
 
+        $registered = User::findOrFail($userId);
+        $this->assertNotNull($registered->deactivated_at);
+        $this->assertFalse($registered->hasAnyRole());
         $this->assertDatabaseHas('users', [
             'id' => $userId,
             'email' => 'ada@example.test',
             'email_verified_at' => null,
-            'deactivated_at' => null,
         ]);
 
         $user = User::findOrFail($userId);
         Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    public function test_register_ignores_active_and_roles_and_does_not_send_disabled_accounts_to_login(): void
+    {
+        Notification::fake();
+
+        $response = $this->sessionHeaders()->postJson('/api/v1/register', [
+            'name' => 'Pending Approval',
+            'email' => 'pending-approval@example.test',
+            'password' => 'correct-horse-12',
+            'password_confirmation' => 'correct-horse-12',
+            'active' => true,
+            'roles' => ['admin'],
+        ]);
+
+        $response->assertCreated();
+        $user = User::query()->where('email', 'pending-approval@example.test')->firstOrFail();
+        $this->assertNotNull($user->deactivated_at);
+        $this->assertFalse($user->hasAnyRole());
+
+        $this->sessionHeaders()->postJson('/api/v1/login', [
+            'email' => $user->email,
+            'password' => 'correct-horse-12',
+        ])->assertStatus(403);
     }
 
     public function test_register_rejects_duplicate_email_case_insensitively_with_standard_422(): void
@@ -146,7 +174,7 @@ final class PublicIdentityTest extends TestCase
         }
     }
 
-    public function test_register_keeps_unverified_account_retryable_when_verification_dispatch_fails(): void
+    public function test_register_keeps_account_deactivated_when_verification_dispatch_fails(): void
     {
         Notification::shouldReceive('send')->once()->andThrow(new \RuntimeException('queue unavailable'));
 
@@ -157,26 +185,13 @@ final class PublicIdentityTest extends TestCase
             'password_confirmation' => 'correct-horse-12',
         ]);
 
-        $response->assertStatus(503);
+        $response->assertStatus(503)
+            ->assertJsonPath('message', 'Sua solicitação foi recebida, mas não foi possível enviar o e-mail de verificação. Tente novamente mais tarde.');
         $user = User::query()->where('email', 'retry@example.test')->first();
         $this->assertNotNull($user);
         $this->assertNull($user->email_verified_at);
-
-        Notification::fake();
-        $this->withSession([])
-            ->withHeaders([
-                'Origin' => 'http://localhost:5173',
-                'Referer' => 'http://localhost:5173/',
-            ])
-            ->postJson('/api/v1/login', [
-                'email' => 'retry@example.test',
-                'password' => 'correct-horse-12',
-            ])
-            ->assertNoContent();
-
-        $this->postJson('/api/v1/email/verification-notification')
-            ->assertStatus(202);
-        Notification::assertSentTo($user, VerifyEmail::class);
+        $this->assertNotNull($user->deactivated_at);
+        $this->assertFalse($user->hasAnyRole());
     }
 
     public function test_register_validates_password_length_confirmation_and_cpf(): void
@@ -244,37 +259,51 @@ final class PublicIdentityTest extends TestCase
         Notification::fake();
 
         $unverified = User::factory()->unverified()->create();
-        $this->actingAs($unverified, 'web')
-            ->postJson('/api/v1/email/verification-notification')
+        self::actingAsSanctum($unverified);
+        $this->postJson('/api/v1/email/verification-notification')
             ->assertStatus(202)
             ->assertExactJson(['message' => 'Se o email ainda não foi verificado, reenviamos o link.']);
         Notification::assertSentTo($unverified, VerifyEmail::class);
 
         $verified = User::factory()->create();
-        $this->actingAs($verified, 'web')
-            ->postJson('/api/v1/email/verification-notification')
+        self::actingAsSanctum($verified);
+        $this->postJson('/api/v1/email/verification-notification')
             ->assertStatus(202)
             ->assertExactJson(['message' => 'Se o email ainda não foi verificado, reenviamos o link.']);
         Notification::assertNotSentTo($verified, VerifyEmail::class);
     }
 
-    public function test_verify_marks_email_verified_dispatches_event_and_redirects_to_frontend(): void
+    public function test_verify_requires_the_matching_session_and_marks_only_email_verified(): void
     {
         Event::fake([Verified::class]);
         config(['app.frontend_url' => 'http://frontend.test']);
 
-        $user = User::factory()->unverified()->create(['email' => 'verify-me@example.test']);
+        $user = User::factory()->unverified()->create([
+            'email' => 'verify-me@example.test',
+            'deactivated_at' => now(),
+        ]);
         $url = URL::temporarySignedRoute(
             'verification.verify',
             now()->addHours(24),
             ['id' => $user->id, 'hash' => hash('sha256', $user->email)]
         );
 
+        $this->get($url)->assertUnauthorized();
+        $this->assertNull($user->fresh()?->email_verified_at);
+
+        $other = User::factory()->unverified()->create();
+        self::actingAsSanctum($other);
+        $this->get($url)->assertForbidden();
+        $this->assertNull($user->fresh()?->email_verified_at);
+
+        self::actingAsSanctum($user);
         $response = $this->get($url);
 
         $response->assertStatus(302);
         $response->assertRedirect('http://frontend.test/verify-email?ok=1');
         $this->assertNotNull($user->fresh()?->email_verified_at);
+        $this->assertNotNull($user->fresh()->deactivated_at);
+        $this->assertDatabaseMissing('model_has_roles', ['model_id' => $user->id]);
         Event::assertDispatched(Verified::class, static function (Verified $event) use ($user): bool {
             return $event->user->getEmailForVerification() === $user->email;
         });
@@ -289,6 +318,7 @@ final class PublicIdentityTest extends TestCase
             ['id' => $user->id, 'hash' => hash('sha256', 'other@example.test')]
         );
 
+        self::actingAsSanctum($user);
         $this->get($url)->assertForbidden();
         $this->assertNull($user->fresh()?->email_verified_at);
     }
@@ -302,6 +332,7 @@ final class PublicIdentityTest extends TestCase
             ['id' => $user->id, 'hash' => hash('sha256', $user->email)]
         );
 
+        self::actingAsSanctum($user);
         $this->get($url)->assertForbidden();
         $this->assertNull($user->fresh()?->email_verified_at);
     }
@@ -314,6 +345,8 @@ final class PublicIdentityTest extends TestCase
         $notification = new VerifyEmail;
         $mail = $notification->toMail($user);
 
+        $this->get($mail->actionUrl)->assertUnauthorized();
+        self::actingAsSanctum($user);
         $this->get($mail->actionUrl)->assertRedirect('http://frontend.test/verify-email?ok=1');
         $this->assertNotNull($user->fresh()?->email_verified_at);
     }

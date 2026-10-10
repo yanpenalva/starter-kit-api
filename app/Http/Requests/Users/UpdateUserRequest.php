@@ -22,8 +22,20 @@ final class UpdateUserRequest extends FormRequest
     public function authorize(): bool
     {
         $actor = $this->user();
+        $target = $this->route('user');
 
-        return $actor instanceof User && $actor->can(Permission::UsersUpdate->value);
+        if (! $actor instanceof User || ! $actor->can(Permission::UsersUpdate->value)) {
+            return false;
+        }
+
+        $changesCredentials = $this->has('email')
+            || $this->has('password')
+            || $this->has('remember_token');
+
+        return ! $changesCredentials
+            || ! $target instanceof User
+            || ! $target->isPrivilegedAccount()
+            || $actor->isPrivilegedOperator();
     }
 
     /**
