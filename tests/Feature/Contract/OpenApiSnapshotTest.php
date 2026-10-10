@@ -6,6 +6,7 @@ namespace Tests\Feature\Contract;
 
 use App\Models\User;
 use App\Support\ApiMessage;
+use App\Support\BlockedAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
@@ -160,6 +161,9 @@ final class OpenApiSnapshotTest extends TestCase
         $profileResponses = $profileGet['responses'];
         $this->assertArrayHasKey('429', $profileResponses, 'Throttled profile route must declare 429');
 
+        $this->assertBlockedResponseSchema($paths, '/api/v1/login', 'post');
+        $this->assertBlockedResponseSchema($paths, '/api/v1/auth/my-profile', 'get');
+
         $this->assertIdentityContract($paths);
 
         $this->assertMessageExamplesMatchApiMessageConstants($document);
@@ -295,6 +299,68 @@ final class OpenApiSnapshotTest extends TestCase
         }
         $this->assertContains('expires', $queryNames);
         $this->assertContains('signature', $queryNames);
+    }
+
+    /**
+     * @param  array<string, mixed>  $paths
+     */
+    private function assertBlockedResponseSchema(array $paths, string $path, string $method): void
+    {
+        /** @var mixed $node */
+        $node = $paths[$path];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node[$method];
+        $this->assertIsArray($node);
+        /** @var array<string, mixed> $operation */
+        $operation = $node;
+        /** @var mixed $node */
+        $node = $operation['responses'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['403'];
+        $this->assertIsArray($node);
+        /** @var array<string, mixed> $forbidden */
+        $forbidden = $node;
+        /** @var mixed $node */
+        $node = $forbidden['content'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['application/json'];
+        $this->assertIsArray($node);
+        /** @var mixed $node */
+        $node = $node['schema'];
+        $this->assertIsArray($node);
+        /** @var array<string, mixed> $schema */
+        $schema = $node;
+        $this->assertSame(['message', 'reason', 'email_verified_at'], $schema['required']);
+        /** @var mixed $node */
+        $node = $schema['properties'];
+        $this->assertIsArray($node);
+        /** @var array<string, mixed> $properties */
+        $properties = $node;
+        /** @var mixed $reason */
+        $reason = $properties['reason'];
+        $this->assertIsArray($reason);
+        /** @var array<string, mixed> $reasonSchema */
+        $reasonSchema = $reason;
+        $this->assertSame(
+            [BlockedAccount::REASON_PENDING_APPROVAL, BlockedAccount::REASON_SUSPENDED],
+            $reasonSchema['enum']
+        );
+        /** @var mixed $verifiedAt */
+        $verifiedAt = $properties['email_verified_at'];
+        $this->assertIsArray($verifiedAt);
+        /** @var array<string, mixed> $verifiedAtSchema */
+        $verifiedAtSchema = $verifiedAt;
+        $this->assertSame('date-time', $verifiedAtSchema['format']);
+        /** @var mixed $nullableType */
+        $nullableType = $verifiedAtSchema['type'];
+        $this->assertIsArray($nullableType);
+        /** @var list<string> $typeList */
+        $typeList = $nullableType;
+        $this->assertContains('string', $typeList);
+        $this->assertContains('null', $typeList);
     }
 
     /**

@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Support\ApiMessage;
+use App\Support\BlockedAccount;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +19,7 @@ final class LoginController
 {
     private const DUMMY_HASH = '$argon2id$v=19$m=65536,t=4,p=1$Um9Ic3I1dklKc1RSclNUUg$oEBOGmmVHiKfWhxKBJr7KfEScyC2h3kqlm8fMFcgxlo';
 
-    public function __invoke(LoginRequest $request): Response
+    public function __invoke(LoginRequest $request): Response|JsonResponse
     {
         $normalizedEmail = $request->normalizedEmail();
         $password = $request->input('password');
@@ -48,7 +50,7 @@ final class LoginController
         }
 
         if ($user->deactivated_at !== null && $user->hasVerifiedEmail()) {
-            abort(SymfonyResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED);
+            return BlockedAccount::response($user);
         }
 
         if (Hash::needsRehash($user->password)) {

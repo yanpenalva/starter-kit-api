@@ -93,7 +93,7 @@ final class ContractOperationOverlay
         $operation->security = [];
         $this->ensureXsrfHeaderParam($operation);
         $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::INVALID_CREDENTIALS));
-        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
+        $this->ensureResponse($operation, $this->responses->blockedResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
         $this->ensureResponse($operation, $this->responses->messageResponse(ApiMessage::PAGE_EXPIRED, ApiMessage::CSRF));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
@@ -111,7 +111,7 @@ final class ContractOperationOverlay
     {
         $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
         $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
-        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
+        $this->ensureResponse($operation, $this->responses->blockedResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
