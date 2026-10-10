@@ -356,6 +356,22 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $target->id, 'email' => $target->email]);
     }
 
+    public function test_lower_privilege_actor_cannot_change_privileged_target_email(): void
+    {
+        $target = User::factory()->verified()->create(['email' => 'protected-admin@example.test']);
+        $target->assignRole(Role::Admin->value);
+        $target->givePermissionTo(Permission::UsersUpdate->value);
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersUpdate->value);
+
+        self::actingAsSanctum($actor);
+        $this->patchJson("/api/v1/users/{$target->id}", [
+            'email' => 'hijacked@example.test',
+        ])->assertForbidden();
+
+        $this->assertDatabaseHas('users', ['id' => $target->id, 'email' => 'protected-admin@example.test']);
+    }
+
     public function test_update_requires_the_users_update_gate(): void
     {
         $target = User::factory()->verified()->create();

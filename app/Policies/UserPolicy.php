@@ -50,6 +50,12 @@ final class UserPolicy
             && $actor->hasPermissionTo(Permission::UsersUpdate->value);
     }
 
+    public function updateCredentials(User $actor, User $target): bool
+    {
+        return ! $target->isPrivilegedAccount()
+            || $actor->isPrivilegedOperator();
+    }
+
     public function readCpf(User $actor, User $target): bool
     {
         return $this->canOperate($actor)

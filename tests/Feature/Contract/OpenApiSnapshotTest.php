@@ -160,7 +160,7 @@ final class OpenApiSnapshotTest extends TestCase
         $profileResponses = $profileGet['responses'];
         $this->assertArrayHasKey('429', $profileResponses, 'Throttled profile route must declare 429');
 
-        $this->assertPublicIdentityContract($paths);
+        $this->assertIdentityContract($paths);
 
         $this->assertMessageExamplesMatchApiMessageConstants($document);
 
@@ -229,13 +229,13 @@ final class OpenApiSnapshotTest extends TestCase
     /**
      * @param  array<string, mixed>  $paths
      */
-    private function assertPublicIdentityContract(array $paths): void
+    private function assertIdentityContract(array $paths): void
     {
         foreach ([
             ['path' => '/api/v1/register', 'method' => 'post', 'security' => []],
             ['path' => '/api/v1/forgot-password', 'method' => 'post', 'security' => []],
             ['path' => '/api/v1/reset-password', 'method' => 'post', 'security' => []],
-            ['path' => '/api/v1/email/verify/{id}/{hash}', 'method' => 'get', 'security' => []],
+            ['path' => '/api/v1/email/verify/{id}/{hash}', 'method' => 'get', 'security' => [['sessionCookie' => []]]],
         ] as $entry) {
             /** @var mixed $node */
             $node = $paths[$entry['path']];
@@ -245,7 +245,7 @@ final class OpenApiSnapshotTest extends TestCase
             $this->assertIsArray($node);
             /** @var array<string, mixed> $operation */
             $operation = $node;
-            $this->assertSame([], $operation['security'], $entry['path'].' must be public');
+            $this->assertSame($entry['security'], $operation['security'], $entry['path'].' has incorrect security');
             /** @var array<string, mixed> $responses */
             $responses = $operation['responses'];
             $this->assertArrayHasKey('429', $responses, 'Throttled '.$entry['path'].' must declare 429');
@@ -274,6 +274,16 @@ final class OpenApiSnapshotTest extends TestCase
         $sendResponses = $sendOperation['responses'];
         $this->assertArrayHasKey('401', $sendResponses);
         $this->assertArrayHasKey('429', $sendResponses);
+
+        /** @var mixed $verify */
+        $verify = $paths['/api/v1/email/verify/{id}/{hash}'];
+        $this->assertIsArray($verify);
+        /** @var mixed $verifyGet */
+        $verifyGet = $verify['get'];
+        $this->assertIsArray($verifyGet);
+        /** @var array<string, mixed> $verifyResponses */
+        $verifyResponses = $verifyGet['responses'];
+        $this->assertArrayHasKey('401', $verifyResponses);
     }
 
     /**
@@ -303,6 +313,7 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertSame(ApiMessage::UNAUTHENTICATED, $this->messageExample($paths, '/api/v1/email/verification-notification', 'post', '401'));
         $this->assertSame(ApiMessage::THROTTLED, $this->messageExample($paths, '/api/v1/email/verification-notification', 'post', '429'));
 
+        $this->assertSame(ApiMessage::UNAUTHENTICATED, $this->messageExample($paths, '/api/v1/email/verify/{id}/{hash}', 'get', '401'));
         $this->assertSame(ApiMessage::THROTTLED, $this->messageExample($paths, '/api/v1/email/verify/{id}/{hash}', 'get', '429'));
         $this->assertSame(ApiMessage::THROTTLED, $this->messageExample($paths, '/api/v1/forgot-password', 'post', '429'));
         $this->assertSame(ApiMessage::THROTTLED, $this->messageExample($paths, '/api/v1/reset-password', 'post', '429'));
