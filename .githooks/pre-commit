@@ -1,4 +1,6 @@
 #!/bin/sh
 set -e
 composer lint
-python3 scripts/validate_context.py --strict
+if git diff --cached --name-only | grep -qE '\.(md|json)$|^\.context/'; then
+  python3 scripts/validate_context.py --strict
+fi
