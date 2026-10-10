@@ -139,6 +139,21 @@ final class ProfileTest extends TestCase
             ->assertExactJson(['message' => 'Esta conta foi desativada.']);
     }
 
+    public function test_pending_unverified_account_reads_own_profile_for_limited_session(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'email' => 'pending.profile@example.test',
+            'deactivated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user, 'web')
+            ->getJson('/api/v1/auth/my-profile');
+
+        $response->assertOk()
+            ->assertJsonPath('data.email', 'pending.profile@example.test')
+            ->assertJsonPath('data.email_verified_at', null);
+    }
+
     public function test_profile_returns_strictly_authenticated_user_representation(): void
     {
         $alice = User::factory()->create(['name' => 'Alice']);

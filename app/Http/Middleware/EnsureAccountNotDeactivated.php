@@ -17,7 +17,7 @@ final class EnsureAccountNotDeactivated
     {
         $user = $request->user();
 
-        if ($user instanceof User && $user->deactivated_at !== null) {
+        if ($user instanceof User && $user->deactivated_at !== null && $user->hasVerifiedEmail()) {
             abort(Response::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED);
         }
 
