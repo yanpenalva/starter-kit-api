@@ -75,7 +75,7 @@ final class PublicIdentityTest extends TestCase
         Notification::assertSentTo($user, VerifyEmail::class);
     }
 
-    public function test_register_ignores_active_and_roles_and_does_not_send_disabled_accounts_to_login(): void
+    public function test_register_ignores_active_and_roles_and_lets_unverified_disabled_accounts_verify(): void
     {
         Notification::fake();
 
@@ -96,7 +96,9 @@ final class PublicIdentityTest extends TestCase
         $this->sessionHeaders()->postJson('/api/v1/login', [
             'email' => $user->email,
             'password' => 'correct-horse-12',
-        ])->assertStatus(403);
+        ])->assertNoContent();
+
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_register_rejects_duplicate_email_case_insensitively_with_standard_422(): void
@@ -307,6 +309,33 @@ final class PublicIdentityTest extends TestCase
         Event::assertDispatched(Verified::class, static function (Verified $event) use ($user): bool {
             return $event->user->getEmailForVerification() === $user->email;
         });
+    }
+
+    public function test_pending_account_logs_in_verifies_email_and_stays_deactivated(): void
+    {
+        Event::fake([Verified::class]);
+        config(['app.frontend_url' => 'http://frontend.test']);
+
+        $user = User::factory()->unverified()->create([
+            'email' => 'pending-verify@example.test',
+            'deactivated_at' => now(),
+        ]);
+        $url = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addHours(24),
+            ['id' => $user->id, 'hash' => hash('sha256', $user->email)]
+        );
+
+        $this->get($url)->assertUnauthorized();
+
+        $this->sessionHeaders()->postJson('/api/v1/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertNoContent();
+
+        $this->get($url)->assertRedirect('http://frontend.test/verify-email?ok=1');
+        $this->assertNotNull($user->fresh()?->email_verified_at);
+        $this->assertNotNull($user->fresh()->deactivated_at);
     }
 
     public function test_verify_with_tampered_hash_returns_403_and_keeps_user_unverified(): void
