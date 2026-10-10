@@ -136,6 +136,8 @@ final class ContractOperationOverlay
         $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
         $this->ensureResponse($operation, $this->responses->redirectResponse());
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+        $this->ensureQueryParam($operation, 'expires', 'Carimbo de expiração da URL assinada; exigido pelo middleware de assinatura.');
+        $this->ensureQueryParam($operation, 'signature', 'Assinatura HMAC da URL de verificação; exigido pelo middleware de assinatura.');
     }
 
     private function applyForgotPassword(Operation $operation): void
@@ -162,6 +164,24 @@ final class ContractOperationOverlay
         $param = Parameter::make(ContractDocumentTransformer::XSRF_HEADER, 'header');
         $param->required = true;
         $param->description = 'Token XSRF espelhando o cookie XSRF-TOKEN; obrigatório em requisições que alteram estado.';
+        /** @var Schema $schema */
+        $schema = Schema::fromType(new StringType);
+        $param->schema = $schema;
+        $operation->parameters[] = $param;
+    }
+
+    private function ensureQueryParam(Operation $operation, string $name, string $description): void
+    {
+        foreach ($operation->parameters as $parameter) {
+            if ($parameter instanceof Parameter && $parameter->name === $name && $parameter->in === 'query') {
+                return;
+            }
+        }
+
+        /** @var Parameter $param */
+        $param = Parameter::make($name, 'query');
+        $param->required = false;
+        $param->description = $description;
         /** @var Schema $schema */
         $schema = Schema::fromType(new StringType);
         $param->schema = $schema;

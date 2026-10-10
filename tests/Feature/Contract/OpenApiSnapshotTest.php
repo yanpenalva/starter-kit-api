@@ -285,6 +285,16 @@ final class OpenApiSnapshotTest extends TestCase
         $verifyResponses = $verifyGet['responses'];
         $this->assertArrayHasKey('401', $verifyResponses);
         $this->assertArrayHasKey('302', $verifyResponses);
+        /** @var list<array<string, mixed>> $verifyParams */
+        $verifyParams = $verifyGet['parameters'] ?? [];
+        $queryNames = [];
+        foreach ($verifyParams as $param) {
+            if (($param['in'] ?? null) === 'query' && isset($param['name'])) {
+                $queryNames[] = $param['name'];
+            }
+        }
+        $this->assertContains('expires', $queryNames);
+        $this->assertContains('signature', $queryNames);
     }
 
     /**
