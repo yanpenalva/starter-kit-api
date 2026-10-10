@@ -132,7 +132,8 @@ final class ContractOperationOverlay
 
     private function applyVerify(Operation $operation): void
     {
-        $operation->security = [];
+        $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
     }
 
