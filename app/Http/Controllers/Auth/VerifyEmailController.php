@@ -6,12 +6,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 final class VerifyEmailController
 {
-    public function __invoke(Request $request): RedirectResponse
+    public function __invoke(Request $request): RedirectResponse|JsonResponse
     {
         $routeId = $request->route('id');
 
@@ -32,6 +33,10 @@ final class VerifyEmailController
             $user->markEmailAsVerified();
 
             event(new Verified($user));
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Email verificado com sucesso.']);
         }
 
         return redirect()->to(self::frontendVerifyUrl());

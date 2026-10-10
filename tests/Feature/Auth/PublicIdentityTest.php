@@ -400,7 +400,7 @@ final class PublicIdentityTest extends TestCase
 
         $this->get($apiUrl)->assertUnauthorized();
         self::actingAsSanctum($user);
-        $this->get($apiUrl)->assertRedirect('http://frontend.test/verify-email?ok=1');
+        $this->getJson($apiUrl)->assertOk()->assertJsonPath('message', 'Email verificado com sucesso.');
         $this->assertNotNull($user->fresh()?->email_verified_at);
     }
 

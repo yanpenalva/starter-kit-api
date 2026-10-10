@@ -284,6 +284,7 @@ final class OpenApiSnapshotTest extends TestCase
         /** @var array<string, mixed> $verifyResponses */
         $verifyResponses = $verifyGet['responses'];
         $this->assertArrayHasKey('401', $verifyResponses);
+        $this->assertArrayHasKey('302', $verifyResponses);
     }
 
     /**
