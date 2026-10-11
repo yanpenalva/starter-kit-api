@@ -74,8 +74,9 @@ final class RoleController
         $actor = $request->user();
         assert($actor instanceof User);
 
-        $this->authorize('updatePermissions', $role);
+        $permissionNames = $request->permissionNames();
+        $this->authorize('updatePermissions', [$role, $permissionNames]);
 
-        return new RoleResource($this->updateRolePermissions->run($actor, $role, $request->permissionNames()));
+        return new RoleResource($this->updateRolePermissions->run($actor, $role, $permissionNames));
     }
 }

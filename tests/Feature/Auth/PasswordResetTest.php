@@ -115,19 +115,21 @@ final class PasswordResetTest extends TestCase
     {
         User::factory()->create(['email' => 'reset-bad@example.test']);
 
-        $this->sessionHeaders()->postJson('/api/v1/reset-password', [
+        $invalidToken = $this->sessionHeaders()->postJson('/api/v1/reset-password', [
             'email' => 'reset-bad@example.test',
             'token' => 'invalid-token',
             'password' => 'brand-new-password-12',
             'password_confirmation' => 'brand-new-password-12',
         ])->assertStatus(422)->assertJsonValidationErrors('email');
 
-        $this->sessionHeaders()->postJson('/api/v1/reset-password', [
+        $unknownUser = $this->sessionHeaders()->postJson('/api/v1/reset-password', [
             'email' => 'reset-ghost@example.test',
             'token' => 'invalid-token',
             'password' => 'brand-new-password-12',
             'password_confirmation' => 'brand-new-password-12',
         ])->assertStatus(422)->assertJsonValidationErrors('email');
+
+        $this->assertSame($invalidToken->json('errors.email.0'), $unknownUser->json('errors.email.0'));
     }
 
     public function test_reset_password_throttle_returns_429(): void

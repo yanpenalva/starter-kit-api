@@ -35,6 +35,10 @@ final class UpdateUser
                 abort(403);
             }
 
+            if (isset($payload['email']) && $payload['email'] !== $target->email) {
+                $payload['email_verified_at'] = null;
+            }
+
             $target->fill($payload)->save();
 
             $this->auditUserChange($actor, $target);

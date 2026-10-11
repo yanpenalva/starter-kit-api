@@ -52,7 +52,11 @@ final class HttpBoundarySmokeTest extends TestCase
         @mkdir(directory: dirname($fixtureFlag), permissions: 0775, recursive: true);
         touch($fixtureFlag);
 
-        $environment = array_merge($this->serverEnvironment(), ['APP_ENV' => 'production']);
+        $environment = array_merge($this->serverEnvironment(), [
+            'APP_ENV' => 'production',
+            'MAIL_MAILER' => 'array',
+            'SESSION_SECURE_COOKIE' => 'true',
+        ]);
 
         $server = $this->startServer(self::SERVER_PORT_ALT, $environment);
 

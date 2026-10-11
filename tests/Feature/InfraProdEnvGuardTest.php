@@ -47,7 +47,10 @@ final class InfraProdEnvGuardTest extends TestCase
             'CACHE_STORE' => 'array',
             'SESSION_DRIVER' => 'array',
             'QUEUE_CONNECTION' => 'sync',
-            'MAIL_MAILER' => 'log',
+            'MAIL_MAILER' => 'smtp',
+            'MAIL_HOST' => 'mailpit-test',
+            'MAIL_PORT' => '1025',
+            'SESSION_SECURE_COOKIE' => 'true',
             'LOG_CHANNEL' => 'stderr',
             'LOG_LEVEL' => 'warning',
 
@@ -136,6 +139,37 @@ final class InfraProdEnvGuardTest extends TestCase
 
         $output = $process->getOutput();
         $this->assertMatchesRegularExpression('/after_commit[^\n]*false/', $output, $output);
+    }
+
+    public function test_production_rejects_log_and_null_mailers(): void
+    {
+        foreach (['log', 'null'] as $mailer) {
+            [$process] = $this->runArtisanInEnv(['MAIL_MAILER' => $mailer], 'config:show app.env');
+
+            $this->assertNotSame(0, $process->getExitCode(), $mailer);
+            $this->assertStringContainsString('MAIL_MAILER', $process->getErrorOutput(), $mailer);
+        }
+
+        [$smtp] = $this->runArtisanInEnv([
+            'MAIL_MAILER' => 'smtp',
+            'MAIL_HOST' => 'mailpit-test',
+            'MAIL_PORT' => '1025',
+        ], 'config:show app.env');
+        $this->assertTrue($smtp->isSuccessful(), $smtp->getErrorOutput());
+    }
+
+    public function test_production_requires_secure_session_cookie(): void
+    {
+        [$insecure] = $this->runArtisanInEnv(['SESSION_SECURE_COOKIE' => 'false'], 'config:show app.env');
+        $this->assertNotSame(0, $insecure->getExitCode());
+        $this->assertStringContainsString('SESSION_SECURE_COOKIE', $insecure->getErrorOutput());
+
+        [$missing] = $this->runArtisanInEnv(['SESSION_SECURE_COOKIE' => false], 'config:show app.env');
+        $this->assertNotSame(0, $missing->getExitCode());
+        $this->assertStringContainsString('SESSION_SECURE_COOKIE', $missing->getErrorOutput());
+
+        [$secure] = $this->runArtisanInEnv(['SESSION_SECURE_COOKIE' => 'true'], 'config:show app.env');
+        $this->assertTrue($secure->isSuccessful(), $secure->getErrorOutput());
     }
 
     private function stringConfig(string $key, string $default): string

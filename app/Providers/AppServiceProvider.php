@@ -22,6 +22,18 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if (app()->environment('production')) {
+            $mailer = config('mail.default');
+
+            if ($mailer === null || in_array($mailer, ['log', 'null'], true)) {
+                throw new \RuntimeException('MAIL_MAILER must not use log or null in production.');
+            }
+
+            if (config('session.secure') !== true) {
+                throw new \RuntimeException('SESSION_SECURE_COOKIE=true is required in production.');
+            }
+        }
+
         RateLimiter::for('api', static function (Request $request): Limit {
             $identifier = $request->user()?->getAuthIdentifier();
 
