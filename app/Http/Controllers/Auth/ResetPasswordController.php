@@ -53,8 +53,6 @@ final class ResetPasswordController
 
         if ($status !== Password::PASSWORD_RESET) {
             $message = match ($status) {
-                Password::INVALID_USER => (string) trans('passwords.user'),
-                Password::INVALID_TOKEN => (string) trans('passwords.token'),
                 Password::RESET_THROTTLED => (string) trans('passwords.throttled'),
                 default => (string) trans('passwords.token'),
             };

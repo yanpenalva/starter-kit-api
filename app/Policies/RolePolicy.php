@@ -32,7 +32,10 @@ final class RolePolicy
      * The admin role itself is immutable: its permission set can never be
      * rewritten through this mutation.
      */
-    public function updatePermissions(User $actor, SpatieRole $role): bool
+    /**
+     * @param  list<string>  $permissionNames
+     */
+    public function updatePermissions(User $actor, SpatieRole $role, array $permissionNames): bool
     {
         if (! $this->canOperate($actor)) {
             return false;
@@ -42,7 +45,21 @@ final class RolePolicy
             return false;
         }
 
-        return $role->name !== Role::Admin->value;
+        if ($role->name === Role::Admin->value) {
+            return false;
+        }
+
+        if ($actor->hasRole(Role::Admin->value)) {
+            return true;
+        }
+
+        foreach ($permissionNames as $permissionName) {
+            if (! $actor->getAllPermissions()->contains('name', $permissionName)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function canOperate(User $actor): bool

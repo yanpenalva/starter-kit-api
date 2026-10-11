@@ -161,7 +161,11 @@ final class RolesAdminHttpTest extends TestCase
         $userRole = RoleModel::where('name', Role::User->value)->firstOrFail();
 
         $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo(Permission::RolesUpdatePermissions->value);
+        $actor->givePermissionTo([
+            Permission::RolesUpdatePermissions->value,
+            Permission::RolesView->value,
+            Permission::UsersView->value,
+        ]);
 
         self::actingAsSanctum($actor);
         $response = $this->putJson("/api/v1/roles/{$userRole->id}/permissions", [
@@ -212,6 +216,20 @@ final class RolesAdminHttpTest extends TestCase
         $expected = Permission::values();
         sort($expected);
         $this->assertSame($expected, $adminRole->refresh()->permissions->pluck('name')->sort()->values()->all());
+    }
+
+    public function test_update_permissions_cannot_grant_permissions_the_actor_does_not_have(): void
+    {
+        $userRole = RoleModel::where('name', Role::User->value)->firstOrFail();
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo([Permission::RolesUpdatePermissions->value, Permission::RolesView->value]);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/roles/{$userRole->id}/permissions", [
+            'permissions' => [Permission::UsersView->value],
+        ])->assertForbidden();
+
+        $this->assertSame([], $userRole->refresh()->permissions->pluck('name')->all());
     }
 
     public function test_update_permissions_clears_all_permissions_when_empty_set_is_sent(): void

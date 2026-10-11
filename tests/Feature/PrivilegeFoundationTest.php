@@ -25,9 +25,11 @@ final class PrivilegeFoundationTest extends TestCase
     {
         parent::setUp();
 
-        $database = config('database.connections.pgsql.database');
-        $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        if (config('database.default') === 'pgsql') {
+            $database = config('database.connections.pgsql.database');
+            $this->assertIsString($database);
+            $this->assertSame('starter_api_test', $database);
+        }
 
         $this->seed(RbacCatalogueSeeder::class);
     }
@@ -85,7 +87,7 @@ final class PrivilegeFoundationTest extends TestCase
             $actor->givePermissionTo(['roles.view', 'roles.update-permissions']);
 
             $this->assertFalse($policy->view($actor), "roles.view / $state");
-            $this->assertFalse($policy->updatePermissions($actor, $role), "roles.update-permissions / $state");
+            $this->assertFalse($policy->updatePermissions($actor, $role, []), "roles.update-permissions / $state");
         }
     }
 
@@ -109,10 +111,26 @@ final class PrivilegeFoundationTest extends TestCase
 
         $adminRole = Role::where('name', 'admin')->firstOrFail();
 
-        $this->assertFalse($policy->updatePermissions($actor, $adminRole));
+        $this->assertFalse($policy->updatePermissions($actor, $adminRole, []));
 
         $actor->givePermissionTo('roles.view');
         $this->assertTrue($policy->view($actor));
+    }
+
+    public function test_role_policy_limits_permissions_to_the_actors_own_permissions(): void
+    {
+        $policy = new RolePolicy;
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(['roles.update-permissions', 'roles.view']);
+        $userRole = Role::where('name', 'user')->firstOrFail();
+
+        $this->assertTrue($policy->updatePermissions($actor, $userRole, ['roles.view']));
+        $this->assertFalse($policy->updatePermissions($actor, $userRole, ['users.view']));
+        $this->assertFalse($policy->updatePermissions($actor, $userRole, ['roles.update-permissions', 'users.view']));
+
+        $admin = User::factory()->verified()->create();
+        $admin->assignRole('admin');
+        $this->assertTrue($policy->updatePermissions($admin, $userRole, ['users.manage']));
     }
 
     public function test_bootstrap_grants_admin_and_writes_the_audited_envelope(): void

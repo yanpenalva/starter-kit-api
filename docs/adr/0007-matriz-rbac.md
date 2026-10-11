@@ -30,6 +30,7 @@ Roles: `admin` carrega todas as permissões do catálogo; `user` carrega nenhuma
 - Último admin: remover a role `admin` ou desativar a conta de um admin é negado quando nenhum outro admin **ativo** permanece. Admin desativado não conta como em pé.
 - Autoaplicação: ator não pode desativar a si mesmo nem atribuir roles a si mesmo.
 - Role `admin` imutável: `roles.update-permissions` nunca reescreve o conjunto do admin.
+- Limite de concessão: exceto o ator com role `admin`, a role de destino não pode receber permissões fora do conjunto efetivo de permissões do próprio ator.
 - Mutação transacional: toda mutação de privilégio roda em `PrivilegeTransaction` (transação PostgreSQL + advisory lock `727423`), com trilha fail-closed via `App\Support\Audit`; falha de auditoria reverte a mutação.
 - Seeder: `RbacCatalogueSeeder` é idempotente e verifica o **conjunto exato** (não apenas contagem) de permissões e roles; `user` sem permissões; nenhuma conta criada ou promovida.
 

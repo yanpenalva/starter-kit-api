@@ -99,6 +99,21 @@ final class UsersActionsTest extends TestCase
         $this->assertPrivilegedAudit($target, $actor);
     }
 
+    public function test_changing_email_resets_verification_but_unchanged_email_does_not(): void
+    {
+        $target = User::factory()->verified()->create(['email' => 'verified@example.test']);
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersManage->value);
+        $verifiedAt = $target->email_verified_at;
+
+        app(UpdateUser::class)->run($actor, $target, ['email' => 'new-address@example.test']);
+        $this->assertNull($target->fresh()?->email_verified_at);
+
+        $target->forceFill(['email_verified_at' => $verifiedAt])->save();
+        app(UpdateUser::class)->run($actor, $target, ['email' => 'new-address@example.test']);
+        $this->assertNotNull($target->fresh()?->email_verified_at);
+    }
+
     public function test_update_action_protects_privileged_email_even_when_called_directly(): void
     {
         $target = User::factory()->verified()->create(['email' => 'action-admin@example.test']);
