@@ -6,10 +6,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enums\Role;
 use App\Models\User;
+use App\Services\MfaRecoveryCodeService;
 use App\Services\TotpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 final class MfaEnrollmentController
@@ -24,16 +27,28 @@ final class MfaEnrollmentController
         ]);
     }
 
-    public function enroll(Request $request, TotpService $totp): JsonResponse
-    {
+    public function enroll(
+        Request $request,
+        TotpService $totp,
+        MfaRecoveryCodeService $recoveryCodeService,
+    ): JsonResponse {
         $user = $this->ensureAdmin($request);
+        $request->validate([
+            'password' => ['required', 'string'],
+        ]);
+
+        if (! Hash::check($request->string('password')->toString(), $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['A senha atual está incorreta.'],
+            ]);
+        }
 
         $secret = $totp->generateSecret();
         $recoveryCodes = $totp->generateRecoveryCodes();
 
         $user->forceFill([
             'mfa_secret' => $secret,
-            'mfa_recovery_codes' => $recoveryCodes,
+            'mfa_recovery_codes' => $recoveryCodeService->hash($recoveryCodes),
             'mfa_confirmed_at' => null,
         ])->save();
 
@@ -71,7 +86,6 @@ final class MfaEnrollmentController
 
         return response()->json([
             'confirmed' => true,
-            'recovery_codes' => $user->mfa_recovery_codes,
         ]);
     }
 
@@ -88,8 +102,11 @@ final class MfaEnrollmentController
         return response()->noContent();
     }
 
-    public function regenerateRecoveryCodes(Request $request, TotpService $totp): JsonResponse
-    {
+    public function regenerateRecoveryCodes(
+        Request $request,
+        TotpService $totp,
+        MfaRecoveryCodeService $recoveryCodeService,
+    ): JsonResponse {
         $user = $this->ensureAdmin($request);
 
         if (! $user->hasMfaEnabled()) {
@@ -98,7 +115,7 @@ final class MfaEnrollmentController
 
         $codes = $totp->generateRecoveryCodes();
         $user->forceFill([
-            'mfa_recovery_codes' => $codes,
+            'mfa_recovery_codes' => $recoveryCodeService->hash($codes),
         ])->save();
 
         return response()->json([

@@ -70,7 +70,7 @@ final class User extends Authenticatable implements MustVerifyEmailContract
             'deactivated_at' => 'datetime',
             'password' => 'hashed',
             'mfa_secret' => 'encrypted',
-            'mfa_recovery_codes' => 'encrypted:array',
+            'mfa_recovery_codes' => 'array',
             'mfa_confirmed_at' => 'datetime',
         ];
     }

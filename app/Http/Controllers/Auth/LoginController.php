@@ -59,6 +59,9 @@ final class LoginController
         }
 
         if ($user->hasRole(Role::Admin->value) && $user->hasMfaEnabled()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
             $request->session()->put('mfa:user_id', $user->id);
 
             return response()->json([
@@ -66,6 +69,7 @@ final class LoginController
             ]);
         }
 
+        $request->session()->forget(['mfa:user_id', 'mfa:verified_user_id']);
         Auth::guard('web')->login($user);
 
         $request->session()->regenerate();

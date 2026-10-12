@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "id": "BUG-39",
+  "title": "Corrigir bloqueios de segurança do MFA administrativo",
+  "track": "support",
+  "type": "bug",
+  "phase": "verify",
+  "status": "active",
+  "risk": "high",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "high",
+    "impact": "system",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": ["core", "project", "security", "testing", "release"],
+    "deferred": ["incident"],
+    "triggers": [
+      "User requested four blocking MFA security corrections with tests and branch commit/push after gates."
+    ]
+  },
+  "phase_history": ["triage", "specify", "plan", "preflight", "execute", "verify"],
+  "last_updated": "2026-10-12",
+  "policy_exceptions": ["EXC-0001"]
+}

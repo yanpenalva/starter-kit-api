@@ -49,6 +49,14 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
 - **Action:** Logs out of `web` guard, invalidates the server session, and regenerates the CSRF token. Returns HTTP 204.
 - **Subsequent Requests:** Requests reusing the previous session cookie receive HTTP 401.
 
+### 4. Administrative MFA
+- **Enrollment:** `POST /api/v1/auth/mfa/enroll` is restricted to admins and requires the current password. It returns the TOTP secret, provisioning URI and recovery codes; recovery codes are shown as plaintext only in this response.
+- **Confirmation:** `POST /api/v1/auth/mfa/confirm` verifies a TOTP code and returns `{ "confirmed": true }`. Recovery codes are not returned again.
+- **Login:** A confirmed-MFA admin with valid credentials receives HTTP 200 `{ "requires_mfa": true }`. Any existing web authentication is logged out and the session is invalidated before the challenge-only session is created.
+- **Challenge:** `POST /api/v1/auth/mfa/challenge` accepts a TOTP or an unused recovery code. A successful challenge authenticates the web session and marks it as MFA-verified. Recovery codes are stored as one-way password hashes and consumed under a database transaction with a row lock, so concurrent attempts cannot both use one code.
+- **Protected routes:** Every `auth:sanctum` route requires a completed MFA challenge when the authenticated user is an admin with confirmed MFA. This also rejects sessions created before MFA was enabled.
+- **Recovery code regeneration:** `POST /api/v1/auth/mfa/recovery-codes` returns newly generated plaintext codes once and stores only their hashes. `POST /api/v1/auth/mfa/disable` clears the TOTP secret and recovery hashes.
+
 ## Security Architecture
 
 - **Session Stateful Guard & Header Rejection:** Operates exclusively with Laravel Sanctum session cookies (HttpOnly, SameSite=lax). No PAT / JWT storage. Any request bearing an `Authorization` header is immediately rejected fail-closed with HTTP 401 (`DisallowHeaderAuthentication`), completely preventing fallback queries against non-existent token storage (`personal_access_tokens`).

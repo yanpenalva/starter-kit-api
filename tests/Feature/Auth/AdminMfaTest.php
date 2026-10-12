@@ -9,6 +9,9 @@ use App\Models\User;
 use App\Services\TotpService;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
@@ -37,7 +40,7 @@ final class AdminMfaTest extends TestCase
 
     public function test_admin_can_view_mfa_status_and_enroll(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['password' => 'secret123']);
         $admin->assignRole(Role::Admin->value);
 
         self::actingAsSanctum($admin);
@@ -45,7 +48,9 @@ final class AdminMfaTest extends TestCase
         $statusBefore = $this->getJson('/api/v1/auth/mfa/status');
         $statusBefore->assertOk()->assertJson(['mfa_enabled' => false]);
 
-        $enrollResponse = $this->postJson('/api/v1/auth/mfa/enroll');
+        $enrollResponse = $this->postJson('/api/v1/auth/mfa/enroll', [
+            'password' => 'secret123',
+        ]);
         $enrollResponse->assertOk()
             ->assertJsonStructure(['secret', 'provisioning_uri', 'recovery_codes']);
 
@@ -62,6 +67,58 @@ final class AdminMfaTest extends TestCase
         $this->assertFalse($admin->hasMfaEnabled());
     }
 
+    public function test_admin_must_provide_the_current_password_to_enroll_in_mfa(): void
+    {
+        $admin = User::factory()->create(['password' => 'secret123']);
+        $admin->assignRole(Role::Admin->value);
+
+        self::actingAsSanctum($admin);
+
+        $this->postJson('/api/v1/auth/mfa/enroll')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('password');
+
+        $this->postJson('/api/v1/auth/mfa/enroll', [
+            'password' => 'incorrect',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('password');
+
+        $freshAdmin = $admin->fresh();
+        $this->assertNotNull($freshAdmin);
+        $this->assertNull($freshAdmin->mfa_secret);
+    }
+
+    public function test_recovery_code_dump_contains_only_one_way_hashes(): void
+    {
+        $admin = User::factory()->create(['password' => 'secret123']);
+        $admin->assignRole(Role::Admin->value);
+
+        self::actingAsSanctum($admin);
+
+        $codes = $this->postJson('/api/v1/auth/mfa/enroll', [
+            'password' => 'secret123',
+        ])->assertOk()->json('recovery_codes');
+
+        $this->assertIsArray($codes);
+        $this->assertNotEmpty($codes);
+
+        $dump = DB::table('users')->where('id', $admin->id)->value('mfa_recovery_codes');
+        $this->assertIsString($dump);
+
+        $hashes = json_decode($dump, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($hashes);
+        $this->assertCount(count($codes), $hashes);
+
+        foreach ($codes as $index => $recoveryCode) {
+            $this->assertIsString($recoveryCode);
+            $this->assertStringNotContainsString($recoveryCode, $dump);
+
+            $hash = $hashes[$index] ?? null;
+            $this->assertIsString($hash);
+            $this->assertTrue(Hash::check($recoveryCode, $hash));
+        }
+    }
+
     public function test_admin_confirm_mfa_fails_with_invalid_code(): void
     {
         $admin = User::factory()->create();
@@ -69,7 +126,7 @@ final class AdminMfaTest extends TestCase
 
         self::actingAsSanctum($admin);
 
-        $this->postJson('/api/v1/auth/mfa/enroll');
+        $this->postJson('/api/v1/auth/mfa/enroll', ['password' => 'password']);
 
         $response = $this->postJson('/api/v1/auth/mfa/confirm', [
             'code' => '000000',
@@ -87,7 +144,9 @@ final class AdminMfaTest extends TestCase
 
         self::actingAsSanctum($admin);
 
-        $enrollResponse = $this->postJson('/api/v1/auth/mfa/enroll');
+        $enrollResponse = $this->postJson('/api/v1/auth/mfa/enroll', [
+            'password' => 'password',
+        ]);
         $secret = $enrollResponse->json('secret');
         $this->assertIsString($secret);
 
@@ -103,8 +162,7 @@ final class AdminMfaTest extends TestCase
         $admin->refresh();
         $this->assertTrue($admin->hasMfaEnabled());
 
-        $statusAfter = $this->getJson('/api/v1/auth/mfa/status');
-        $statusAfter->assertOk()->assertJson(['mfa_enabled' => true]);
+        $this->getJson('/api/v1/auth/mfa/status')->assertUnauthorized();
     }
 
     public function test_admin_with_mfa_login_requires_challenge(): void
@@ -117,19 +175,22 @@ final class AdminMfaTest extends TestCase
 
         $totp = app(TotpService::class);
         $secret = $totp->generateSecret();
-        $recoveryCodes = $totp->generateRecoveryCodes();
 
         $admin->forceFill([
             'mfa_secret' => $secret,
-            'mfa_recovery_codes' => $recoveryCodes,
+            'mfa_recovery_codes' => [],
             'mfa_confirmed_at' => now(),
         ])->save();
 
-        $response = $this->withSession(['prev' => 'val'])
-            ->withHeaders([
-                'Origin' => 'http://localhost:5173',
-                'Referer' => 'http://localhost:5173/',
-            ])
+        $this->withSession(['prev' => 'val']);
+        self::actingAsSanctum($admin);
+        Auth::guard('web')->login($admin);
+        $this->assertAuthenticatedAs($admin, 'web');
+
+        $response = $this->withHeaders([
+            'Origin' => 'http://localhost:5173',
+            'Referer' => 'http://localhost:5173/',
+        ])
             ->postJson('/api/v1/login', [
                 'email' => 'admin@example.test',
                 'password' => 'secret123',
@@ -140,6 +201,41 @@ final class AdminMfaTest extends TestCase
 
         $this->assertGuest('web');
         $this->assertSame($admin->id, session('mfa:user_id'));
+        $this->assertNull(session('prev'));
+        $this->getJson('/api/v1/auth/my-profile')->assertUnauthorized();
+    }
+
+    public function test_existing_session_cannot_access_protected_routes_after_mfa_is_enabled(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::Admin->value);
+
+        $this->withSession([]);
+        self::actingAsSanctum($admin);
+        Auth::guard('web')->login($admin);
+
+        $totp = app(TotpService::class);
+        $admin->forceFill([
+            'mfa_secret' => $totp->generateSecret(),
+            'mfa_recovery_codes' => [],
+            'mfa_confirmed_at' => now(),
+        ])->save();
+
+        $this->withHeaders([
+            'Origin' => 'http://localhost:5173',
+            'Referer' => 'http://localhost:5173/',
+        ]);
+
+        foreach ([
+            ['GET', '/api/v1/auth/my-profile'],
+            ['GET', '/api/v1/email/verify/1/invalid'],
+            ['POST', '/api/v1/email/verification-notification'],
+            ['GET', '/api/v1/users'],
+            ['GET', '/api/v1/roles'],
+            ['GET', '/api/v1/activity-log'],
+        ] as [$method, $route]) {
+            $this->json($method, $route, [])->assertUnauthorized();
+        }
     }
 
     public function test_mfa_challenge_succeeds_with_totp_code(): void
@@ -151,7 +247,7 @@ final class AdminMfaTest extends TestCase
         $secret = $totp->generateSecret();
         $admin->forceFill([
             'mfa_secret' => $secret,
-            'mfa_recovery_codes' => $totp->generateRecoveryCodes(),
+            'mfa_recovery_codes' => [],
             'mfa_confirmed_at' => now(),
         ])->save();
 
@@ -169,6 +265,11 @@ final class AdminMfaTest extends TestCase
         $response->assertNoContent();
         $this->assertAuthenticatedAs($admin, 'web');
         $this->assertNull(session('mfa:user_id'));
+        $this->assertSame($admin->id, session('mfa:verified_user_id'));
+        $this->withHeaders([
+            'Origin' => 'http://localhost:5173',
+            'Referer' => 'http://localhost:5173/',
+        ])->getJson('/api/v1/auth/my-profile')->assertOk();
     }
 
     public function test_mfa_challenge_succeeds_with_recovery_code_and_consumes_it(): void
@@ -179,11 +280,12 @@ final class AdminMfaTest extends TestCase
         $totp = app(TotpService::class);
         $secret = $totp->generateSecret();
         $codes = $totp->generateRecoveryCodes();
-        $usedCode = $codes[0];
+        $storedCodes = array_slice($codes, 0, 2);
+        $usedCode = $storedCodes[0];
 
         $admin->forceFill([
             'mfa_secret' => $secret,
-            'mfa_recovery_codes' => $codes,
+            'mfa_recovery_codes' => array_map(Hash::make(...), $storedCodes),
             'mfa_confirmed_at' => now(),
         ])->save();
 
@@ -201,7 +303,7 @@ final class AdminMfaTest extends TestCase
 
         $admin->refresh();
         $remaining = $admin->mfa_recovery_codes ?? [];
-        $this->assertCount(7, $remaining);
+        $this->assertCount(1, $remaining);
         $this->assertNotContains($usedCode, $remaining);
 
         // Trying to use same recovery code again fails
@@ -237,13 +339,18 @@ final class AdminMfaTest extends TestCase
         $totp = app(TotpService::class);
         $admin->forceFill([
             'mfa_secret' => $totp->generateSecret(),
-            'mfa_recovery_codes' => $totp->generateRecoveryCodes(),
+            'mfa_recovery_codes' => [],
             'mfa_confirmed_at' => now(),
         ])->save();
 
         self::actingAsSanctum($admin);
 
-        $response = $this->postJson('/api/v1/auth/mfa/disable');
+        $response = $this->withSession(['mfa:verified_user_id' => $admin->id])
+            ->withHeaders([
+                'Origin' => 'http://localhost:5173',
+                'Referer' => 'http://localhost:5173/',
+            ])
+            ->postJson('/api/v1/auth/mfa/disable');
         $response->assertNoContent();
 
         $admin->refresh();

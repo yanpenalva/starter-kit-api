@@ -14,6 +14,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Middleware\DisallowHeaderAuthentication;
 use App\Http\Middleware\EnsureAccountNotDeactivated;
+use App\Http\Middleware\EnsureMfaChallenge;
 use App\Http\Middleware\EnsureStatefulSession;
 use Illuminate\Support\Facades\Route;
 
@@ -35,14 +36,14 @@ Route::post('/reset-password', ResetPasswordController::class)
     ->name('password.update');
 
 Route::get('/email/verify/{id}/{hash}', VerifyEmailController::class)
-    ->middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', 'signed', 'throttle:verification'])
+    ->middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', EnsureMfaChallenge::class, 'signed', 'throttle:verification'])
     ->name('verification.verify');
 
 Route::post('/email/verification-notification', EmailVerificationNotificationController::class)
-    ->middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', 'throttle:verification'])
+    ->middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', EnsureMfaChallenge::class, 'throttle:verification'])
     ->name('verification.send');
 
-Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(static function (): void {
+Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', EnsureMfaChallenge::class])->group(static function (): void {
     Route::get('/auth/my-profile', MyProfileController::class)
         ->middleware(EnsureAccountNotDeactivated::class);
 
