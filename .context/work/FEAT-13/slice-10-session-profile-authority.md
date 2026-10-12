@@ -26,4 +26,5 @@
 - `composer analyse`: passed (PHPStan Level 10, no errors).
 - `python3 scripts/validate_context.py --strict --examples`: passed; no example suite is installed.
 - `git diff --check`: passed. Profile JSON/schema and `contracts/openapi.json` are unchanged.
+- Delivery: implementation commit `37e1ddf` was pushed to `origin/feat/slice-10-session-profile-authority`; no PR or merge was created.
 - Production deployment, PR, merge and issue closure were not performed.
