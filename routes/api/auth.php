@@ -42,12 +42,13 @@ Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(
     Route::get('/auth/my-profile', MyProfileController::class)
         ->middleware(EnsureAccountNotDeactivated::class);
 
-    Route::get('/auth/sessions', [ActiveSessionController::class, 'index'])
-        ->middleware(EnsureAccountNotDeactivated::class);
-    Route::delete('/auth/sessions', [ActiveSessionController::class, 'destroyOthers'])
-        ->middleware(EnsureAccountNotDeactivated::class);
-    Route::delete('/auth/sessions/{id}', [ActiveSessionController::class, 'destroy'])
-        ->middleware(EnsureAccountNotDeactivated::class);
+    Route::middleware(EnsureAccountNotDeactivated::class)->group(static function (): void {
+        Route::get('/auth/sessions', [ActiveSessionController::class, 'index']);
+        Route::delete('/auth/sessions', [ActiveSessionController::class, 'destroyOthers'])
+            ->middleware('throttle:sessions');
+        Route::delete('/auth/sessions/{id}', [ActiveSessionController::class, 'destroy'])
+            ->middleware('throttle:sessions');
+    });
 
     Route::post('/logout', LogoutController::class);
 });

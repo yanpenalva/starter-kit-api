@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Models\User;
+use App\Support\ApiMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -56,7 +57,7 @@ final class ActiveSessionController
             ->delete();
 
         if ($deleted === 0) {
-            abort(Response::HTTP_NOT_FOUND, 'Sessão não encontrada.');
+            abort(Response::HTTP_NOT_FOUND, ApiMessage::SESSION_NOT_FOUND);
         }
 
         $currentSessionId = $this->getCurrentSessionId($request);
