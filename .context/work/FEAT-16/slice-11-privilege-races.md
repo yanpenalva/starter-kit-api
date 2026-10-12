@@ -26,4 +26,5 @@
 - `python3 scripts/validate_context.py --strict`: passed.
 - `git diff --check`: passed.
 - PostgreSQL concurrency proof is covered by existing `CorrelationRedactionTest::test_concurrent_admin_mutations_serialize_through_the_global_lock`; this local environment has SQLite only, so the PostgreSQL test was not run locally.
-- Delivery and final diff review: pending.
+- Delivery: implementation commit `2765b36` was pushed to `origin/feat/slice-11-privilege-races`; no PR or merge was created.
+- Production deployment and issue closure were not performed.
