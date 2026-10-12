@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -38,6 +39,24 @@ final class PrivilegeTransaction
             }
 
             return $mutation();
+        });
+    }
+
+    /**
+     * @template T
+     *
+     * @param  Closure(User): T  $mutation
+     * @return T
+     */
+    public static function runWithActor(User $actor, Closure $mutation): mixed
+    {
+        return self::run(function () use ($actor, $mutation): mixed {
+            $currentActor = User::query()
+                ->lockForUpdate()
+                ->whereKey($actor->getKey())
+                ->firstOrFail();
+
+            return $mutation($currentActor);
         });
     }
 }

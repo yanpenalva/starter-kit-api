@@ -92,7 +92,7 @@ final class RolesActionsTest extends TestCase
     public function test_update_role_permissions_syncs_the_permission_set_with_audit(): void
     {
         $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo(Permission::RolesUpdatePermissions->value);
+        $actor->givePermissionTo([Permission::RolesUpdatePermissions->value, Permission::UsersView->value]);
         $role = RoleModel::where('name', Role::User->value)->firstOrFail();
 
         $updated = app(UpdateRolePermissions::class)->run($actor, $role, [Permission::UsersView->value]);
