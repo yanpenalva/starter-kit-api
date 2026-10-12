@@ -112,9 +112,9 @@ A regra de separação é simples de aplicar na prática:
   Pode desativar *esta* conta? É aqui que vivem as proteções de último administrador,
   anti-autoaplicação e imutabilidade do papel `admin`.
 - **Actions** executam mutações privilegiadas dentro de `PrivilegeTransaction`:
-  depois de adquirir a trava, resolvem o ator e, quando houver, o alvo do estado
-  persistido, reaplicam a policy e confirmam a operação com a auditoria no mesmo
-  commit; qualquer falha reverte tudo.
+  depois de adquirir a trava, limpam o cache de permissões, resolvem o ator e,
+  quando houver, o alvo do estado persistido, reaplicam a policy e confirmam a
+  operação com a auditoria no mesmo commit; qualquer falha reverte tudo.
 - **Resources** controlam o JSON de saída. O `UserResource` expõe o CPF somente quando
   o ator tem a permissão de leitura para aquele alvo; nos demais casos o campo nem
   aparece. Datas saem em UTC no formato `Y-m-d\TH:i:s\Z`.

@@ -3,12 +3,12 @@
 ## Intake and scope
 
 - Parent work: FEAT-16 (RBAC policies) and FEAT-19 (`PrivilegeTransaction`); this records the requested privilege-race follow-up without reopening either parent.
-- Track/type: product / feature. Owner: yanpenalva. Risk: high. Phase: execute.
+- Track/type: product / feature. Owner: yanpenalva. Risk: high. Phase: verify.
 - Classification: complexity high, impact cross-module, security sensitive, confidence high; routing derived/effective extended, no override.
 - Delivery: `feat/slice-11-privilege-races` → `main`, remote `origin`, EXC-0001; branch starts at `origin/main` `98cf64147080c03e17c14d664ac6ac08231fcb02`.
 - Outcome: every privileged write rechecks the current actor and relevant policy after the shared transaction lock is held, so an in-flight request cannot use a revoked permission or stale loaded role relation.
 - Scope: the existing user and role mutation Actions, their focused tests, architecture documentation, and this evidence record. No route, response, token, frontend, migration, or OpenAPI changes.
-- Acceptance: tests begin with a stale actor whose permission was revoked in persistence; each mutation rejects with HTTP 403 and leaves its target unchanged. Existing authorized action and HTTP tests continue to pass.
+- Acceptance: tests begin with a stale actor whose permission was revoked in persistence; each mutation rejects with HTTP 403 and leaves its target unchanged. A PostgreSQL test races the real user-status and role-permission Actions through separate connections, preserving the last admin and the grant ceiling, and verifies mutation rollback when audit insertion fails. Existing authorized action and HTTP tests continue to pass.
 
 ## Plan and gates
 
@@ -25,6 +25,14 @@
 - `composer analyse`: passed (PHPStan Level 10, 128 files, no errors).
 - `python3 scripts/validate_context.py --strict`: passed.
 - `git diff --check`: passed.
-- PostgreSQL concurrency proof is covered by existing `CorrelationRedactionTest::test_concurrent_admin_mutations_serialize_through_the_global_lock`; this local environment has SQLite only, so the PostgreSQL test was not run locally.
+- Slice-11 concurrency regression (2026-10-12): the new `PrivilegeMutationPostgresRaceTest` forks a second connection, synchronizes both real Actions at the advisory lock, and checks last-admin preservation, the permission grant ceiling and audit-failure rollback. The implementation clears the permission cache under the shared lock before rechecking the current actor, so a forked worker cannot authorize from an inherited stale cache.
+- `source /opt/data/php/env.sh && /opt/data/php/root/usr/bin/php8.5 vendor/bin/pest -c /tmp/phpunit.sqlite.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php tests/Feature/Actions/PrivilegeRaceTest.php tests/Feature/Actions/UsersActionsTest.php tests/Feature/Actions/RolesActionsTest.php tests/Feature/PrivilegeFoundationTest.php`: 42 passed / 136 assertions; the PostgreSQL-only test skipped on SQLite.
+- `source /opt/data/php/env.sh && DB_HOST=127.0.0.1 DB_PASSWORD=ci-ephemeral-test-only /opt/data/php/root/usr/bin/php8.5 vendor/bin/pest -c /tmp/phpunit.pgsql.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php`: 1 passed / 39 assertions on local PostgreSQL 17. CI's PostgreSQL 18 run remains separate.
+- `composer lint`: passed (Pint).
+- The `composer analyse` wrapper hit its 300-second process timeout at 19/129 files; the complete PHPStan Level 10 analysis was then run directly with `--debug` and the scratch-specific config below.
+- PHPStan level 10 over 129 files: passed with no errors using the scratch-specific configuration and `--debug` to keep analysis workers attached to this worktree.
+- `python3 scripts/validate_context.py --strict`, `python3 scripts/validate_context.py --strict --examples` and `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: passed; `--examples` reported that no example suite is installed.
+- `python3 -m unittest discover -s tests -v`: 113 tests, 2 failures and 5 errors because `oasdiff` is absent from this local environment; these are contract-tool checks outside this slice.
+- `git diff --check`: passed.
 - Delivery: implementation commit `2765b36` was pushed to `origin/feat/slice-11-privilege-races`; no PR or merge was created.
 - Production deployment and issue closure were not performed.
