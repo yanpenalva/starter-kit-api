@@ -76,7 +76,7 @@ Os comandos locais de validação de contexto estão em [quality configuration](
 
 ## OpenAPI
 
-`contracts/openapi.json` é um snapshot versionado produzido pelo workflow manual **OpenAPI Contract**, exclusivamente na branch `main`. Execute-o após a integração em `main` de alterações de rotas/contratos: em Actions, selecione o workflow, confirme `main` e informe o motivo. O produtor exporta duas vezes, verifica determinismo e publica o artifact `openapi-<commit>`; o resultado exportado substitui o snapshot no workspace do workflow, não cria commit automaticamente. Baixe/revise o artifact e atualize `contracts/openapi.json` em um commit/PR próprio. O gate `contract` confirma que o snapshot commitado corresponde ao contrato atual. Não gere nem atualize o snapshot por export local como substituto do produtor.
+Siga o [guia de release do contrato](contract-release.md) para executar o produtor em main e atualizar o snapshot revisado. A [receita de proveniência](openapi-contract-recipe.md) detalha a verificação do artifact; a exportação local serve apenas para inspeção. Para implementar uma mudança fim a fim, use também a [receita de fatia vertical](vertical-slice-recipe.md).
 
 ## Deploy e smoke
 

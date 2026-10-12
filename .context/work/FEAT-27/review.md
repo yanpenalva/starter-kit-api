@@ -1,0 +1,23 @@
+# Review — FEAT-27 — Slice 12
+
+The implementation owner reviewed the full changed scope against the approved
+specification and repository evidence:
+
+- The ADR index contains one successor for session-only authentication, one for
+  RBAC/audit/custom roles, and one for OpenAPI release. Historical ADRs remain
+  records of their original decisions and point to successors where needed.
+- Release guidance matches `.github/workflows/openapi.yml`, the `contract` job in
+  `.github/workflows/quality.yml`, and the provenance helper/CLI behavior. It does
+  not claim that the feature branch can publish or update the canonical snapshot.
+- Onboarding links to release, provenance, and vertical-slice guidance. The
+  vertical recipe preserves Sanctum session/CSRF, `ActsAsSanctumUser`, allowlisted
+  filters, SQLite-first feedback, and the project quality gates.
+- Canonical API and security context no longer labels implemented authentication,
+  RBAC, audit, producer or compatibility gates as unimplemented.
+- No frontend, runtime source, workflow, dependency manifest, or OpenAPI snapshot
+  changed.
+
+The focused docs/Pest checks and static gates passed as recorded in
+`verification.md`. An independent reader was not available in this execution; the
+full Python suite is limited by the missing pinned `oasdiff` binary on this
+`aarch64` host.
