@@ -17,8 +17,13 @@ final class EnsureAccountNotDeactivated
     {
         $user = $request->user();
 
-        if ($user instanceof User && $user->deactivated_at !== null && $user->hasVerifiedEmail()) {
-            return BlockedAccount::response($user);
+        if ($user instanceof User) {
+            // Eligibility and profile output use persisted state, including loaded RBAC relations.
+            $user->refresh();
+
+            if ($user->deactivated_at !== null && $user->hasVerifiedEmail()) {
+                return BlockedAccount::response($user);
+            }
         }
 
         $response = $next($request);

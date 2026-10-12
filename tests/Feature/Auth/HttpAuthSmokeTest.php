@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Auth;
 
+use App\Enums\Role;
 use App\Models\User;
+use Database\Seeders\RbacCatalogueSeeder;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
@@ -30,6 +32,8 @@ final class HttpAuthSmokeTest extends TestCase
 
     private const DEACTIVATED_EMAIL = 'smoke.deactivated@example.test';
 
+    private const IMPERSONATION_EMAIL = 'smoke.other@example.test';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -38,7 +42,7 @@ final class HttpAuthSmokeTest extends TestCase
 
         Cache::store('file')->flush();
 
-        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL])->delete();
+        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL, self::IMPERSONATION_EMAIL])->delete();
     }
 
     protected function tearDown(): void
@@ -47,7 +51,7 @@ final class HttpAuthSmokeTest extends TestCase
 
         Cache::store('file')->flush();
 
-        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL])->delete();
+        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL, self::IMPERSONATION_EMAIL])->delete();
 
         parent::tearDown();
     }
@@ -55,11 +59,18 @@ final class HttpAuthSmokeTest extends TestCase
     public function test_real_http_session_cookie_csrf_fixation_and_cors_lifecycle(): void
     {
         $this->assertIsolatedTestingRuntime();
+        $this->seed(RbacCatalogueSeeder::class);
 
         $user = User::factory()->create([
             'email' => self::SMOKE_EMAIL,
             'password' => 'secret123',
         ]);
+        $user->assignRole(Role::User->value);
+
+        $other = User::factory()->create([
+            'email' => self::IMPERSONATION_EMAIL,
+        ]);
+        $other->assignRole(Role::Admin->value);
 
         $environment = $this->serverEnvironment();
         $server = $this->startServer(self::SERVER_PORT, $environment);
@@ -177,17 +188,19 @@ final class HttpAuthSmokeTest extends TestCase
                 'Replaying pre-login session cookie must return 401 unauthenticated (proves session fixation prevention)',
             );
 
-            $profileResponse = $client->get('/api/v1/auth/my-profile', [
+            $profileResponse = $client->get('/api/v1/auth/my-profile?user_id='.$other->id.'&role=admin', [
                 'headers' => [
                     'Origin' => 'http://localhost:5173',
                     'Referer' => 'http://localhost:5173/',
                 ],
             ]);
             $this->assertSame(200, $profileResponse->getStatusCode());
-            /** @var array{data: array{id: int, email: string}} $profileData */
+            /** @var array{data: array{id: int, email: string, roles: list<string>, permissions: list<string>}} $profileData */
             $profileData = json_decode((string) $profileResponse->getBody(), true);
             $this->assertSame($user->id, $profileData['data']['id']);
             $this->assertSame(self::SMOKE_EMAIL, $profileData['data']['email']);
+            $this->assertSame([Role::User->value], $profileData['data']['roles']);
+            $this->assertSame([], $profileData['data']['permissions']);
 
             $headerResponse = $client->get('/api/v1/auth/my-profile', [
                 'headers' => [

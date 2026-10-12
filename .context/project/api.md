@@ -19,6 +19,7 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - `POST /api/v1/logout` invalidates the current session and returns 204. It does not revoke separately authorized integration tokens.
 - A newly registered, not-yet-verified user may establish a limited session and read a minimal profile for verification. Business routes remain denied until email verification automatically activates the basic profile. An explicitly deactivated account receives 403. This distinction was approved by yanpenalva on 2026-10-02 and clarifies API #13 against the accepted ADR 0004.
 - An authenticated profile contains only the current user's identity plus effective role and permission identifiers. Before verification, roles and permissions are empty and the identity is limited to the fields in the OpenAPI schema. CPF is omitted from this initial minimal auth profile; any future CPF response must follow the holder/specific-permission access in ADR 0004, never public exposure. Permission names remain owned by API #16.
+- The authenticated Sanctum session is the only source of the profile subject. Client-supplied user IDs, roles, and permissions never select an identity or grant access; the profile is display context, and the API rechecks authorization against server-side state on every protected request.
 - Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment.
 
 ## SPA origins and email links
