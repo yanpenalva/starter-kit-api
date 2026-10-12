@@ -27,3 +27,20 @@ After the guides were added and linked, all four focused tests passed.
 ## Scope
 
 No application behavior, workflow YAML, frontend, dependency manifest, or contracts/openapi.json changed. No contract artifact was generated or published.
+
+## Follow-up review verification — 2026-10-12
+
+- Inspected `.github/workflows/quality.yml`: the contract job runs for pull requests
+  and pushes to main, exports twice, and compares the result to the snapshot in the
+  checked-out revision.
+- Inspected `.github/workflows/openapi.yml`: `OpenAPI Contract` is manual and its
+  guard rejects refs other than `main`; it uploads an artifact and does not commit
+  the snapshot.
+- Cross-checked the release guide, ADR 0012, onboarding, vertical-slice recipe, and
+  provenance recipe for consistent candidate-snapshot and official-artifact order.
+- Inspected `PrivilegeTransaction::runWithActor` on
+  `origin/feat/slice-11-privilege-races` and `RenameRole` on
+  `origin/feat/slice-8-custom-role-renaming`: `RenameRole` calls `run`, locks the
+  role target, and authorizes the supplied actor without reloading it.
+- `python3 scripts/validate_context.py --strict` — passed.
+- `git diff --check` — passed.

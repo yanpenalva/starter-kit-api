@@ -21,3 +21,17 @@ The focused docs/Pest checks and static gates passed as recorded in
 `verification.md`. An independent reader was not available in this execution; the
 full Python suite is limited by the missing pinned `oasdiff` binary on this
 `aarch64` host.
+
+## Follow-up review — 2026-10-12
+
+Addressed the three high findings:
+
+- The release guide and its onboarding, ADR 0012, vertical-slice, and provenance
+  references now distinguish the PR snapshot candidate from the main-only producer
+  artifact published after integration.
+- ADR 0011 now says that `runWithActor` reloads and locks the actor, while
+  `RenameRole` locks the target role and uses the supplied actor without reloading.
+- The audit action allowlist now includes `role.rename`.
+
+The follow-up changes are documentation only. No workflow, application code, test,
+or OpenAPI snapshot changed.

@@ -19,14 +19,17 @@ rename de roles customizadas, e a revalidação do ator contra corridas de privi
 - Role admin é imutável. Roles reservadas não podem ser renomeadas; roles
   customizadas têm operações explícitas de detalhe e rename. Atribuições existentes
   persistem depois de uma renomeação; não se remove role enquanto estiver atribuída.
-- Cada mutação privilegiada entra em PrivilegeTransaction, relê o ator sob o lock,
-  e aplica novamente a Policy antes de alterar estado. No PostgreSQL, o lock
-  advisory transacional `727423` serializa essas mutações; a gravação da auditoria
-  fica no mesmo commit e sua falha reverte a operação.
+- Mutações privilegiadas entram em PrivilegeTransaction. As ações que usam
+  `runWithActor` recarregam e bloqueiam o ator dentro da transação antes de reaplicar
+  a Policy. `RenameRole` usa `run`: bloqueia o role alvo, mas reaplica a Policy com
+  o ator recebido, sem recarregá-lo. No PostgreSQL, o lock advisory transacional
+  `727423` serializa essas mutações; a gravação da auditoria fica no mesmo commit e
+  sua falha reverte a operação.
 - A auditoria usa as categorias `privileged.change` e `cli.bootstrap`; os códigos
   de ação permitidos são `user.store`, `user.update`, `user.destroy`, `user.status`,
-  `user.assign_roles`, `role.store`, `role.update_permissions`, `role.destroy` e
-  `admin.bootstrap`. O mesmo catálogo governa escrita e filtros do feed.
+  `user.assign_roles`, `role.store`, `role.update_permissions`, `role.destroy`,
+  `role.rename` e `admin.bootstrap`. O mesmo catálogo governa escrita e filtros do
+  feed.
 - O envelope de propriedades permite apenas `correlation_id`, `actor_type`,
   `actor_id` e `action`, com valores validados por tipo. Descrição livre e
   propriedades não aprovadas não são registradas nem expostas pelo feed.

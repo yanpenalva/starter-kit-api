@@ -4,42 +4,48 @@ Este guia descreve o fluxo oficial da API. A configuração executável é
 .github/workflows/openapi.yml e o gate de contrato está em
 .github/workflows/quality.yml.
 
-## Produzir o artifact
+## Atualizar e validar o snapshot candidato
 
-1. Conclua e integre em main as mudanças de rotas ou respostas. A publicação não
-   executa em branches de feature.
-2. Em GitHub Actions, execute OpenAPI Contract em main e informe o motivo exigido.
-   O workflow aceita somente workflow_dispatch e falha fechado fora de main.
-3. O job instala as dependências fixadas, exige dedoc/scramble 0.13.47, migra o
-   PostgreSQL de teste e exporta com LC_ALL=C. Duas exportações precisam ter bytes
-   idênticos.
-4. O workflow publica contracts/openapi.json como artifact
-   openapi-<commit-sha-completo>, com retenção de 90 dias. A execução não cria
-   commit no repositório.
-5. Baixe e revise o artifact da execução correspondente ao SHA exato de main. Para
-   consumo entre repositórios, verifique run, workflow, branch, SHA, artifact id,
-   digest do ZIP e SHA-256 recalculado do arquivo seguindo a
-   [receita de proveniência](openapi-contract-recipe.md).
-   Não aceite artifacts por nome latest, não use metadados não verificados e não
-   confunda o digest do arquivo ZIP com o hash do OpenAPI.
+O job contract de `.github/workflows/quality.yml` roda em pull requests e em pushes
+para main. Ele exporta o OpenAPI duas vezes, exige bytes idênticos e compara a
+exportação com `contracts/openapi.json` presente no checkout daquela revisão.
+Também valida a estrutura e os esquemas de sessão e compara compatibilidade com a
+baseline imutável usando oasdiff fixado.
 
-## Atualizar o snapshot versionado
+Quando uma mudança de rota ou resposta altera o contrato, atualize
+`contracts/openapi.json` a partir da revisão candidata e inclua o snapshot no mesmo
+pull request. Gere o candidato na revisão proposta com:
 
-Depois de revisar o artifact, atualize contracts/openapi.json em uma mudança
-revisável própria. O produtor não grava esse commit automaticamente. Exportação
-local com scramble:export serve para inspeção e não substitui a execução oficial.
+```sh
+LC_ALL=C php artisan scramble:export --path=contracts/openapi.json
+```
 
-O gate contract do workflow Quality reexporta duas vezes, exige igualdade com o
-snapshot commitado, valida estrutura, sessão-cookie sem esquema bearer e compara
-compatibilidade com a baseline imutável usando oasdiff fixado. Mudança incompatível
-precisa seguir a regra de versão da API e não pode ser escondida por atualizar só o
-snapshot.
+Revise o diff e deixe o gate confirmar a exportação determinística e a
+compatibilidade. Em mudanças que não alteram o contrato, não é necessário editar o
+snapshot. Uma exportação local gera o candidato para revisão; ela não substitui o
+artifact oficial de proveniência.
 
-Não altere o snapshot em um branch de feature nem copie uma exportação local para
-simular a publicação. Se o artifact expirou, publique novamente a partir da main
-atual e revise o novo SHA; a exportação não reproduz arbitrariamente um SHA
-histórico. A retenção do artifact é 90 dias. O snapshot já revisado e commitado não
-expira com o artifact.
+## Publicar o artifact oficial
+
+Depois que a mudança de contrato for integrada em main, execute OpenAPI Contract em
+GitHub Actions e informe o motivo exigido. O produtor aceita somente
+`workflow_dispatch` e falha fora de main. Ele instala as dependências fixadas, exige
+dedoc/scramble 0.13.47, migra o PostgreSQL de teste e exporta com `LC_ALL=C`; as duas
+exportações precisam ter bytes idênticos.
+
+O workflow publica `contracts/openapi.json` como artifact
+`openapi-<commit-sha-completo>`, com retenção de 90 dias. A execução não cria commit
+nem atualiza o snapshot versionado. Revise o artifact da execução correspondente ao
+SHA exato de main e confirme que ele corresponde ao snapshot integrado. Para consumo
+entre repositórios, verifique run, workflow, branch, SHA, artifact id, digest do ZIP
+e SHA-256 recalculado do arquivo seguindo a
+[receita de proveniência](openapi-contract-recipe.md). Não aceite artifacts por nome
+latest, não use metadados não verificados e não confunda o digest do arquivo ZIP com
+o hash do OpenAPI.
+
+Se o artifact expirou, publique novamente a partir da main atual e revise o novo
+SHA; a exportação não reproduz arbitrariamente um SHA histórico. O snapshot revisado
+e commitado não expira com o artifact.
 
 ## Proveniência e segurança
 

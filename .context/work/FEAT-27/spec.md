@@ -20,7 +20,7 @@ Keep current API decisions and the OpenAPI release procedure discoverable and ac
 ## Out of scope
 
 - Frontend changes, API behavior changes, workflow configuration changes, PR creation, merge, deployment, or production release.
-- Editing or generating contracts/openapi.json; that snapshot remains producer-owned on main.
+- Editing or generating `contracts/openapi.json` as part of this documentation-only slice. For later API contract changes, the candidate snapshot belongs in the same PR because Quality compares it with the generated contract; the official producer remains main-only and does not commit the snapshot.
 - Introducing new architecture decisions beyond documenting the decisions and behavior already authorized in this roadmap.
 
 ## Evidence and context

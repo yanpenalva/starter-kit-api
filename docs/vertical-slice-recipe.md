@@ -65,9 +65,11 @@ passado se ele não foi executado neste commit.
 
 ## 5. Libere o contrato e entregue
 
-Se rotas ou respostas mudarem, deixe contracts/openapi.json para o workflow
-produtor executado em main. Siga o [guia de release do contrato](contract-release.md)
-para revisar o artifact e atualizar o snapshot; export local é apenas inspeção.
+Se rotas ou respostas mudarem, gere o snapshot candidato a partir da mesma revisão e
+inclua `contracts/openapi.json` no PR; o gate contract valida igualdade e
+compatibilidade. Depois da integração, execute o produtor em main para publicar o
+artifact oficial. Siga o [guia de release do contrato](contract-release.md); uma
+exportação local gera o candidato, mas não substitui o artifact oficial.
 
 Revise o diff inteiro, confirme que ele contém só a fatia, atualize o work item e
 documente branch, arquivos e gates. Faça commit convencional e push somente para a

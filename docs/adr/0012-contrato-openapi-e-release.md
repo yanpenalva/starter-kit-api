@@ -8,9 +8,9 @@
 ## Contexto
 
 O ADR 0003 registrava Scramble e comparação de contrato como planejados. O produtor
-e o gate agora existem; uma branch de feature não pode publicar como se fosse o
-contrato integrado. A forma dos envelopes e dos valores nullable também precisa
-ser visível no OpenAPI 3.1.
+e o gate agora existem; uma branch de feature pode propor um snapshot candidato, mas
+somente main pode publicar o artifact oficial. A forma dos envelopes e dos valores
+nullable também precisa ser visível no OpenAPI 3.1.
 
 ## Decisão
 
@@ -20,18 +20,24 @@ ser visível no OpenAPI 3.1.
 - OpenAPI Contract é um workflow_dispatch restrito a main. Ele valida a versão
   fixada, usa PostgreSQL de teste, exporta duas vezes com LC_ALL=C, exige bytes
   idênticos e publica openapi-<SHA completo> por 90 dias.
-- O produtor não cria commit. Depois de mudanças integradas, o operador revisa o
-  artifact da execução e atualiza contracts/openapi.json em uma mudança revisável.
-  A exportação local serve apenas para inspeção.
-- Quality verifica a igualdade do snapshot com uma nova exportação, valida estrutura
-  e compara compatibilidade com o baseline imutável usando oasdiff fixado.
+- O produtor não cria commit. Para mudanças de contrato, o PR deve revisar e
+  versionar `contracts/openapi.json` como snapshot candidato da mesma revisão. A
+  exportação local gera esse candidato; não substitui o artifact oficial.
+- Quality roda em pull requests e pushes para main. Verifica a igualdade do snapshot
+  no checkout com uma nova exportação, valida estrutura e compara compatibilidade
+  com o baseline imutável usando oasdiff fixado.
 - Proveniência separa o digest do ZIP do SHA-256 do OpenAPI extraído. O receipt
   comprova metadados confiáveis e integridade da transferência; não é assinatura
   criptográfica.
 
 ## Consequências e verificação
 
-Uma atualização de rota não é publicável como snapshot antes de chegar a main. Um artifact expirado exige uma nova publicação a partir da main atual; não se atribui um artifact novo a um SHA histórico. O [guia de release](../contract-release.md) cobre o produtor e snapshot; a [receita de proveniência](../openapi-contract-recipe.md) cobre extração e verificação.
+Uma mudança de rota precisa levar seu snapshot candidato no PR para passar pelo gate
+de frescor; o artifact oficial só é publicado pelo produtor depois da integração em
+main. Um artifact expirado exige nova publicação a partir da main atual; não se
+atribui artifact novo a SHA histórico. O [guia de release](../contract-release.md)
+cobre o snapshot e o produtor; a [receita de proveniência](../openapi-contract-recipe.md)
+cobre extração e verificação.
 
 O gate contract do workflow Quality é a evidência automatizada de frescor e
 compatibilidade. Este ADR não altera contracts/openapi.json nem a configuração dos

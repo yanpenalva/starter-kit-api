@@ -76,7 +76,7 @@ Os comandos locais de validação de contexto estão em [quality configuration](
 
 ## OpenAPI
 
-Siga o [guia de release do contrato](contract-release.md) para executar o produtor em main e atualizar o snapshot revisado. A [receita de proveniência](openapi-contract-recipe.md) detalha a verificação do artifact; a exportação local serve apenas para inspeção. Para implementar uma mudança fim a fim, use também a [receita de fatia vertical](vertical-slice-recipe.md).
+Siga o [guia de release do contrato](contract-release.md): mudanças de rota ou resposta levam o snapshot candidato no mesmo PR; depois da integração, o produtor em main publica o artifact oficial. A [receita de proveniência](openapi-contract-recipe.md) detalha a verificação do artifact. Para implementar uma mudança fim a fim, use também a [receita de fatia vertical](vertical-slice-recipe.md).
 
 ## Deploy e smoke
 

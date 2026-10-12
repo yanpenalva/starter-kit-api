@@ -58,5 +58,6 @@ quem produziu o artifact. Preserve o SHA da API, run/workflow/artifact IDs, hash
 versão do gerador e a revisão consumidora junto ao contrato versionado.
 
 Depois de revisar o JSON, siga o [guia de release do contrato](contract-release.md)
-para a atualização revisável do snapshot da API. Não copie uma exportação local
-para `contracts/openapi.json`.
+para compará-lo com o snapshot integrado na mesma revisão de main. O snapshot
+candidato de uma mudança de API é revisado e versionado no PR; não copie o artifact
+extraído nem use uma exportação local para simular a publicação oficial.
