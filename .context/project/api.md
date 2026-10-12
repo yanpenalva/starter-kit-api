@@ -33,6 +33,13 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - Each endpoint declares its own filter and sort allowlist. Unknown fields are rejected with 422; clients never choose SQL columns or operators.
 - Sort uses a documented `sort` field allowlist and `direction=asc|desc`; absent values use the endpoint's stable default order.
 
+## Role administration
+
+- `GET /api/v1/roles/{id}` requires an authenticated, verified actor with `roles.view` and returns the role's `id`, `name`, `guard_name`, and sorted permission names in the standard `data` envelope.
+- `PATCH /api/v1/roles/{id}` requires `roles.manage` and a unique `name` string (maximum 255 characters). It renames a custom role and preserves its permission assignments. Built-in role names cannot be changed.
+- `DELETE /api/v1/roles/{id}` requires `roles.manage`; `admin` cannot be deleted, and a role assigned to users cannot be deleted. Role mutations are audited transactionally.
+- The `admin` role is immutable through the API: its name, permission set, and existence cannot be changed. Reading its details still requires `roles.view`.
+
 ## Availability and compatibility
 
 - `GET /api/v1` is a minimal availability response. Laravel's `/up` is liveness: it only indicates that the application can answer. No readiness endpoint or database-readiness contract exists yet; do not expose connection, host, or infrastructure details.
@@ -91,5 +98,3 @@ yanpenalva approved this policy via the question tool ("Aprovar transporte") on 
 - Producer workflow: `.github/workflows/openapi.yml` (`name: OpenAPI Contract`) exports the real document on `main` (workflow_dispatch + push to main, wrong-branch guard fail-closed) with `LC_ALL=C` 2x byte-identical verification, then uploads artifact `openapi-<fullSHA>` (retention 90d). No secrets, no PAT, no frontend writes. The receipt is constructed by operator fetch AFTER trusted metadata + raw ZIP verification (never inside the same ZIP).
 - Generated snapshot: `contracts/openapi.json` (OpenAPI 3.1.0, info 1.0.0 logical, 20447 bytes, SHA256 be6e4acd79e8bb9383b39b1e698ba9e3e147cda3c3cf12db223e82cdeee88b8d). Paths: `GET /` (availability), `POST /login` (204 public + XSRF header, 401/403/419/422/429), `POST /logout` (204 sessionCookie + XSRF, 401/419/429), `GET /auth/my-profile` (200 sessionCookie wrapped data, 401/403/429), `GET /sanctum/csrf-cookie` (204 public overlay + 429). Schemes: `sessionCookie` (apiKey cookie `starter-kit-api-session`, HttpOnly SameSite=lax) + `xsrfToken` (apiKey header `X-XSRF-TOKEN`); no Bearer/PAT/JWT. Docs UI (`/docs/api`, `/docs/api.json`) protected outside local by admin Gate `viewApiDocs` (verified active admin, Role enum; no header PAT fallback).
 - Sources: [fine-grained PAT permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), [GITHUB_TOKEN security](https://docs.github.com/en/actions/concepts/security/github_token), [security hardening](https://docs.github.com/en/actions/reference/security/secure-use), [workflow runs API](https://docs.github.com/en/rest/actions/workflow-runs), [artifact retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization), [gh run download](https://cli.github.com/manual/gh_run_download).
-
-

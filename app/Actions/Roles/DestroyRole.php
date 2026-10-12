@@ -6,6 +6,8 @@ namespace App\Actions\Roles;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
+use App\Policies\RolePolicy;
+use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
@@ -20,6 +22,10 @@ final class DestroyRole
     {
         PrivilegeTransaction::run(function () use ($actor, $role): void {
             $target = Role::query()->lockForUpdate()->whereKey($role->getKey())->firstOrFail();
+
+            if (! app(RolePolicy::class)->delete($actor, $target)) {
+                abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
+            }
 
             if ($target->users()->exists()) {
                 abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'A role assigned to users cannot be deleted.');
