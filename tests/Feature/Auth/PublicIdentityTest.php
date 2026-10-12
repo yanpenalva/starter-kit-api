@@ -7,6 +7,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use App\Notifications\VerifyEmail;
 use App\Support\ApiMessage;
+use App\Support\BlockedAccount;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -304,14 +305,14 @@ final class PublicIdentityTest extends TestCase
         $response->assertStatus(302);
         $response->assertRedirect('http://frontend.test/verify-email?ok=1');
         $this->assertNotNull($user->fresh()?->email_verified_at);
-        $this->assertNotNull($user->fresh()->deactivated_at);
+        $this->assertNull($user->fresh()->deactivated_at);
         $this->assertDatabaseMissing('model_has_roles', ['model_id' => $user->id]);
         Event::assertDispatched(Verified::class, static function (Verified $event) use ($user): bool {
             return $event->user->getEmailForVerification() === $user->email;
         });
     }
 
-    public function test_pending_account_logs_in_verifies_email_and_stays_deactivated(): void
+    public function test_pending_account_logs_in_verifies_email_and_becomes_active(): void
     {
         Event::fake([Verified::class]);
         config(['app.frontend_url' => 'http://frontend.test']);
@@ -328,19 +329,50 @@ final class PublicIdentityTest extends TestCase
 
         $this->get($url)->assertUnauthorized();
 
-        $this->sessionHeaders()->postJson('/api/v1/login', [
-            'email' => $user->email,
-            'password' => 'password',
-        ])->assertNoContent();
+        $user = $user->fresh();
+        assert($user instanceof User);
+        self::actingAsSanctum($user);
 
-        $this->sessionHeaders()->getJson('/api/v1/auth/my-profile')
+        $this->getJson('/api/v1/auth/my-profile')
             ->assertOk()
             ->assertJsonPath('data.email', 'pending-verify@example.test')
             ->assertJsonPath('data.email_verified_at', null);
 
         $this->get($url)->assertRedirect('http://frontend.test/verify-email?ok=1');
         $this->assertNotNull($user->fresh()?->email_verified_at);
-        $this->assertNotNull($user->fresh()->deactivated_at);
+        $this->assertNull($user->fresh()->deactivated_at);
+
+        self::actingAsSanctum($user->fresh());
+
+        $fresh = $user->fresh();
+        $this->assertNotNull($fresh->email_verified_at);
+
+        $this->getJson('/api/v1/auth/my-profile')
+            ->assertOk()
+            ->assertJsonPath('data.email', 'pending-verify@example.test')
+            ->assertJsonPath('data.email_verified_at', $fresh->email_verified_at->clone()->utc()->format('Y-m-d\TH:i:s\Z'));
+    }
+
+    public function test_suspended_account_verifying_email_retains_deactivation(): void
+    {
+        Event::fake([Verified::class]);
+        config(['app.frontend_url' => 'http://frontend.test']);
+
+        $verifiedAt = now()->floorSecond()->subDays(2);
+        $deactivatedAt = now()->floorSecond()->subDay();
+
+        $user = User::factory()->create([
+            'email' => 'suspended-verify@example.test',
+            'email_verified_at' => $verifiedAt,
+            'deactivated_at' => $deactivatedAt,
+        ]);
+
+        $this->assertSame(BlockedAccount::REASON_SUSPENDED, BlockedAccount::reason($user));
+
+        $user->markEmailAsVerified();
+
+        $this->assertNotNull($user->fresh()?->deactivated_at);
+        $this->assertSame(BlockedAccount::REASON_SUSPENDED, BlockedAccount::reason($user->fresh()));
     }
 
     public function test_verify_with_tampered_hash_returns_403_and_keeps_user_unverified(): void

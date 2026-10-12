@@ -14,6 +14,7 @@ A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As decis�
 | 0006 (histórico) | Legado | Incorporado nos ADRs [0001](0001-api-spa-independentes.md), [0002](0002-autenticacao-spa.md) e [0004](0004-identidade-rbac.md) | Registro original em FEAT-1 |
 | [0007](0007-matriz-rbac.md) | Matriz RBAC revisada, regras protegidas e contrato de administração | Aceito | Wave A (RBAC) / wave B (CRUD users/roles) |
 | [0008](0008-catalogo-permissoes.md) | Catálogo fechado de permissões, sem CRUD HTTP | Aceito | CRUD administrativo |
+| [0009](0009-ativacao-por-verificacao-email.md) | Jornada registro-acesso e ativação condicionada por motivo de bloqueio | Aceito | Autenticação / Ativação |
 
 Owner e aprovador arquitetural: yanpenalva. Owner operacional: NOT FOUND. Preparação técnica: Codex. Work item: [FEAT-1](../../.context/work/FEAT-1/work-item.json).
 

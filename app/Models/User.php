@@ -8,6 +8,7 @@ use App\Enums\Permission;
 use App\Enums\Role;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use App\Notifications\VerifyEmail;
+use App\Support\BlockedAccount;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -62,6 +63,26 @@ final class User extends Authenticatable implements MustVerifyEmailContract
             'deactivated_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function markEmailAsVerified(): bool
+    {
+        $isPendingApproval = BlockedAccount::reason($this) === BlockedAccount::REASON_PENDING_APPROVAL;
+        $now = $this->freshTimestamp();
+
+        if ($isPendingApproval) {
+            return $this->forceFill([
+                'email_verified_at' => $now,
+                'deactivated_at' => null,
+            ])->save();
+        }
+
+        return $this->forceFill([
+            'email_verified_at' => $now,
+            'deactivated_at' => ($this->deactivated_at !== null && $this->deactivated_at->greaterThan($now))
+                ? $this->deactivated_at
+                : $now->copy()->addSecond(),
+        ])->save();
     }
 
     public function sendEmailVerificationNotification(): void
