@@ -12,8 +12,10 @@ Let authorized API operators read one role and rename custom roles while protect
 ## Scope
 
 - `GET /api/v1/roles/{id}` requires `roles.view` and returns the existing role resource.
-- `PATCH /api/v1/roles/{id}` requires `roles.manage`, validates a unique name up to 255 characters, preserves permission assignments, and writes an audit record in the privilege transaction.
+- `PATCH /api/v1/roles/{id}` requires `roles.manage`, validates a unique name up to 255 characters, preserves permission assignments, and writes a `role.rename` audit action in the privilege transaction.
 - Built-in names cannot be renamed. The `admin` role also cannot be deleted or have its permission set changed.
+- The permission-update action rechecks its policy after loading and locking the persisted role inside the transaction, including direct action calls.
+- The rename action rechecks name uniqueness inside the privilege transaction and maps a database uniqueness race to a field-level HTTP 422 response.
 - Update API/architecture documentation and feature coverage.
 
 ## Out of scope
@@ -29,7 +31,7 @@ Let authorized API operators read one role and rename custom roles while protect
 
 ## Acceptance
 
-- Feature tests prove detail authorization, rename authorization, uniqueness validation, permission preservation, audit, built-in name protection, and admin immutability.
+- Feature tests prove policy revalidation inside the transaction, rename uniqueness (including a collision after validation), permission preservation, `role.rename` audit, built-in name protection, and admin immutability through HTTP and direct action calls.
 - `composer lint`, `composer analyse`, relevant Pest tests, and strict context validation pass.
 - Branch is based on updated `origin/main`, then committed and pushed without opening a PR or merging.
 

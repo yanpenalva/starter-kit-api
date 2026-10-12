@@ -2,16 +2,17 @@
 
 ## Inputs
 
-- Request/spec: custom role detail and rename; admin immutable.
-- Diff: routes, RoleController, request, actions, policy, tests, API and architecture docs.
-- Verification: 26 SQLite feature/action tests, Pint, PHPStan, and strict context validation passed.
-- Delivery: EXC-0001; branch-only push, no PR/merge.
+- Request/spec/plan: role permission-policy revalidation, duplicate rename handling, and slice 7 audit action integration.
+- Diff: role actions, audit writer/helper, architecture documentation and focused tests.
+- Verification: 30 focused role tests (125 assertions), Pint, Larastan level 10, Composer validation/platform/audit, 113 Python tests, strict context validation and CSD doctor.
+- Delivery: `feat/slice-8-custom-role-renaming` → `main` on `origin`; commit and branch push authorized; PR/merge forbidden.
 
 ## Findings
 
-- No blocking issue found in the author self-review. Rename checks the name at the boundary and rechecks role policy under the privilege transaction; permission assignments remain attached to the role ID and the cache is cleared after commit.
-- Independent reviewer was not available in this execution; no independent PASS is claimed.
+- No blocking issue found in author review. Policy revalidation uses the locked persisted role within the privilege transaction; duplicate-name races remain a field-level 422; audit actions remain allowlisted and `role.rename` is asserted in the feature test.
+- Full local SQLite suite is not a valid PostgreSQL substitute (57 PostgreSQL/service-dependent failures); PostgreSQL 18/Redis CI evidence remains NOT FOUND.
+- Independent reviewer: NOT FOUND.
 
 ## Verdict
 
-`APPROVED WITH CONDITIONS` — author review only; later integration should receive independent review.
+`APPROVED WITH CONDITIONS` — focused local gates pass; PostgreSQL 18 CI and an independent review remain outstanding before integration. This execution will only push the branch and will not open a PR or merge.

@@ -21,9 +21,24 @@ final class Audit
 
     public const EVENT_PRIVILEGED_CHANGE = 'privileged.change';
 
+    public const ACTION_ROLE_STORE = 'role.store';
+
+    public const ACTION_ROLE_UPDATE_PERMISSIONS = 'role.update_permissions';
+
+    public const ACTION_ROLE_DESTROY = 'role.destroy';
+
+    public const ACTION_ROLE_RENAME = 'role.rename';
+
+    private const ALLOWED_ACTIONS = [
+        self::ACTION_ROLE_STORE,
+        self::ACTION_ROLE_UPDATE_PERMISSIONS,
+        self::ACTION_ROLE_DESTROY,
+        self::ACTION_ROLE_RENAME,
+    ];
+
     private const ALLOWED_EVENTS = [self::EVENT_CLI_BOOTSTRAP, self::EVENT_PRIVILEGED_CHANGE];
 
-    private const ALLOWED_PROPERTY_KEYS = ['correlation_id', 'actor_type', 'actor_id'];
+    private const ALLOWED_PROPERTY_KEYS = ['correlation_id', 'actor_type', 'actor_id', 'action'];
 
     /**
      * The single-sourced event allowlist, also exposed to the read feed so
@@ -96,6 +111,7 @@ final class Audit
                 'correlation_id' => is_string($value) && Str::isUuid($value),
                 'actor_type' => in_array($value, ['user', 'cli'], true),
                 'actor_id' => $value === null || (is_int($value) && $value > 0),
+                'action' => in_array($value, self::ALLOWED_ACTIONS, true),
                 default => false,
             };
 

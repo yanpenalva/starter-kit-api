@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 use Tests\Concern\ActsAsSanctumUser;
@@ -75,6 +76,7 @@ final class CustomRoleManagementTest extends TestCase
         $properties = $activity->properties?->all() ?? [];
         $this->assertSame('user', $properties['actor_type'] ?? null);
         $this->assertSame($actor->id, $properties['actor_id'] ?? null);
+        $this->assertSame('role.rename', $properties['action'] ?? null);
     }
 
     public function test_rename_rejects_a_duplicate_name(): void
@@ -89,6 +91,39 @@ final class CustomRoleManagementTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('name');
 
+        $this->assertDatabaseHas('roles', ['id' => $role->id, 'name' => 'auditor']);
+    }
+
+    public function test_rename_returns_422_when_a_duplicate_is_created_after_validation(): void
+    {
+        $role = Role::query()->create(['name' => 'auditor', 'guard_name' => 'web']);
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::RolesManage->value);
+        self::actingAsSanctum($actor);
+
+        $name = 'records-auditor';
+        $targetId = $role->getKey();
+        $collisionInserted = false;
+        $eventName = 'eloquent.updating: '.Role::class;
+
+        Event::listen($eventName, static function (Role $target) use (&$collisionInserted, $name, $targetId): void {
+            if ($collisionInserted || $target->getKey() !== $targetId || ! $target->isDirty('name')) {
+                return;
+            }
+
+            $collisionInserted = true;
+            Role::query()->create(['name' => $name, 'guard_name' => 'web']);
+        });
+
+        try {
+            $this->patchJson("/api/v1/roles/{$role->id}", ['name' => $name])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('name');
+        } finally {
+            Event::forget($eventName);
+        }
+
+        $this->assertTrue($collisionInserted);
         $this->assertDatabaseHas('roles', ['id' => $role->id, 'name' => 'auditor']);
     }
 

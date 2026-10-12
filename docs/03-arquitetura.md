@@ -195,7 +195,7 @@ flowchart TD
     M[Mutação privilegiada] --> TX[PrivilegeTransaction<br/>transação + trava consultiva]
     TX --> OP[aplica a mudança]
     OP --> AU[Audit.record<br/>só eventos allowlist:<br/>privileged.change,<br/>cli.bootstrap]
-    AU --> ENV[envelope mínimo:<br/>correlation_id,<br/>actor_type, actor_id]
+    AU --> ENV[envelope mínimo:<br/>correlation_id,<br/>actor_type, actor_id, action]
     ENV --> AS[afirma que o registro<br/>existe na mesma transação]
     AS -->|existe| CM[commit]
     AS -->|falhou| RB[rollback da mutação]
@@ -209,7 +209,8 @@ O que o desenho garante, ponto a ponto:
   é verificada antes do commit. Se a gravação falha, a mutação é revertida: nunca
   existe privilégio concedido sem registro correspondente.
 - **Envelope mínimo por negação padrão.** Só sobrevivem as chaves aprovadas
-  (`correlation_id`, `actor_type`, `actor_id`); todo o resto é descartado. Senhas,
+  (`correlation_id`, `actor_type`, `actor_id` e ações fechadas como `role.rename`);
+  todo o resto é descartado. Senhas,
   hashes, tokens, cookies, CSRF, CPF, e-mail e payload integral são proibidos, e IP
   não é coletado por padrão.
 - **Leitura controlada.** A trilha não pode ser editada nem removida pela API, e a
