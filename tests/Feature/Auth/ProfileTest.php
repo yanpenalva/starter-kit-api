@@ -7,10 +7,13 @@ namespace Tests\Feature\Auth;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
+use App\Notifications\VerifyEmail;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 final class ProfileTest extends TestCase
@@ -21,9 +24,11 @@ final class ProfileTest extends TestCase
     {
         parent::setUp();
 
-        $database = config('database.connections.pgsql.database');
-        $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        if (config('database.default') === 'pgsql') {
+            $database = config('database.connections.pgsql.database');
+            $this->assertIsString($database);
+            $this->assertSame('starter_api_test', $database);
+        }
 
         $this->seed(RbacCatalogueSeeder::class);
     }
@@ -206,5 +211,145 @@ final class ProfileTest extends TestCase
 
         $response->assertStatus(401)
             ->assertExactJson(['message' => 'Não autenticado.']);
+    }
+
+    public function test_owner_edits_name_without_admin_permissions(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Original Name',
+            'email' => 'selfservice@example.test',
+        ]);
+        $user->assignRole(Role::User->value);
+
+        $response = $this->actingAs($user, 'web')
+            ->patchJson('/api/v1/auth/my-profile', [
+                'name' => 'Updated Name',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.name', 'Updated Name');
+
+        $this->assertSame('Updated Name', $user->fresh()?->name);
+    }
+
+    public function test_owner_changes_email_resets_verification_and_dispatches_notification(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->verified()->create([
+            'email' => 'old-email@example.test',
+        ]);
+        $user->assignRole(Role::User->value);
+
+        $response = $this->actingAs($user, 'web')
+            ->patchJson('/api/v1/auth/my-profile', [
+                'email' => 'new-email@example.test',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.email', 'new-email@example.test')
+            ->assertJsonPath('data.email_verified_at', null);
+
+        $fresh = $user->fresh();
+        $this->assertInstanceOf(User::class, $fresh);
+        $this->assertSame('new-email@example.test', $fresh->email);
+        $this->assertNull($fresh->email_verified_at);
+
+        Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    public function test_owner_updating_same_email_does_not_reset_verification(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->verified()->create([
+            'email' => 'keep-email@example.test',
+        ]);
+        $user->assignRole(Role::User->value);
+
+        $response = $this->actingAs($user, 'web')
+            ->patchJson('/api/v1/auth/my-profile', [
+                'email' => 'keep-email@example.test',
+                'name' => 'Renamed Only',
+            ]);
+
+        $response->assertOk();
+        $this->assertNotNull($user->fresh()?->email_verified_at);
+        Notification::assertNothingSent();
+    }
+
+    public function test_owner_changes_password_requires_current_password(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password-123'),
+        ]);
+        $user->assignRole(Role::User->value);
+
+        // 1. Wrong current password fails
+        $wrongResponse = $this->actingAs($user, 'web')
+            ->putJson('/api/v1/auth/password', [
+                'current_password' => 'wrong-password-123',
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
+            ]);
+
+        $wrongResponse->assertStatus(422)
+            ->assertJsonValidationErrors('current_password');
+
+        // 2. Correct current password succeeds
+        $okResponse = $this->actingAs($user, 'web')
+            ->putJson('/api/v1/auth/password', [
+                'current_password' => 'old-password-123',
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
+            ]);
+
+        $okResponse->assertOk();
+        $this->assertTrue(Hash::check('new-password-123', (string) $user->fresh()?->password));
+    }
+
+    public function test_owner_can_change_password_via_profile_patch_requiring_current_password(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password-123'),
+        ]);
+
+        $this->actingAs($user, 'web')
+            ->patchJson('/api/v1/auth/my-profile', [
+                'current_password' => 'wrong-pass',
+                'password' => 'fake-profile-password-123',
+                'password_confirmation' => 'fake-profile-password-123',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('current_password');
+
+        $this->actingAs($user, 'web')
+            ->patchJson('/api/v1/auth/my-profile', [
+                'current_password' => 'old-password-123',
+                'password' => 'fake-profile-password-123',
+                'password_confirmation' => 'fake-profile-password-123',
+            ])
+            ->assertOk();
+
+        $this->assertTrue(Hash::check('fake-profile-password-123', (string) $user->fresh()?->password));
+    }
+
+    public function test_owner_cannot_modify_privileged_fields_via_self_service(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole(Role::User->value);
+
+        $this->actingAs($user, 'web')
+            ->patchJson('/api/v1/auth/my-profile', [
+                'name' => 'Valid Name',
+                'roles' => [Role::Admin->value],
+                'active' => false,
+            ])
+            ->assertOk();
+
+        $fresh = $user->fresh();
+        $this->assertInstanceOf(User::class, $fresh);
+        $this->assertFalse($fresh->hasRole(Role::Admin->value));
+        $this->assertNull($fresh->deactivated_at);
     }
 }
