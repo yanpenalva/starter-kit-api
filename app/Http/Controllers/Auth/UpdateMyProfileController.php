@@ -23,12 +23,14 @@ final class UpdateMyProfileController
             $user->name = $validated['name'];
         }
 
+        $emailChanged = false;
+
         if (isset($validated['email']) && is_string($validated['email'])) {
             $normalizedEmail = EmailLookup::normalize($validated['email']);
             if (EmailLookup::normalize($user->email) !== $normalizedEmail) {
                 $user->email = $normalizedEmail;
                 $user->email_verified_at = null;
-                $user->sendEmailVerificationNotification();
+                $emailChanged = true;
             }
         }
 
@@ -37,6 +39,10 @@ final class UpdateMyProfileController
         }
 
         $user->save();
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
 
         return new MyProfileResource($user);
     }
