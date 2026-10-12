@@ -230,6 +230,8 @@ final class ScaffoldTest extends TestCase
             'api/v1/roles',
             'api/v1/roles',
             'api/v1/roles/{role}',
+            'api/v1/roles/{role}',
+            'api/v1/roles/{role}',
             'api/v1/roles/{role}/permissions',
             'api/v1/users',
             'api/v1/users',

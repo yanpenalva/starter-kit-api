@@ -2,7 +2,7 @@
 
 ## Readiness
 
-- Focused role suite: 30 passed / 125 assertions on the local SQLite profile; full evidence is in [verification.md](verification.md).
+- Full Pest suite: 280 tests passed on the local PostgreSQL 17 profile. The focused role suite also passed 30 tests / 125 assertions on SQLite; full evidence is in [verification.md](verification.md).
 - Pint, Larastan level 10, Composer validation/platform/audit, Python tests, strict context validation and CSD doctor passed.
 - No schema or stored-data format changes; no production deployment requested or performed.
 - PostgreSQL 18/Redis integration was not run locally. CI remains the integration gate.

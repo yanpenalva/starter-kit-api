@@ -5,6 +5,7 @@
 - `source /opt/data/php/env.sh && PATH=/opt/data/home/.local/bin:$PATH APP_BASE_PATH=/opt/data/cache/scratch/api-fixwork4 APP_ENV=testing composer test -- --configuration=/tmp/phpunit-api-fixwork4-20261012.xml tests/Feature/Admin/CustomRoleManagementTest.php tests/Feature/Admin/RolesAdminHttpTest.php tests/Feature/Actions/RolesActionsTest.php` — exit 0; 30 passed, 125 assertions, SQLite in-memory. The temporary bootstrap maps `App`, `Tests`, factories and seeders to this worktree because the existing `vendor` symlink resolves to another checkout.
 - `source /opt/data/php/env.sh && composer lint` — exit 0; Pint passed.
 - `source /opt/data/php/env.sh && APP_BASE_PATH=/opt/data/cache/scratch/api-fixwork4 APP_ENV=testing composer run analyse -- --autoload-file=/tmp/api-fixwork4-autoload-20261012.php` — exit 0; Larastan level 10, 131 files, no errors.
+- Full Pest suite — exit 0; 280 tests passed on the local PostgreSQL 17 profile using this worktree's test configuration and autoload mapping. `ScaffoldTest`'s route inventory includes the three registered methods sharing `api/v1/roles/{role}`.
 - `source /opt/data/php/env.sh && composer validate --strict` — exit 0.
 - `source /opt/data/php/env.sh && composer check-platform-reqs` — exit 0; PHP 8.5.11 and required extensions available.
 - `source /opt/data/php/env.sh && composer audit` — exit 0; no security advisories.
@@ -16,8 +17,7 @@
 
 ## Limitations
 
-- A full suite run with the SQLite override exited 2 (57 failed, 223 passed, 1,966 assertions). Several tests require PostgreSQL-specific settings and services; for example, `UserSchemaTest` asserts the configured PostgreSQL database name. The focused role suite passed on SQLite.
-- PostgreSQL 18/Redis Compose tests were not run locally: the task forbids Composer installation, and the Compose test image build invokes `composer install`. CI remains the PostgreSQL integration gate.
+- The local PostgreSQL profile is version 17; the canonical PostgreSQL 18/Redis Compose profile was not run locally because the task forbids Composer installation. CI remains the PostgreSQL 18 integration gate.
 
 ## Review
 
