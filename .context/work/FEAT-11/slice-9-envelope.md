@@ -29,4 +29,5 @@ The requested snapshot update remains part of acceptance, but `AGENTS.md` and `d
 - `composer analyse`: passed (PHPStan Level 10, no errors).
 - `python3 scripts/validate_context.py --strict`: passed.
 - `git diff --check`: passed. `contracts/openapi.json` is unchanged; its requested regeneration is pending the canonical `main` producer after integration, which this task explicitly does not authorize.
+- Git delivery: code commit `2bed058` was pushed to `origin/feat/slice-9-openapi-envelopes` successfully.
 - Production deployment, PR, merge and issue closure were not performed.
