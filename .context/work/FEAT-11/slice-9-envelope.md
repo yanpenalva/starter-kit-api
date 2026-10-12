@@ -17,9 +17,14 @@
 3. Run relevant SQLite Pest, Pint and PHPStan; validate the changed context documentation.
 4. Commit and push the validated feature branch; do not open a PR or merge.
 
-## Snapshot constraint
+## Snapshot policy and execution
 
-The requested snapshot update remains part of acceptance, but `AGENTS.md` and `docs/onboarding.md` require `contracts/openapi.json` to come from the OpenAPI producer on `main` and prohibit using local export as its substitute. This branch cannot satisfy that condition because it is not integrated, and this task explicitly forbids PRs and merges. Do not change the snapshot here or claim it was updated. The canonical producer must export it after an authorized integration on `main`.
+The local export is the candidate snapshot for this branch, following the procedure read from `origin/feat/slice-12-contract-release-docs:docs/contract-release.md`. The official artifact remains a separate post-integration producer output from `main`; local export does not claim its provenance. This supersedes the earlier producer-only note in this record. The current request explicitly authorized the candidate snapshot update and prohibited PRs and merges.
+
+- Snapshot commit already present on the branch and remote before this verification: `3d20590a582e4f04ff36378ea8563017e7dbd3c2`.
+- Two candidate exports on that exact source used PHP 8.5.11, a temporary SQLite database migrated from this revision, and separate `LC_ALL=C php artisan scramble:export` invocations targeting `storage/app/openapi-pass1.json` and `storage/app/openapi-pass2.json` in an isolated copy because the worktree's `vendor` symlink points to another checkout.
+- Both exports have SHA-256 `249c1385f63a974320528e3cc1b16876f410d00ff6de0b16cdd801775cf2c968`; `cmp` passed between both exports and against the committed snapshot.
+- The official OpenAPI artifact from `main` was not produced or reviewed; no PR or merge was created.
 
 ## Execution evidence
 
@@ -28,6 +33,8 @@ The requested snapshot update remains part of acceptance, but `AGENTS.md` and `d
 - `composer lint`: passed (Pint).
 - `composer analyse`: passed (PHPStan Level 10, no errors).
 - `python3 scripts/validate_context.py --strict`: passed.
-- `git diff --check`: passed. `contracts/openapi.json` is unchanged; its requested regeneration is pending the canonical `main` producer after integration, which this task explicitly does not authorize.
+- The earlier no-snapshot note is superseded by the candidate export evidence above.
+- Focused contract tests in the isolated SQLite copy (`OpenApiResponseShapeTest` and `OpenApiSnapshotTest`): 3 passed, 677 assertions, no warnings.
+- `python3 scripts/validate_context.py --strict`: passed after the evidence and onboarding updates.
 - Git delivery: code commit `2bed058` was pushed to `origin/feat/slice-9-openapi-envelopes` successfully.
 - Production deployment, PR, merge and issue closure were not performed.
