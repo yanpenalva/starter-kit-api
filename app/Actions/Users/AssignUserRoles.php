@@ -8,6 +8,7 @@ use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
 use App\Policies\UserPolicy;
 use App\Support\ApiMessage;
+use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
@@ -32,7 +33,7 @@ final class AssignUserRoles
 
             $target->syncRoles($roleNames);
 
-            $this->auditUserChange($actor, $target);
+            $this->auditUserChange($actor, $target, Audit::ACTION_USER_ASSIGN_ROLES);
 
             DB::afterCommit(static function () use ($target): void {
                 app(PermissionRegistrar::class)->forgetCachedPermissions();

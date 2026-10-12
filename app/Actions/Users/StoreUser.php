@@ -6,6 +6,7 @@ namespace App\Actions\Users;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
 
 final class StoreUser
@@ -29,7 +30,7 @@ final class StoreUser
                 'deactivated_at' => $active ? null : now(),
             ]);
 
-            $this->auditUserChange($actor, $user);
+            $this->auditUserChange($actor, $user, Audit::ACTION_USER_STORE);
 
             return $user;
         });

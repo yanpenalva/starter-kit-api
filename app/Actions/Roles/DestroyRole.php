@@ -6,6 +6,7 @@ namespace App\Actions\Roles;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
@@ -25,7 +26,7 @@ final class DestroyRole
                 abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'A role assigned to users cannot be deleted.');
             }
 
-            $this->auditRoleChange($actor, $target);
+            $this->auditRoleChange($actor, $target, Audit::ACTION_ROLE_DESTROY);
             $target->delete();
 
             DB::afterCommit(static function (): void {
