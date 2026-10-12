@@ -12,6 +12,7 @@ use Dedoc\Scramble\Support\Generator\Schema;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Dedoc\Scramble\Support\Generator\Server;
 use Dedoc\Scramble\Support\Generator\Types\ArrayType;
+use Dedoc\Scramble\Support\Generator\Types\BooleanType;
 use Dedoc\Scramble\Support\Generator\Types\IntegerType;
 use Dedoc\Scramble\Support\Generator\Types\ObjectType;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
@@ -36,8 +37,11 @@ final class ContractDocumentTransformer
         $this->ensureServers($openApi);
         $cookieName = $this->registerSessionSchemes($openApi);
         $this->fixProfileSchema($openApi);
+        $this->fixResourceDateTimeSchemas($openApi);
+        $this->fixResourceArraySchemas($openApi);
         $this->overlay->apply($openApi);
         $this->injectCsrfCookieOverlay($openApi, $cookieName);
+        $this->fixPaginatedListResponses($openApi);
     }
 
     private function ensureLogicalInfo(OpenApi $openApi): void
@@ -124,6 +128,143 @@ final class ContractDocumentTransformer
         $schema = Schema::fromType($profile);
 
         return $schema;
+    }
+
+    private function fixResourceDateTimeSchemas(OpenApi $openApi): void
+    {
+        $fields = [
+            'UserResource' => ['email_verified_at', 'deactivated_at'],
+            'ActivityResource' => ['created_at'],
+        ];
+
+        foreach ($fields as $schemaName => $propertyNames) {
+            $schema = $openApi->components->schemas[$schemaName] ?? null;
+            if (! $schema instanceof Schema || ! $schema->type instanceof ObjectType) {
+                continue;
+            }
+
+            foreach ($propertyNames as $propertyName) {
+                if (! $schema->type->hasProperty($propertyName)) {
+                    continue;
+                }
+
+                $property = $schema->type->getProperty($propertyName);
+                if ($property instanceof StringType) {
+                    $property->format('date-time')->nullable(true);
+                }
+            }
+        }
+    }
+
+    private function fixResourceArraySchemas(OpenApi $openApi): void
+    {
+        foreach (['RoleResource' => 'permissions', 'UserResource' => 'roles'] as $schemaName => $propertyName) {
+            $schema = $openApi->components->schemas[$schemaName] ?? null;
+            if (! $schema instanceof Schema || ! $schema->type instanceof ObjectType || ! $schema->type->hasProperty($propertyName)) {
+                continue;
+            }
+
+            $property = $schema->type->getProperty($propertyName);
+            if ($property instanceof ArrayType) {
+                $property->setItems(new StringType);
+            }
+        }
+
+        $userSchema = $openApi->components->schemas['UserResource'] ?? null;
+        if (! $userSchema instanceof Schema || ! $userSchema->type instanceof ObjectType || ! $userSchema->type->hasProperty('cpf')) {
+            return;
+        }
+
+        $cpf = $userSchema->type->getProperty('cpf');
+        if ($cpf instanceof StringType) {
+            $cpf->nullable(true);
+        }
+    }
+
+    private function fixPaginatedListResponses(OpenApi $openApi): void
+    {
+        $paginatedPaths = ['api/v1/users', 'api/v1/roles', 'api/v1/activity-log'];
+
+        foreach ($openApi->paths as $path) {
+            if (! in_array(strtolower(trim($path->path, '/')), $paginatedPaths, true)) {
+                continue;
+            }
+
+            foreach ($path->operations as $operation) {
+                if (strtolower($operation->method) !== 'get') {
+                    continue;
+                }
+
+                foreach ($operation->responses ?? [] as $response) {
+                    if (! $response instanceof Response || (string) $response->code !== '200') {
+                        continue;
+                    }
+
+                    $schema = $response->content['application/json'] ?? null;
+                    if (! $schema instanceof Schema || ! $schema->type instanceof ObjectType || ! $schema->type->hasProperty('data')) {
+                        continue;
+                    }
+
+                    $schema->type->addProperty('links', $this->paginationLinksSchema());
+                    $schema->type->addProperty('meta', $this->paginationMetaSchema());
+                    $schema->type->addRequired(['links', 'meta']);
+                }
+            }
+        }
+    }
+
+    private function paginationLinksSchema(): ObjectType
+    {
+        $links = new ObjectType;
+        $links->addProperty('first', new StringType);
+        $links->addProperty('last', new StringType);
+
+        $previous = new StringType;
+        $previous->nullable(true);
+        $links->addProperty('prev', $previous);
+
+        $next = new StringType;
+        $next->nullable(true);
+        $links->addProperty('next', $next);
+        $links->setRequired(['first', 'last', 'prev', 'next']);
+
+        return $links;
+    }
+
+    private function paginationMetaSchema(): ObjectType
+    {
+        $meta = new ObjectType;
+        $meta->addProperty('current_page', new IntegerType);
+
+        $from = new IntegerType;
+        $from->nullable(true);
+        $meta->addProperty('from', $from);
+        $meta->addProperty('last_page', new IntegerType);
+
+        $pageLinks = new ArrayType;
+        $pageLink = new ObjectType;
+        $url = new StringType;
+        $url->nullable(true);
+        $pageLink->addProperty('url', $url);
+        $pageLink->addProperty('label', new StringType);
+        $pageLink->addProperty('active', new BooleanType);
+        $page = new IntegerType;
+        $page->nullable(true);
+        $pageLink->addProperty('page', $page);
+        $pageLink->setRequired(['url', 'label', 'active', 'page']);
+        $pageLinks->setItems($pageLink);
+        $meta->addProperty('links', $pageLinks);
+
+        $meta->addProperty('path', new StringType);
+        $meta->addProperty('per_page', new IntegerType);
+
+        $to = new IntegerType;
+        $to->nullable(true);
+        $meta->addProperty('to', $to);
+        $meta->addProperty('total', new IntegerType);
+        $meta->setRequired(['current_page', 'from', 'last_page', 'links', 'path', 'per_page', 'to', 'total']);
+
+        return $meta;
     }
 
     private function injectCsrfCookieOverlay(OpenApi $openApi, string $cookieName): void

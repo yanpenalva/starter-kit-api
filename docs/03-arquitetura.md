@@ -116,7 +116,9 @@ A regra de separação é simples de aplicar na prática:
   reverte tudo.
 - **Resources** controlam o JSON de saída. O `UserResource` expõe o CPF somente quando
   o ator tem a permissão de leitura para aquele alvo; nos demais casos o campo nem
-  aparece. Datas saem em UTC no formato `Y-m-d\TH:i:s\Z`.
+  aparece. Datas saem em UTC no formato `Y-m-d\TH:i:s\Z`. As listagens de usuários,
+  papéis e auditoria documentam o envelope paginado `data`/`links`/`meta`; datas
+  nullable mantêm o formato `date-time` no OpenAPI.
 - **Support** concentra comportamento transversal: vocabulário de mensagens de erro,
   escritor de auditoria, correlação, filtros de listagem com allowlist e verificações
   de prontidão usadas pelo healthcheck.
