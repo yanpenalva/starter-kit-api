@@ -1807,7 +1807,7 @@
             },
             "AssignUserRolesRequest": {
                 "type": "object",
-                "description": "Wave B contract: replace the target's role set with catalogue roles. The\nwave owning the route enforces UserPolicy::assignRoles (no self-assignment,\nlast active admin preserved) for the resolved target inside a\nPrivilegeTransaction.",
+                "description": "Wave B contract: replace the target's role set with catalogue roles. The\nwave owning the route enforces UserPolicy::assignRoles (no self-assignment,\nlast active admin preserved) for the resolved target inside a\nPrivilegeTransaction.\n\nGrant ceiling: a non-admin actor may only assign roles whose permissions are\nall held by the actor (directly or through the actor's roles). The role list\nis evaluated as a whole \u2014 if any requested role exceeds the ceiling (or is\nthe admin role), nothing is assigned. Policy denials, including the ceiling,\nrespond 403 Forbidden with the unauthorized message; unknown role names are\nrejected earlier by validation with 422.",
                 "properties": {
                     "roles": {
                         "type": "array",
