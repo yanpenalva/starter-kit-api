@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role as PermissionRole;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 use Throwable;
 
@@ -24,12 +25,21 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
 {
     private const TEST_DATABASE = 'starter_api_test';
 
-    private const LOCK_WAIT_TIMEOUT_SECONDS = 5;
+    private const LOCK_WAIT_TIMEOUT_SECONDS = 10;
 
     private bool $databasePrepared = false;
 
     protected function setUp(): void
     {
+        $configuredConnection = getenv('DB_CONNECTION');
+        $configuredConnection = $configuredConnection === false
+            ? ($_ENV['DB_CONNECTION'] ?? $_SERVER['DB_CONNECTION'] ?? null)
+            : $configuredConnection;
+
+        if ($configuredConnection !== 'pgsql' || ! extension_loaded('pdo_pgsql')) {
+            $this->markTestSkipped('Privilege action races require PostgreSQL.');
+        }
+
         parent::setUp();
 
         if (DB::getDefaultConnection() !== 'pgsql') {
@@ -100,7 +110,11 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
 
         $auditCountBeforeLastAdminRace = $this->privilegeAuditCount();
         $lastAdminResults = $this->runConcurrentMutations(
-            fn () => app(SetUserStatus::class)->run($firstOperator, $firstAdmin, 'deactivated'),
+            [
+                'action' => 'set_user_status',
+                'actor_id' => $this->modelId($firstOperator),
+                'target_id' => $this->modelId($firstAdmin),
+            ],
             fn () => app(SetUserStatus::class)->run($secondOperator, $lastAdmin, 'deactivated'),
         );
 
@@ -142,11 +156,12 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
 
         $auditCountBeforeCeilingRace = $this->privilegeAuditCount();
         $ceilingResults = $this->runConcurrentMutations(
-            fn () => app(UpdateRolePermissions::class)->run(
-                $admin,
-                $limitedRole,
-                [Permission::RolesUpdatePermissions->value],
-            ),
+            [
+                'action' => 'update_role_permissions',
+                'actor_id' => $this->modelId($admin),
+                'target_id' => $this->modelId($limitedRole),
+                'permission_names' => [Permission::RolesUpdatePermissions->value],
+            ],
             fn () => app(UpdateRolePermissions::class)->run(
                 $manager,
                 $grantTarget,
@@ -205,12 +220,21 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
 
     private function installCompetingMutationWaiter(): void
     {
-        DB::statement(<<<'SQL'
+        $timeoutSeconds = self::LOCK_WAIT_TIMEOUT_SECONDS;
+        $processId = getmypid();
+        $this->assertIsInt($processId);
+        $applicationName = 'privilege-race-'.$processId;
+        DB::connection('pgsql')->selectOne('SELECT set_config(?, ?, false)', [
+            'application_name',
+            $applicationName,
+        ]);
+
+        DB::statement(<<<SQL
             CREATE FUNCTION privilege_race_wait_for_competitor() RETURNS trigger
             LANGUAGE plpgsql
             AS $$
             DECLARE
-                deadline timestamptz := clock_timestamp() + INTERVAL '5 seconds';
+                deadline timestamptz := clock_timestamp() + INTERVAL '{$timeoutSeconds} seconds';
             BEGIN
                 LOOP
                     IF EXISTS (
@@ -218,6 +242,7 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
                         FROM pg_stat_activity
                         WHERE pid <> pg_backend_pid()
                             AND datname = current_database()
+                            AND application_name = '{$applicationName}'
                             AND wait_event_type = 'Lock'
                             AND wait_event = 'advisory'
                     ) THEN
@@ -239,48 +264,36 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
             SQL);
     }
 
-    /** @return array{first: string, second: string} */
-    private function runConcurrentMutations(\Closure $first, \Closure $second): array
+    /**
+     * @param  array{action: 'set_user_status'|'update_role_permissions', actor_id: int, target_id: int, permission_names?: list<string>}  $firstAction
+     * @return array{first: string, second: string}
+     */
+    private function runConcurrentMutations(array $firstAction, \Closure $second): array
     {
-        $sockets = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
-        $this->assertNotFalse($sockets, 'Could not create the local action coordination socket.');
+        $process = new Process([PHP_BINARY, base_path('tests/Support/PrivilegeMutationWorker.php')]);
+        $process->setInput(json_encode($firstAction, JSON_THROW_ON_ERROR)."\n");
+        $process->setTimeout(self::LOCK_WAIT_TIMEOUT_SECONDS * 3);
+        $process->setEnv([
+            'APP_BASE_PATH' => base_path(),
+            'APP_DEBUG' => 'false',
+            'APP_ENV' => 'testing',
+            'APP_KEY' => $this->configurationString('app.key'),
+            'CACHE_STORE' => 'array',
+            'DATABASE_URL' => false,
+            'DB_CONNECTION' => 'pgsql',
+            'DB_DATABASE' => $this->configurationString('database.connections.pgsql.database'),
+            'DB_HOST' => $this->configurationString('database.connections.pgsql.host'),
+            'DB_PASSWORD' => $this->configurationString('database.connections.pgsql.password'),
+            'DB_PORT' => $this->configurationString('database.connections.pgsql.port'),
+            'DB_URL' => false,
+            'DB_USERNAME' => $this->configurationString('database.connections.pgsql.username'),
+            'MAIL_MAILER' => 'array',
+            'QUEUE_CONNECTION' => 'sync',
+            'SESSION_DRIVER' => 'array',
+        ]);
+        $process->start();
 
-        [$parentSocket, $childSocket] = $sockets;
-        $childPid = pcntl_fork();
-        $this->assertNotSame(-1, $childPid, 'Could not start the concurrent action worker.');
-
-        if ($childPid === 0) {
-            fclose($parentSocket);
-            DB::disconnect('pgsql');
-            DB::purge('pgsql');
-            DB::purge('privilege_race');
-            DB::setDefaultConnection('privilege_race');
-
-            try {
-                $childBackendPid = DB::connection()->scalar('SELECT pg_backend_pid()');
-                $this->assertIsInt($childBackendPid);
-                fwrite($childSocket, "ready:{$childBackendPid}\n");
-                fflush($childSocket);
-
-                $result = $this->executeMutation($first);
-                fwrite($childSocket, "result:{$result}\n");
-                fflush($childSocket);
-                fclose($childSocket);
-                exit(0);
-            } catch (Throwable $exception) {
-                fwrite($childSocket, 'error:'.base64_encode($exception::class.': '.$exception->getMessage())."\n");
-                fflush($childSocket);
-                fclose($childSocket);
-                exit(1);
-            }
-        }
-
-        fclose($childSocket);
-        $readyMessage = fgets($parentSocket);
-        $this->assertIsString($readyMessage);
-        $this->assertStringStartsWith('ready:', $readyMessage);
-        $childBackendPid = filter_var(trim(substr($readyMessage, strlen('ready:'))), FILTER_VALIDATE_INT);
-        $this->assertNotFalse($childBackendPid);
+        $childBackendPid = $this->waitForWorker($process);
         $parentBackendPid = DB::connection('pgsql')->scalar('SELECT pg_backend_pid()');
         $this->assertIsInt($parentBackendPid);
         $this->assertNotSame($parentBackendPid, $childBackendPid);
@@ -292,29 +305,53 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
             $secondResult = $this->executeMutation($second);
         } catch (Throwable $exception) {
             $parentException = $exception;
-            $secondResult = 'error';
+            $process->stop(1);
         }
-
-        $childResultMessage = fgets($parentSocket);
-        $childWaitStatus = 0;
-        $waitedChildPid = pcntl_waitpid($childPid, $childWaitStatus);
-        fclose($parentSocket);
 
         if ($parentException instanceof Throwable) {
             throw $parentException;
         }
 
-        $this->assertIsString($childResultMessage);
-        $this->assertSame($childPid, $waitedChildPid);
-        $this->assertIsInt($childWaitStatus);
-        $this->assertTrue(pcntl_wifexited($childWaitStatus));
-        $this->assertSame(0, pcntl_wexitstatus($childWaitStatus), $this->childErrorMessage($childResultMessage));
-        $this->assertStringStartsWith('result:', $childResultMessage, $this->childErrorMessage($childResultMessage));
+        $process->wait();
+        $childResultMessage = $process->getOutput();
+        $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput().$childResultMessage);
+        $this->assertTrue(
+            str_contains($childResultMessage, "result:success\n")
+            || str_contains($childResultMessage, "result:forbidden\n"),
+            $process->getErrorOutput().$childResultMessage,
+        );
 
         return [
-            'first' => trim(substr($childResultMessage, strlen('result:'))),
+            'first' => str_contains($childResultMessage, "result:success\n") ? 'success' : 'forbidden',
             'second' => $secondResult,
         ];
+    }
+
+    private function waitForWorker(Process $process): int
+    {
+        $deadline = hrtime(true) + self::LOCK_WAIT_TIMEOUT_SECONDS * 1_000_000_000;
+        $output = '';
+
+        do {
+            $output .= $process->getIncrementalOutput();
+            $readyLine = strstr($output, "\n", true);
+
+            if (is_string($readyLine) && str_starts_with($readyLine, 'ready:')) {
+                $backendPid = filter_var(substr($readyLine, strlen('ready:')), FILTER_VALIDATE_INT);
+                $this->assertNotFalse($backendPid);
+
+                return $backendPid;
+            }
+
+            if ($process->isTerminated()) {
+                $this->fail('The privilege action worker failed before connecting: '.$process->getErrorOutput().$process->getOutput());
+            }
+
+            usleep(10_000);
+        } while (hrtime(true) < $deadline);
+
+        $process->stop(1);
+        $this->fail('The privilege action worker did not connect to PostgreSQL in time.');
     }
 
     private function waitForChildPrivilegeLock(int $childBackendPid): void
@@ -352,13 +389,27 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
         }
     }
 
-    private function childErrorMessage(string $message): string
+    private function modelId(User|PermissionRole $model): int
     {
-        if (! str_starts_with($message, 'error:')) {
-            return $message;
+        $id = $model->getKey();
+        $this->assertIsInt($id);
+
+        return $id;
+    }
+
+    private function configurationString(string $key): string
+    {
+        $value = config($key);
+
+        if ($value === null) {
+            return '';
         }
 
-        return (string) base64_decode(trim(substr($message, strlen('error:'))), true);
+        if (! is_string($value) && ! is_int($value)) {
+            $this->fail("Expected a string or integer configuration value for {$key}.");
+        }
+
+        return (string) $value;
     }
 
     private function privilegeAuditCount(): int

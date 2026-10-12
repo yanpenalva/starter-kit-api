@@ -25,7 +25,7 @@
 - `composer analyse`: passed (PHPStan Level 10, 128 files, no errors).
 - `python3 scripts/validate_context.py --strict`: passed.
 - `git diff --check`: passed.
-- Slice-11 concurrency regression (2026-10-12): the new `PrivilegeMutationPostgresRaceTest` forks a second connection, synchronizes both real Actions at the advisory lock, and checks last-admin preservation, the permission grant ceiling and audit-failure rollback. The implementation clears the permission cache under the shared lock before rechecking the current actor, so a forked worker cannot authorize from an inherited stale cache.
+- Slice-11 concurrency regression (2026-10-12): `PrivilegeMutationPostgresRaceTest` starts an isolated worker process with its own PostgreSQL connection, synchronizes both real Actions at the advisory lock, and checks last-admin preservation, the permission grant ceiling and audit-failure rollback. The implementation clears the permission cache under the shared lock before rechecking the current actor, so a worker cannot authorize from stale cached permissions.
 - `source /opt/data/php/env.sh && /opt/data/php/root/usr/bin/php8.5 vendor/bin/pest -c /tmp/phpunit.sqlite.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php tests/Feature/Actions/PrivilegeRaceTest.php tests/Feature/Actions/UsersActionsTest.php tests/Feature/Actions/RolesActionsTest.php tests/Feature/PrivilegeFoundationTest.php`: 42 passed / 136 assertions; the PostgreSQL-only test skipped on SQLite.
 - `source /opt/data/php/env.sh && DB_HOST=127.0.0.1 DB_PASSWORD=ci-ephemeral-test-only /opt/data/php/root/usr/bin/php8.5 vendor/bin/pest -c /tmp/phpunit.pgsql.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php`: 1 passed / 39 assertions on local PostgreSQL 17. CI's PostgreSQL 18 run remains separate.
 - `composer lint`: passed (Pint).
@@ -36,3 +36,9 @@
 - `git diff --check`: passed.
 - Delivery: implementation commit `2765b36` was pushed to `origin/feat/slice-11-privilege-races`; no PR or merge was created.
 - Production deployment and issue closure were not performed.
+
+## Final worker verification
+
+- The portable worker uses Symfony Process instead of `pcntl`; the test confirms distinct PostgreSQL backend PIDs and waits for the real competing Action to reach the advisory lock. Its trigger matches a unique `application_name` set by this test's parent connection, so unrelated lock waiters cannot release the barrier.
+- PostgreSQL 17 focused run: `source /opt/data/php/env.sh && REDIS_HOST=127.0.0.1 REDIS_QUEUE=testqueue DB_HOST=127.0.0.1 DB_PASSWORD=ci-ephemeral-test-only MAIL_HOST=127.0.0.1 MAIL_PORT=1025 MAILPIT_API_URL=http://127.0.0.1:8025 APP_BASE_PATH=/opt/data/cache/scratch/api-fixwork6 php8.5 vendor/bin/pest -c /tmp/phpunit.pgsql.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php`: 1 passed / 29 assertions.
+- SQLite focused run with the same custom PHPUnit bootstrap: `source /opt/data/php/env.sh && REDIS_HOST=127.0.0.1 REDIS_QUEUE=testqueue APP_BASE_PATH=/opt/data/cache/scratch/api-fixwork6 php8.5 vendor/bin/pest -c /tmp/phpunit.sqlite.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php tests/Feature/Actions/PrivilegeRaceTest.php tests/Feature/Actions/UsersActionsTest.php tests/Feature/Actions/RolesActionsTest.php tests/Feature/PrivilegeFoundationTest.php`: 42 passed / 136 assertions; 1 PostgreSQL-only skip.
