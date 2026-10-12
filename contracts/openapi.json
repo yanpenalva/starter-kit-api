@@ -77,6 +77,28 @@
                         }
                     },
                     {
+                        "name": "action",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "user.store",
+                                "user.update",
+                                "user.destroy",
+                                "user.status",
+                                "user.assign_roles",
+                                "role.store",
+                                "role.update_permissions",
+                                "role.destroy",
+                                "admin.bootstrap",
+                                null
+                            ]
+                        }
+                    },
+                    {
                         "name": "subject_type",
                         "in": "query",
                         "schema": {
