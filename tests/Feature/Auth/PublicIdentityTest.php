@@ -339,18 +339,19 @@ final class PublicIdentityTest extends TestCase
             ->assertJsonPath('data.email_verified_at', null);
 
         $this->get($url)->assertRedirect('http://frontend.test/verify-email?ok=1');
-        $this->assertNotNull($user->fresh()?->email_verified_at);
-        $this->assertNull($user->fresh()->deactivated_at);
-
-        self::actingAsSanctum($user->fresh());
 
         $fresh = $user->fresh();
-        $this->assertNotNull($fresh->email_verified_at);
+        assert($fresh instanceof User);
+        $verifiedAt = $fresh->email_verified_at;
+        $this->assertNotNull($verifiedAt);
+        $this->assertNull($fresh->deactivated_at);
+
+        self::actingAsSanctum($fresh);
 
         $this->getJson('/api/v1/auth/my-profile')
             ->assertOk()
             ->assertJsonPath('data.email', 'pending-verify@example.test')
-            ->assertJsonPath('data.email_verified_at', $fresh->email_verified_at->clone()->utc()->format('Y-m-d\TH:i:s\Z'));
+            ->assertJsonPath('data.email_verified_at', $verifiedAt->clone()->utc()->format('Y-m-d\TH:i:s\Z'));
     }
 
     public function test_suspended_account_verifying_email_retains_deactivation(): void
@@ -369,10 +370,13 @@ final class PublicIdentityTest extends TestCase
 
         $this->assertSame(BlockedAccount::REASON_SUSPENDED, BlockedAccount::reason($user));
 
-        $user->markEmailAsVerified();
+        $this->assertFalse($user->markEmailAsVerified());
 
-        $this->assertNotNull($user->fresh()?->deactivated_at);
-        $this->assertSame(BlockedAccount::REASON_SUSPENDED, BlockedAccount::reason($user->fresh()));
+        $fresh = $user->fresh();
+        assert($fresh instanceof User);
+        $this->assertTrue($fresh->email_verified_at?->equalTo($verifiedAt));
+        $this->assertTrue($fresh->deactivated_at?->equalTo($deactivatedAt));
+        $this->assertSame(BlockedAccount::REASON_SUSPENDED, BlockedAccount::reason($fresh));
     }
 
     public function test_verify_with_tampered_hash_returns_403_and_keeps_user_unverified(): void

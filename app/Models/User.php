@@ -67,21 +67,13 @@ final class User extends Authenticatable implements MustVerifyEmailContract
 
     public function markEmailAsVerified(): bool
     {
-        $isPendingApproval = BlockedAccount::reason($this) === BlockedAccount::REASON_PENDING_APPROVAL;
-        $now = $this->freshTimestamp();
-
-        if ($isPendingApproval) {
-            return $this->forceFill([
-                'email_verified_at' => $now,
-                'deactivated_at' => null,
-            ])->save();
+        if (BlockedAccount::reason($this) !== BlockedAccount::REASON_PENDING_APPROVAL) {
+            return false;
         }
 
         return $this->forceFill([
-            'email_verified_at' => $now,
-            'deactivated_at' => ($this->deactivated_at !== null && $this->deactivated_at->greaterThan($now))
-                ? $this->deactivated_at
-                : $now->copy()->addSecond(),
+            'email_verified_at' => $this->freshTimestamp(),
+            'deactivated_at' => null,
         ])->save();
     }
 
