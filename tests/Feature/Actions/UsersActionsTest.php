@@ -18,6 +18,7 @@ use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Role as SpatieRole;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -234,7 +235,7 @@ final class UsersActionsTest extends TestCase
 
     public function test_assign_user_roles_denies_delegated_operator_assigning_role_with_unheld_permissions(): void
     {
-        $customRole = \Spatie\Permission\Models\Role::create(['name' => 'manager', 'guard_name' => 'web']);
+        $customRole = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
         $customRole->givePermissionTo(Permission::UsersManage->value);
 
         $target = User::factory()->verified()->create();
@@ -251,7 +252,7 @@ final class UsersActionsTest extends TestCase
 
     public function test_assign_user_roles_allows_delegated_operator_within_grant_ceiling(): void
     {
-        $customRole = \Spatie\Permission\Models\Role::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $customRole = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
         $customRole->givePermissionTo(Permission::UsersView->value);
 
         $target = User::factory()->verified()->create();
@@ -264,6 +265,84 @@ final class UsersActionsTest extends TestCase
         $updated = app(AssignUserRoles::class)->run($actor, $target, ['viewer']);
 
         $this->assertTrue($updated->hasRole('viewer'));
+    }
+
+    public function test_assign_user_roles_denies_whole_list_when_one_role_exceeds_ceiling(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        $this->assertActionStatus(403, static fn (): mixed => app(AssignUserRoles::class)->run($actor, $target, ['viewer', 'manager']));
+
+        $fresh = $target->refresh();
+        $this->assertFalse($fresh->hasRole('viewer'));
+        $this->assertFalse($fresh->hasRole('manager'));
+        $this->assertTrue($fresh->hasRole(Role::User->value));
+    }
+
+    public function test_assign_user_roles_applies_ceiling_to_permissions_inherited_via_role(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $operator = SpatieRole::create(['name' => 'operator', 'guard_name' => 'web']);
+        $operator->givePermissionTo([Permission::UsersAssignRoles->value, Permission::UsersView->value]);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole('operator');
+
+        $this->assertFalse($actor->getDirectPermissions()->contains('name', Permission::UsersView->value));
+
+        $updated = app(AssignUserRoles::class)->run($actor, $target, ['viewer']);
+        $this->assertTrue($updated->hasRole('viewer'));
+
+        $this->assertActionStatus(403, static fn (): mixed => app(AssignUserRoles::class)->run($actor, $target, ['manager']));
+        $this->assertFalse($target->refresh()->hasRole('manager'));
+    }
+
+    public function test_assign_user_roles_denies_nonexistent_role_reaching_policy_through_action(): void
+    {
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+
+        $this->assertActionStatus(403, static fn (): mixed => app(AssignUserRoles::class)->run($actor, $target, ['ghost']));
+
+        $this->assertTrue($target->refresh()->hasRole(Role::User->value));
+    }
+
+    public function test_assign_user_roles_allows_admin_to_grant_custom_role(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+
+        $updated = app(AssignUserRoles::class)->run($actor, $target, ['manager']);
+
+        $this->assertTrue($updated->hasRole('manager'));
     }
 
     public function test_assign_user_roles_denies_self_assignment(): void
