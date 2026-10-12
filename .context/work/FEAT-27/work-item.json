@@ -4,7 +4,7 @@
   "title": "Slice 12: contrato OpenAPI, ADRs sucessores e receita vertical",
   "track": "product",
   "type": "feature",
-  "phase": "verify",
+  "phase": "release",
   "status": "active",
   "risk": "medium",
   "owner": "yanpenalva",
@@ -31,7 +31,7 @@
       "A Slice 12 requer registro de branch, commit e push conforme EXC-0001"
     ]
   },
-  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify"],
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify", "release"],
   "last_updated": "2026-10-12",
   "policy_exceptions": ["EXC-0001"]
 }
