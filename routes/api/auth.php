@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Auth\MfaChallengeController;
+use App\Http\Controllers\Auth\MfaEnrollmentController;
 use App\Http\Controllers\Auth\MyProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -16,6 +18,9 @@ use App\Http\Middleware\EnsureStatefulSession;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', LoginController::class)
+    ->middleware([DisallowHeaderAuthentication::class, 'throttle:login', EnsureStatefulSession::class]);
+
+Route::post('/auth/mfa/challenge', MfaChallengeController::class)
     ->middleware([DisallowHeaderAuthentication::class, 'throttle:login', EnsureStatefulSession::class]);
 
 Route::post('/register', RegisterController::class)
@@ -42,4 +47,10 @@ Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(
         ->middleware(EnsureAccountNotDeactivated::class);
 
     Route::post('/logout', LogoutController::class);
+
+    Route::get('/auth/mfa/status', [MfaEnrollmentController::class, 'status']);
+    Route::post('/auth/mfa/enroll', [MfaEnrollmentController::class, 'enroll']);
+    Route::post('/auth/mfa/confirm', [MfaEnrollmentController::class, 'confirm']);
+    Route::post('/auth/mfa/disable', [MfaEnrollmentController::class, 'disable']);
+    Route::post('/auth/mfa/recovery-codes', [MfaEnrollmentController::class, 'regenerateRecoveryCodes']);
 });

@@ -25,6 +25,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $cpf
  * @property string $password
  * @property string|null $remember_token
+ * @property string|null $mfa_secret
+ * @property array<int, string>|null $mfa_recovery_codes
+ * @property Carbon|null $mfa_confirmed_at
  */
 final class User extends Authenticatable implements MustVerifyEmailContract
 {
@@ -47,12 +50,17 @@ final class User extends Authenticatable implements MustVerifyEmailContract
         'cpf',
         'password',
         'remember_token',
+        'mfa_secret',
+        'mfa_recovery_codes',
+        'mfa_confirmed_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
         'cpf',
+        'mfa_secret',
+        'mfa_recovery_codes',
     ];
 
     public function casts(): array
@@ -61,7 +69,15 @@ final class User extends Authenticatable implements MustVerifyEmailContract
             'email_verified_at' => 'datetime',
             'deactivated_at' => 'datetime',
             'password' => 'hashed',
+            'mfa_secret' => 'encrypted',
+            'mfa_recovery_codes' => 'encrypted:array',
+            'mfa_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function hasMfaEnabled(): bool
+    {
+        return $this->mfa_confirmed_at !== null && ! empty($this->mfa_secret);
     }
 
     public function sendEmailVerificationNotification(): void
