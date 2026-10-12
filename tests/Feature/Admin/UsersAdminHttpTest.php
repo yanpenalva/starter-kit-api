@@ -149,6 +149,52 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertNotNull($createdUser->fresh()?->email_verified_at);
     }
 
+    public function test_admin_created_user_resend_is_throttled_with_429(): void
+    {
+        Notification::fake();
+
+        $invited = User::factory()->unverified()->create(['email' => 'throttled@example.test']);
+
+        for ($attempt = 1; $attempt <= 4; $attempt++) {
+            self::actingAsSanctum($invited);
+            $response = $this->postJson('/api/v1/email/verification-notification');
+
+            if ($attempt < 4) {
+                $response->assertStatus(202);
+
+                continue;
+            }
+
+            $response->assertStatus(429)->assertHeader('Retry-After');
+        }
+
+        Notification::assertSentToTimes($invited, VerifyEmail::class, 3);
+    }
+
+    public function test_admin_created_user_invitation_link_expires_after_24_hours(): void
+    {
+        config(['app.frontend_url' => 'http://frontend.test']);
+
+        $invited = User::factory()->unverified()->create(['email' => 'expiring@example.test']);
+
+        $mail = (new VerifyEmail)->toMail($invited);
+        $linkParts = parse_url((string) $mail->actionUrl);
+        $this->assertIsArray($linkParts);
+        parse_str((string) ($linkParts['query'] ?? ''), $query);
+        $this->assertIsString($query['expires'] ?? null);
+        $this->assertIsString($query['signature'] ?? null);
+
+        $apiUrl = "/api/v1/email/verify/{$invited->id}/".hash('sha256', $invited->email).'?'
+            .http_build_query(['expires' => $query['expires'], 'signature' => $query['signature']]);
+
+        $this->travel(25)->hours();
+
+        self::actingAsSanctum($invited);
+        $this->getJson($apiUrl)->assertForbidden();
+
+        $this->assertNull($invited->fresh()?->email_verified_at);
+    }
+
     public function test_create_user_requires_manage_permission_and_eligible_actor(): void
     {
         $payload = [
