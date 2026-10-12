@@ -13,6 +13,6 @@
 - Delivery branch: `feat/slice-8-custom-role-renaming`.
 - Target branch: `main`.
 - Remote: `origin` (`https://github.com/yanpenalva/starter-kit-api.git`).
-- Proposed commit: `feat(roles): add custom role detail and rename`.
-- Commit and push results: pending.
+- Commit: `8bb3faf` — `feat(roles): add custom role detail and rename`.
+- Push result: success; `origin/feat/slice-8-custom-role-renaming` points to `8bb3faf`.
 - No PR or merge will be opened/performed.
