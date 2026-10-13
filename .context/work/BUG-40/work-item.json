@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "id": "BUG-39",
+  "id": "BUG-40",
   "title": "Corrigir gates de auditoria e contrato na PR #85",
   "track": "support",
   "type": "bug",
@@ -36,6 +36,7 @@
     "triggers": [
       "PR #85 Quality run 38331058231 (run #192), head 203fc7a77d57c9a0418f7071c0017a40ba54f640",
       "main avançou por PR #87 para 9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7",
+      "main avançou novamente por PR #84 para 0955e1eedf322cb5d1dcf258ba14c5e568cd4bc5 antes do fechamento",
       "Entrega restrita à branch feat/slice-7-audit-distinct-action-codes, base main, remote origin, PR #85; sem merge"
     ]
   },

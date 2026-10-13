@@ -1,4 +1,4 @@
-# Specification — BUG-39 Corrigir gates de auditoria e contrato na PR #85
+# Specification — BUG-40 Corrigir gates de auditoria e contrato na PR #85
 
 ## Request
 
@@ -12,7 +12,7 @@ Deixar a PR #85 compatível com a `main` atual e corrigir as falhas reproduzíve
 
 ## Scope
 
-- Integrar `origin/main` (atualizada pelo PR #87) em `feat/slice-7-audit-distinct-action-codes`.
+- Integrar `origin/main` vigente antes da validação (0955e1e, merge de #84 após #87) em `feat/slice-7-audit-distinct-action-codes`.
 - Alinhar o teste da allowlist à ação `role.rename` já permitida.
 - Preservar o snapshot OpenAPI oficial e determinístico trazido de `main` pelo workflow produtor.
 - Rodar Pest relevante, lint e validar novamente os gates da PR.
@@ -37,10 +37,10 @@ Deixar a PR #85 compatível com a `main` atual e corrigir as falhas reproduzíve
 
 ## Tests and acceptance criteria
 
-- A branch inclui `origin/main` atual (`9f3ee25`, merge de #87).
+- A branch inclui `origin/main` vigente antes da validação (`0955e1e`, merge de #84 após #87).
 - O Pest focado de auditoria/roles passa.
 - `composer lint` passa.
-- Snapshot é o artefato oficial de `main`; os gates remotos application, coverage e contract passam na PR #85.
+- Snapshot é o artefato versionado e validado na `main` atual; os gates remotos application, coverage e contract passam na PR #85.
 
 ## Open decisions
 

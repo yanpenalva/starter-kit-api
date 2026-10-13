@@ -1,4 +1,4 @@
-# Preflight Validation — BUG-39
+# Preflight Validation — BUG-40
 
 ## Checks
 
@@ -18,7 +18,7 @@
 ## Findings
 
 - O run remoto reproduz a expectativa incompatível com `role.rename`; aplicação e cobertura falham pelo mesmo teste. O gate de cobertura não informa uma queda abaixo de 85%, pois Pest já encerra em falha.
-- A geração do contrato no CI é determinística, mas compara contra snapshot anterior. PR #87 já foi integrada à `main` e trouxe o snapshot oficial emitido após duas exportações byte-idênticas.
+- A geração do contrato no CI é determinística, mas compara contra snapshot anterior. PR #87 trouxe o contrato de envelopes; PR #84 avançou `main` depois e atualizou o snapshot para incluir MFA. O Quality #209 da `main` em `0955e1e` concluiu com sucesso.
 - A correção local fica restrita ao teste de allowlist. Merge e push estão explicitamente autorizados para a branch e PR informadas; merge da PR está proibido.
 
 ## Evidence record

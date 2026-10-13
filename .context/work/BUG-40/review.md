@@ -1,19 +1,19 @@
-# Review — BUG-39
+# Review — BUG-40
 
 ## Inputs
 
 - Request: fix the three failing gates in existing PR #85 after integrating latest `main`; push only to that PR.
-- Spec: `.context/work/BUG-39/spec.md`
-- Plan: `.context/work/BUG-39/plan.md`
-- Diff: one-line assertion correction after merge commit `f1c36b7`
-- Verification: `.context/work/BUG-39/verification.md`
+- Spec: `.context/work/BUG-40/spec.md`
+- Plan: `.context/work/BUG-40/plan.md`
+- Diff: one-line assertion correction after main synchronization commits
+- Verification: `.context/work/BUG-40/verification.md`
 - Applicable policies: `.context/policies/core/code-quality.md`, `.context/policies/core/security-privacy.md`, `.context/project/delivery.md`
 - Exceptions: `EXC-0001`
 
 ## Correct
 
 - The added expected value matches the already allowlisted `role.rename` action.
-- The PR #87 snapshot was integrated byte-for-byte from `main`, matching its published producer hash.
+- The snapshot from the current `main` tip was integrated byte-for-byte after PR #84 advanced the branch during this work.
 - Merge conflict resolutions retained both explicit audit action codes from this branch and actor-policy revalidation from upstream.
 
 ## Problems and risks

@@ -1,4 +1,4 @@
-# Reproduction — BUG-39
+# Reproduction — BUG-40
 
 ## Observed behavior
 

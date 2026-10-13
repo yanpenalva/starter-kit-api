@@ -1,4 +1,4 @@
-# Support Triage — BUG-39 Corrigir gates de auditoria e contrato na PR #85
+# Support Triage — BUG-40 Corrigir gates de auditoria e contrato na PR #85
 
 ## Classification
 

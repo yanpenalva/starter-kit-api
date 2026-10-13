@@ -1,19 +1,19 @@
-# Plan — BUG-39 Corrigir gates de auditoria e contrato na PR #85
+# Plan — BUG-40 Corrigir gates de auditoria e contrato na PR #85
 
 ## Approved approach
 
-Fazer merge de `origin/main` na branch já associada à PR #85 antes de editar; manter o snapshot `contracts/openapi.json` do commit oficial de #87; ajustar somente a lista esperada para incluir `role.rename`. O teste falhou no run remoto, fornecendo a reprodução antes da alteração.
+Fazer merge de `origin/main` na branch já associada à PR #85 antes de editar; manter o snapshot versionado da `main`; ajustar somente a lista esperada para incluir `role.rename`. O teste falhou no run remoto, fornecendo a reprodução antes da alteração.
 
 ## Confirmed touchpoints
 
-- Files/components/services: `tests/Feature/Admin/AuditDistinctActionsTest.php`, `contracts/openapi.json` (integração do snapshot de `main`), `.context/work/BUG-39/*`.
+- Files/components/services: `tests/Feature/Admin/AuditDistinctActionsTest.php`, `contracts/openapi.json` (integração do snapshot de `main`), `.context/work/BUG-40/*`.
 - Interfaces and data: sem nova mudança de API, esquema ou persistência.
 - Dependencies: `vendor` permanece symlink existente; nenhum `composer install`.
 
 ## Execution order
 
-1. Fazer merge de `origin/main` (`9f3ee25`, #87) na branch alvo e resolver apenas conflitos de integração necessários.
-2. Conferir snapshot oficial e determinismo registrado pelo produtor de #87.
+1. Fazer merge de `origin/main` na branch alvo antes da validação; a primeira integração trouxe #87 (`9f3ee25`) e a sincronização final inclui #84 (`0955e1e`), que avançou durante o trabalho.
+2. Conferir o snapshot versionado na `main` atual e a evidência determinística dos gates upstream.
 3. Acrescentar `Audit::ACTION_ROLE_RENAME` à expectativa da allowlist e rodar Pest focado.
 4. Rodar `composer lint`, inspecionar diff e validar contexto atualizado.
 5. Commitar e fazer push somente para `origin/feat/slice-7-audit-distinct-action-codes`; confirmar PR #85 continua aberta e não mesclada.
@@ -37,7 +37,7 @@ Fazer merge de `origin/main` na branch já associada à PR #85 antes de editar; 
 ## Risks and rollback
 
 - Risk: integração da `main` inclui código e snapshot de mudanças previamente integradas por #87 e #89.
-- Mitigation: preservar as alterações upstream, limitar a correção local ao teste de allowlist, validar o diff e manter o snapshot do produtor.
+- Mitigation: preservar as alterações upstream, limitar a correção local ao teste de allowlist, validar o diff e manter o snapshot validado na `main`.
 - Rollback: reverter o commit de correção na branch da PR; o merge da `main` permanece como integração solicitada.
 
 ## Required approvals

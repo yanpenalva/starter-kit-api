@@ -1,4 +1,4 @@
-# Verification — BUG-39
+# Verification — BUG-40
 
 ## Evidence
 
@@ -9,12 +9,11 @@
   4. `composer lint` (PHP 8.5 environment loaded from `/opt/data/php/env.sh`): Pint passed, exit 0.
   5. `python3 scripts/validate_context.py --strict`: passed, exit 0.
   6. `git diff --check`: passed, exit 0.
-  7. `sha256sum contracts/openapi.json`: `88bcccf993dd74915da9db2dd1a4eaaba1f4354b616054fe8b74c70042a3fb66`, matching PR #87's artifact hash; the file content and Git blob match `origin/main`.
-- Scope analyzed: merge of `origin/main` at `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7`; allowlist assertion; official OpenAPI snapshot.
+- Scope analyzed: initial merge of `origin/main` at `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7`; allowlist assertion; then detected latest `main` advance by PR #84 to `0955e1eedf322cb5d1dcf258ba14c5e568cd4bc5`, whose snapshot SHA-256 is `4bfd37b84fdc0cf2969814639ade82b8cdbf90a6505208bd39b70eefa3346709`.
 - Results and exit codes: local focused Pest 0; lint 0; context validation 0; diff check 0. Remote verification on the new PR SHA remains pending push and CI.
-- Date and environment: 2026-10-13, PHP 8.5.11, Linux worktree, SQLite in-memory for focused Pest; Composer dependencies read through the supplied `vendor` symlink. No Composer install was run.
+- Date and environment: 2026-10-13, PHP 8.5.11, Linux worktree, SQLite in-memory for focused Pest; Composer dependencies read through the supplied `vendor` symlink. No Composer install was run. Latest-main merge and its post-merge targeted recheck are pending.
 - Metrics and thresholds: CI coverage gate has an 85% total-line floor; baseline run failed before a coverage percentage was emitted. No local coverage percentage claimed.
-- Limitations or `NOT APPLICABLE` rationale: focused local Pest used SQLite, while CI uses PostgreSQL 18. The snapshot was not regenerated locally: project policy reserves that action for the OpenAPI workflow on `main`; the verified producer artifact from PR #87 was integrated unchanged. Application, coverage and contract results on the pushed SHA are not yet available.
+- Limitations or `NOT APPLICABLE` rationale: focused local Pest used SQLite, while CI uses PostgreSQL 18. The snapshot was not regenerated locally: project policy reserves that action for the OpenAPI workflow on `main`; the snapshot from current `main` is integrated unchanged. Application, coverage and contract results on the final pushed SHA are not yet available.
 
 ## Review
 
@@ -27,7 +26,7 @@
 - Quality gate result: focused Pest, Pint, context validator and diff check passed; PR CI pending.
 - Security/privacy result: no credentials or private data added.
 - AI-use controls and human review (if applicable): user authorized merge of `main` into this branch and push only to PR #85; no PR merge authorized or performed.
-- Subtask/wave integration evidence: S1 merge `f1c36b7`; S2 assertion correction; S3 local gates complete, remote gates pending.
+- Subtask/wave integration evidence: S1 merge `f1c36b7`, followed by current-main sync; S2 assertion correction; S3 local gates complete, remote gates pending.
 
 ## Findings
 
