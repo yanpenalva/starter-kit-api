@@ -7,11 +7,14 @@ namespace Tests\Feature\Admin;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
+use App\Notifications\VerifyEmail;
 use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Concern\ActsAsSanctumUser;
@@ -87,6 +90,109 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertIsInt($createdId);
         $this->assertDatabaseMissing('model_has_roles', ['model_id' => $createdId]);
         $this->assertAuthenticatedAs($actor);
+    }
+
+    public function test_admin_created_user_triggers_onboarding_invitation_with_signed_url_resend_and_expiration(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersManage->value);
+        self::actingAsSanctum($actor);
+
+        $response = $this->postJson('/api/v1/users', [
+            'name' => 'Onboarding User',
+            'email' => 'onboard@example.test',
+            'cpf' => '12345678901',
+            'password' => 'test-password-01',
+            'active' => true,
+        ]);
+
+        $response->assertCreated();
+        $createdId = $response->json('data.id');
+        $this->assertIsInt($createdId);
+
+        $createdUser = User::findOrFail($createdId);
+        $this->assertNull($createdUser->email_verified_at);
+
+        // 1. StoreUser dispatched verification/invitation email with signed URL
+        Notification::assertSentTo($createdUser, VerifyEmail::class, static function (VerifyEmail $notification) use ($createdUser): bool {
+            $mail = $notification->toMail($createdUser);
+
+            return str_contains((string) $mail->actionUrl, 'verify-email')
+                && str_contains((string) $mail->actionUrl, 'signature=');
+        });
+
+        // 2. Resend verification email
+        Notification::fake();
+        self::actingAsSanctum($createdUser);
+        $this->postJson('/api/v1/email/verification-notification')
+            ->assertStatus(202);
+        Notification::assertSentTo($createdUser, VerifyEmail::class);
+
+        // 3. Expired verification link is rejected with 403
+        $expiredUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->subMinute(),
+            ['id' => $createdUser->id, 'hash' => hash('sha256', $createdUser->email)]
+        );
+        $this->get($expiredUrl)->assertForbidden();
+        $this->assertNull($createdUser->fresh()?->email_verified_at);
+
+        // 4. Valid signed URL verifies email
+        $validUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addHours(24),
+            ['id' => $createdUser->id, 'hash' => hash('sha256', $createdUser->email)]
+        );
+        $this->get($validUrl)->assertRedirect();
+        $this->assertNotNull($createdUser->fresh()?->email_verified_at);
+    }
+
+    public function test_admin_created_user_resend_is_throttled_with_429(): void
+    {
+        Notification::fake();
+
+        $invited = User::factory()->unverified()->create(['email' => 'throttled@example.test']);
+
+        for ($attempt = 1; $attempt <= 4; $attempt++) {
+            self::actingAsSanctum($invited);
+            $response = $this->postJson('/api/v1/email/verification-notification');
+
+            if ($attempt < 4) {
+                $response->assertStatus(202);
+
+                continue;
+            }
+
+            $response->assertStatus(429)->assertHeader('Retry-After');
+        }
+
+        Notification::assertSentToTimes($invited, VerifyEmail::class, 3);
+    }
+
+    public function test_admin_created_user_invitation_link_expires_after_24_hours(): void
+    {
+        config(['app.frontend_url' => 'http://frontend.test']);
+
+        $invited = User::factory()->unverified()->create(['email' => 'expiring@example.test']);
+
+        $mail = (new VerifyEmail)->toMail($invited);
+        $linkParts = parse_url((string) $mail->actionUrl);
+        $this->assertIsArray($linkParts);
+        parse_str((string) ($linkParts['query'] ?? ''), $query);
+        $this->assertIsString($query['expires'] ?? null);
+        $this->assertIsString($query['signature'] ?? null);
+
+        $apiUrl = "/api/v1/email/verify/{$invited->id}/".hash('sha256', $invited->email).'?'
+            .http_build_query(['expires' => $query['expires'], 'signature' => $query['signature']]);
+
+        $this->travel(25)->hours();
+
+        self::actingAsSanctum($invited);
+        $this->getJson($apiUrl)->assertForbidden();
+
+        $this->assertNull($invited->fresh()?->email_verified_at);
     }
 
     public function test_create_user_requires_manage_permission_and_eligible_actor(): void
