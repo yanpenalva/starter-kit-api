@@ -19,7 +19,14 @@ final class RolePolicy
 
     public function delete(User $actor, SpatieRole $role): bool
     {
-        return $this->manage($actor);
+        return $this->manage($actor)
+            && $role->name !== Role::Admin->value;
+    }
+
+    public function rename(User $actor, SpatieRole $role): bool
+    {
+        return $this->manage($actor)
+            && ! in_array($role->name, Role::values(), true);
     }
 
     public function view(User $actor): bool

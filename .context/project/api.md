@@ -35,6 +35,13 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - Each endpoint declares its own filter and sort allowlist. Unknown fields are rejected with 422; clients never choose SQL columns or operators.
 - Sort uses a documented `sort` field allowlist and `direction=asc|desc`; absent values use the endpoint's stable default order.
 
+## Role administration
+
+- `GET /api/v1/roles/{id}` requires an authenticated, verified actor with `roles.view` and returns the role's `id`, `name`, `guard_name`, and sorted permission names in the standard `data` envelope.
+- `PATCH /api/v1/roles/{id}` requires `roles.manage` and a unique `name` string (maximum 255 characters). It renames a custom role and preserves its permission assignments. Built-in role names cannot be changed.
+- `DELETE /api/v1/roles/{id}` requires `roles.manage`; `admin` cannot be deleted, and a role assigned to users cannot be deleted. Role mutations are audited transactionally.
+- The `admin` role is immutable through the API: its name, permission set, and existence cannot be changed. Reading its details still requires `roles.view`.
+
 ## Availability and compatibility
 
 - `GET /api/v1` is a minimal availability response. Laravel's `/up` is liveness: it only indicates that the application can answer. No readiness endpoint or database-readiness contract exists yet; do not expose connection, host, or infrastructure details.

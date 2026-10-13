@@ -6,6 +6,7 @@ namespace App\Actions\Roles;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
 use Spatie\Permission\Models\Role;
 
@@ -17,7 +18,7 @@ final class StoreRole
     {
         return PrivilegeTransaction::run(function () use ($actor, $name): Role {
             $role = Role::query()->create(['name' => $name, 'guard_name' => 'web']);
-            $this->auditRoleChange($actor, $role);
+            $this->auditRoleChange($actor, $role, Audit::ACTION_ROLE_STORE);
 
             return $role;
         });

@@ -10,6 +10,8 @@ Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(
     Route::prefix('roles')->name('roles.')->group(static function (): void {
         Route::post('/', [RoleController::class, 'store']);
         Route::get('/', [RoleController::class, 'index']);
+        Route::get('/{role}', [RoleController::class, 'show']);
+        Route::patch('/{role}', [RoleController::class, 'rename']);
         Route::delete('/{role}', [RoleController::class, 'destroy']);
         Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions']);
     });
