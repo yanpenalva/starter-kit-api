@@ -23,4 +23,4 @@
 
 ## Delivery
 
-PR #83 is open, targets `main`, and has head branch `feat/slice-5-active-sessions`. The user authorized updating this PR only and prohibited creating another PR or merging it. The user explicitly authorized the local deterministic snapshot export for this work item. Commit and push results are pending.
+Commit `6d8a1df4ec9c9b6fbc12a70161d9fae77f90debc` was pushed to `origin/feat/slice-5-active-sessions`. Remote branch verification and GitHub API both report that SHA as PR #83's head; PR #83 is open, targets `main`, and is not merged. No other PR was created. The user explicitly authorized the local deterministic snapshot export for this work item.
