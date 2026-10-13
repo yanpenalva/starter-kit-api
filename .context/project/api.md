@@ -19,9 +19,11 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - A confirmed-MFA admin login invalidates any existing web session and instead returns HTTP 200 `{ "requires_mfa": true }`. The client submits a TOTP or one-time recovery code to `/api/v1/auth/mfa/challenge`; every protected `auth:sanctum` route rejects an MFA-enabled admin until that challenge succeeds, including sessions created before enrollment.
 - Admin MFA enrollment at `/api/v1/auth/mfa/enroll` requires the current password. Plaintext recovery codes are returned once; only one-way hashes are stored. Confirmation returns `{ "confirmed": true }` without returning recovery codes again.
 - `POST /api/v1/logout` invalidates the current session and returns 204. It does not revoke separately authorized integration tokens.
+- `GET /api/v1/auth/sessions` lists only the signed-in user's sessions. `DELETE /api/v1/auth/sessions/{id}` revokes one of that user's sessions; `DELETE /api/v1/auth/sessions` revokes every other session and keeps the current one. Both DELETE routes allow 10 requests per minute per user and return 429 after the limit.
+- Active-session listing and revocation (including bulk revocation), password-reset invalidation, and account-suspension invalidation require `SESSION_DRIVER=database`. The `sessions.id` primary key remains Laravel's opaque string session ID; `users.id` and `sessions.user_id` use bigint keys.
 - A newly registered, not-yet-verified user may establish a limited session and read a minimal profile for verification. Business routes remain denied until email verification automatically activates the basic profile. An explicitly deactivated account receives 403. This distinction was approved by yanpenalva on 2026-10-02 and clarifies API #13 against the accepted ADR 0004.
 - An authenticated profile contains only the current user's identity plus effective role and permission identifiers. Before verification, roles and permissions are empty and the identity is limited to the fields in the OpenAPI schema. CPF is omitted from this initial minimal auth profile; any future CPF response must follow the holder/specific-permission access in ADR 0004, never public exposure. Permission names remain owned by API #16.
-- Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment.
+- Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment. The session driver for active-session management is `database`.
 
 ## SPA origins and email links
 
@@ -34,6 +36,13 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - A collection may accept `page` (positive integer, default 1) and `per_page` (integer 1–100, default 25). Responses include `meta.current_page`, `meta.per_page`, `meta.total`, and `meta.last_page`.
 - Each endpoint declares its own filter and sort allowlist. Unknown fields are rejected with 422; clients never choose SQL columns or operators.
 - Sort uses a documented `sort` field allowlist and `direction=asc|desc`; absent values use the endpoint's stable default order.
+
+## Role administration
+
+- `GET /api/v1/roles/{id}` requires an authenticated, verified actor with `roles.view` and returns the role's `id`, `name`, `guard_name`, and sorted permission names in the standard `data` envelope.
+- `PATCH /api/v1/roles/{id}` requires `roles.manage` and a unique `name` string (maximum 255 characters). It renames a custom role and preserves its permission assignments. Built-in role names cannot be changed.
+- `DELETE /api/v1/roles/{id}` requires `roles.manage`; `admin` cannot be deleted, and a role assigned to users cannot be deleted. Role mutations are audited transactionally.
+- The `admin` role is immutable through the API: its name, permission set, and existence cannot be changed. Reading its details still requires `roles.view`.
 
 ## Availability and compatibility
 
@@ -93,4 +102,3 @@ yanpenalva approved this policy via the question tool ("Aprovar transporte") on 
 - Producer workflow: `.github/workflows/openapi.yml` (`name: OpenAPI Contract`) exports the real document on `main` (workflow_dispatch + push to main, wrong-branch guard fail-closed) with `LC_ALL=C` 2x byte-identical verification, then uploads artifact `openapi-<fullSHA>` (retention 90d). No secrets, no PAT, no frontend writes. The receipt is constructed by operator fetch AFTER trusted metadata + raw ZIP verification (never inside the same ZIP).
 - Generated snapshot: `contracts/openapi.json` (OpenAPI 3.1.0, info 1.0.0 logical, 20447 bytes, SHA256 be6e4acd79e8bb9383b39b1e698ba9e3e147cda3c3cf12db223e82cdeee88b8d). Paths: `GET /` (availability), `POST /login` (204 public + XSRF header, 401/403/419/422/429), `POST /logout` (204 sessionCookie + XSRF, 401/419/429), `GET /auth/my-profile` (200 sessionCookie wrapped data, 401/403/429), `GET /sanctum/csrf-cookie` (204 public overlay + 429). Schemes: `sessionCookie` (apiKey cookie `starter-kit-api-session`, HttpOnly SameSite=lax) + `xsrfToken` (apiKey header `X-XSRF-TOKEN`); no Bearer/PAT/JWT. Docs UI (`/docs/api`, `/docs/api.json`) protected outside local by admin Gate `viewApiDocs` (verified active admin, Role enum; no header PAT fallback).
 - Sources: [fine-grained PAT permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), [GITHUB_TOKEN security](https://docs.github.com/en/actions/concepts/security/github_token), [security hardening](https://docs.github.com/en/actions/reference/security/secure-use), [workflow runs API](https://docs.github.com/en/rest/actions/workflow-runs), [artifact retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization), [gh run download](https://cli.github.com/manual/gh_run_download).
-

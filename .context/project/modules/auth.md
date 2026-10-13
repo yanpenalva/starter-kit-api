@@ -12,11 +12,14 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
   - CSRF token validation and session middleware enforcement for stateful API endpoints.
   - Login throttling (5 attempts/min keyed by SHA-256 hash of normalized email and client IP).
   - Account state eligibility: blocking explicitly deactivated accounts (`HTTP 403`) and restricting unverified accounts to minimal identity without roles/permissions.
+  - Active-session listing and revocation for the authenticated user.
+  - Session invalidation after password reset or account suspension.
   - Email boundary normalization (trim and lowercase) matching the case-insensitive database identity contract.
 - **Does NOT Own:**
   - Administrative user mutations, user creation, or role assignment (owned by privileged administration / `UserPolicy`).
   - Personal Access Tokens (PAT) or Bearer token issuance (expressly disallowed for SPA authentication).
-  - Public registration, email verification links, or password reset flows (owned by future waves: API #14 and #15).
+  - Public registration and email verification links (owned by API #14).
+  - Password-reset issuance and notification (owned by API #15); auth owns invalidating the user's sessions after a successful reset.
   - Production TLS, session domains, or production reverse-proxy configuration.
 
 ## Endpoints and Contracts
@@ -57,10 +60,18 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
 - **Protected routes:** Every `auth:sanctum` route requires a completed MFA challenge when the authenticated user is an admin with confirmed MFA. This also rejects sessions created before MFA was enabled.
 - **Recovery code regeneration:** `POST /api/v1/auth/mfa/recovery-codes` returns newly generated plaintext codes once and stores only their hashes. `POST /api/v1/auth/mfa/disable` clears the TOTP secret and recovery hashes.
 
+### 5. Active sessions
+- **Driver:** `SESSION_DRIVER=database` is required so the API can enumerate and revoke the session rows used by Laravel's database handler. The migration keeps Laravel's opaque string session ID as the `sessions.id` primary key; `sessions.user_id` is a nullable bigint matching `users.id`.
+- **`GET /api/v1/auth/sessions`:** Returns `{ "data": [{ "id": string, "ip_address": string|null, "user_agent": string|null, "last_activity": RFC3339 UTC|null, "is_current": boolean }] }` for the authenticated user's sessions only.
+- **`DELETE /api/v1/auth/sessions/{id}`:** Deletes only a session owned by the authenticated user and returns HTTP 204. Missing and other users' IDs return the same HTTP 404 message. Deleting the current session invalidates it; its next request receives HTTP 401.
+- **`DELETE /api/v1/auth/sessions`:** Deletes all of the authenticated user's sessions except the current session and returns HTTP 204. It does not affect any other user.
+- **Rate limiting:** Both DELETE routes share a limit of 10 requests per minute per authenticated user; excess requests receive HTTP 429.
+- **Lifecycle:** A successful password reset and account suspension delete every database session for the affected user. Failed password resets leave sessions unchanged.
+
 ## Security Architecture
 
 - **Session Stateful Guard & Header Rejection:** Operates exclusively with Laravel Sanctum session cookies (HttpOnly, SameSite=lax). No PAT / JWT storage. Any request bearing an `Authorization` header is immediately rejected fail-closed with HTTP 401 (`DisallowHeaderAuthentication`), completely preventing fallback queries against non-existent token storage (`personal_access_tokens`).
 - **CSRF Enforcement:** State-changing requests (`POST /login`, `POST /logout`) enforce CSRF validation (`PreventRequestForgery`). Bypassing stateful Origin/Referer is rejected (`EnsureStatefulSession`) rather than crashing or skipping CSRF.
-- **Rate Limiting:** Dedicated `login` limiter in `AppServiceProvider` allows 5 attempts/minute per bucket. The bucket key is `hash('sha256', mb_strtolower(trim($email)) . '|' . $ip)`, completely eliminating PII from cache keys while isolating both IP and normalized identity.
+- **Rate Limiting:** Login allows 5 attempts/minute per hashed identity/IP bucket; session revocation allows 10 requests/minute per authenticated user. The login bucket contains no PII.
 - **Email Identity Contract:** Case-insensitive and whitespace-trimmed email uniqueness enforced at the database level by PostgreSQL expression index `CREATE UNIQUE INDEX users_email_lower_unique ON users (lower(btrim(email, E' \t\n\r\x0B')))`.
 - **Trusted Proxies Limitation:** Trusted proxies are configured as empty by design (`$middleware->trustProxies(at: [])`). No RFC1918 private ranges or localhost addresses are trusted by default. In production deployments fronted by reverse proxies or load balancers (e.g. AWS ALB, Cloudflare, NGINX), trusted proxies must be explicitly configured in deployment environment / proxy settings before trusting client IP headers for rate limiting and audit logs.

@@ -38,3 +38,15 @@ The test configuration and bootstrap are temporary files under `/tmp`. No Compos
 - Python tooling suite: PASS — 113 tests with the pinned `oasdiff` 1.33.0 ARM64 binary available from `/tmp`.
 - CSD doctor: PASS — `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project`.
 - Pest emits environment warnings because this worktree has no `.env`; no local `.env` was created. Tests use the temporary SQLite configuration. The full PostgreSQL Compose profile was not run locally.
+
+## Follow-up verification — OpenAPI freshness after main #79, #83 and #86 (2026-10-13)
+
+- Merged `origin/main` at `4a8531661b73d22c3dfac932e65faa4c0b936f58`. Resolved API/auth context conflicts by retaining both the admin MFA and active-session contracts.
+- Exported twice under `LC_ALL=C` after applying migrations to `/tmp/api-fixwork3-openapi.sqlite`; `cmp storage/app/openapi-ci1.json storage/app/openapi-ci2.json`: PASS.
+- Refreshed `contracts/openapi.json`; `cmp storage/app/openapi-ci1.json contracts/openapi.json`: PASS. SHA-256: `0a1321d8cb263563f385c73f8d6972e2a1350a298cf2c17b3ebf064d14b6289f`.
+- OpenAPI structural validation: PASS. Contract compatibility against main SHA `4a8531661b73d22c3dfac932e65faa4c0b936f58` with pinned `oasdiff 1.33.0`: PASS, no breaking changes.
+- Focused Pest (`OpenApiSnapshotTest`, `AdminMfaTest`, `MfaRecoveryCodeConcurrencyTest`): PASS, 707 assertions and 16 environment warnings; SQLite skips the PostgreSQL-only concurrency assertion.
+- Pint: PASS. PHPStan/Larastan level 10 with `APP_ENV=testing` and the temporary autoload bootstrap: PASS, no errors.
+- Context validation (strict and examples), Python tooling tests (113), CSD doctor, and `git diff --check`: PASS. The examples validator reports that no example suite is installed.
+- Direct Scramble exports report two warnings while evaluating `RenameRoleRequest::rules()` without a bound route model. Exports are byte-identical and the CI freshness and compatibility checks pass.
+- No Composer installation or local `.env` was created. PostgreSQL Compose tests were not run locally; PR CI remains responsible for PostgreSQL 18 coverage.

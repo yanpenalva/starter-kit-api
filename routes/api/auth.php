@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Auth\ActiveSessionController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -46,6 +47,14 @@ Route::post('/email/verification-notification', EmailVerificationNotificationCon
 Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', EnsureMfaChallenge::class])->group(static function (): void {
     Route::get('/auth/my-profile', MyProfileController::class)
         ->middleware(EnsureAccountNotDeactivated::class);
+
+    Route::middleware(EnsureAccountNotDeactivated::class)->group(static function (): void {
+        Route::get('/auth/sessions', [ActiveSessionController::class, 'index']);
+        Route::delete('/auth/sessions', [ActiveSessionController::class, 'destroyOthers'])
+            ->middleware('throttle:sessions');
+        Route::delete('/auth/sessions/{id}', [ActiveSessionController::class, 'destroy'])
+            ->middleware('throttle:sessions');
+    });
 
     Route::post('/logout', LogoutController::class);
 

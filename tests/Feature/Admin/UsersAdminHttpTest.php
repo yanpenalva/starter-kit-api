@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Role as SpatieRole;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
@@ -582,6 +583,7 @@ final class UsersAdminHttpTest extends TestCase
         $target->assignRole(Role::User->value);
 
         $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
         $actor->givePermissionTo(Permission::UsersAssignRoles->value);
 
         self::actingAsSanctum($actor);
@@ -594,6 +596,133 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertFalse($target->hasRole(Role::User->value));
 
         $this->assertPrivilegedAudit($target, $actor);
+    }
+
+    public function test_assign_roles_denies_delegated_operator_escalating_to_admin(): void
+    {
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => [Role::Admin->value]])
+            ->assertStatus(403);
+
+        $this->assertFalse($target->refresh()->hasRole(Role::Admin->value));
+    }
+
+    public function test_assign_roles_denies_delegated_operator_assigning_unheld_permissions(): void
+    {
+        $customRole = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $customRole->givePermissionTo(Permission::UsersManage->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['manager']])
+            ->assertStatus(403);
+
+        $this->assertFalse($target->refresh()->hasRole('manager'));
+    }
+
+    public function test_assign_roles_allows_delegated_operator_within_grant_ceiling(): void
+    {
+        $customRole = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $customRole->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['viewer']])
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['viewer']);
+
+        $this->assertTrue($target->refresh()->hasRole('viewer'));
+    }
+
+    public function test_assign_roles_denies_whole_list_when_one_role_exceeds_ceiling(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['viewer', 'manager']])
+            ->assertStatus(403);
+
+        $fresh = $target->refresh();
+        $this->assertFalse($fresh->hasRole('viewer'));
+        $this->assertFalse($fresh->hasRole('manager'));
+        $this->assertTrue($fresh->hasRole(Role::User->value));
+    }
+
+    public function test_assign_roles_applies_ceiling_to_permissions_inherited_via_role(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $operator = SpatieRole::create(['name' => 'operator', 'guard_name' => 'web']);
+        $operator->givePermissionTo([Permission::UsersAssignRoles->value, Permission::UsersView->value]);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole('operator');
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['viewer']])
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['viewer']);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['manager']])
+            ->assertStatus(403);
+
+        $this->assertFalse($target->refresh()->hasRole('manager'));
+    }
+
+    public function test_assign_roles_allows_admin_to_grant_custom_role(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['manager']])
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['manager']);
+
+        $this->assertTrue($target->refresh()->hasRole('manager'));
     }
 
     public function test_assign_roles_rejects_non_catalogue_roles_with_422(): void

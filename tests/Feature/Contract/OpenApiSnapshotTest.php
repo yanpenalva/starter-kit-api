@@ -55,6 +55,8 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertArrayHasKey('/api/v1/login', $paths);
         $this->assertArrayHasKey('/api/v1/logout', $paths);
         $this->assertArrayHasKey('/api/v1/auth/my-profile', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/sessions', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/sessions/{id}', $paths);
         $this->assertArrayHasKey('/api/v1/register', $paths);
         $this->assertArrayHasKey('/api/v1/forgot-password', $paths);
         $this->assertArrayHasKey('/api/v1/reset-password', $paths);
@@ -74,7 +76,7 @@ final class OpenApiSnapshotTest extends TestCase
         );
 
         $serverUrl = $servers[0]['url'];
-        foreach (['/api/v1', '/api/v1/health', '/api/v1/login', '/api/v1/logout', '/api/v1/auth/my-profile', '/sanctum/csrf-cookie'] as $expectedPath) {
+        foreach (['/api/v1', '/api/v1/health', '/api/v1/login', '/api/v1/logout', '/api/v1/auth/my-profile', '/api/v1/auth/sessions', '/api/v1/auth/sessions/{id}', '/sanctum/csrf-cookie'] as $expectedPath) {
             $resolvedUrl = '/'.ltrim($serverUrl, '/').ltrim($expectedPath, '/');
             $this->assertSame($expectedPath, $resolvedUrl);
             $this->assertContains($resolvedUrl, $registeredUris);
@@ -163,6 +165,61 @@ final class OpenApiSnapshotTest extends TestCase
         /** @var array<int, mixed> $profileSecurity */
         $profileSecurity = $profileGet['security'];
         $this->assertSame([['sessionCookie' => []]], $profileSecurity);
+
+        /** @var list<array{path: string, method: string, responses: list<string>}> $sessionOperations */
+        $sessionOperations = [
+            ['path' => '/api/v1/auth/sessions', 'method' => 'get', 'responses' => ['200', '401', '403', '429']],
+            ['path' => '/api/v1/auth/sessions', 'method' => 'delete', 'responses' => ['204', '401', '403', '419', '429']],
+            ['path' => '/api/v1/auth/sessions/{id}', 'method' => 'delete', 'responses' => ['204', '401', '403', '404', '419', '429']],
+        ];
+        foreach ($sessionOperations as $sessionOperation) {
+            /** @var array<string, mixed> $sessionPath */
+            $sessionPath = $paths[$sessionOperation['path']];
+            /** @var array<string, mixed> $operation */
+            $operation = $sessionPath[$sessionOperation['method']];
+            /** @var array<int, mixed> $security */
+            $security = $operation['security'];
+            $this->assertSame([['sessionCookie' => []]], $security);
+            /** @var array<string, mixed> $responses */
+            $responses = $operation['responses'];
+            foreach ($sessionOperation['responses'] as $status) {
+                $this->assertArrayHasKey($status, $responses, $sessionOperation['method'].' '.$sessionOperation['path'].' missing '.$status);
+            }
+            if ($sessionOperation['method'] === 'delete') {
+                /** @var list<array{name: string, in: string, required: bool}> $parameters */
+                $parameters = $operation['parameters'];
+                $xsrf = array_values(array_filter($parameters, static fn (array $parameter): bool => $parameter['name'] === 'X-XSRF-TOKEN'));
+                $this->assertCount(1, $xsrf);
+                $this->assertSame('header', $xsrf[0]['in']);
+                $this->assertTrue($xsrf[0]['required']);
+            }
+        }
+
+        /** @var array<string, mixed> $sessionsPath */
+        $sessionsPath = $paths['/api/v1/auth/sessions'];
+        $sessionsGet = $sessionsPath['get'];
+        $this->assertIsArray($sessionsGet);
+        $sessionsResponses = $sessionsGet['responses'];
+        $this->assertIsArray($sessionsResponses);
+        $sessionsSuccess = $sessionsResponses['200'];
+        $this->assertIsArray($sessionsSuccess);
+        $sessionsContent = $sessionsSuccess['content'];
+        $this->assertIsArray($sessionsContent);
+        $sessionsJson = $sessionsContent['application/json'];
+        $this->assertIsArray($sessionsJson);
+        $sessionsSchema = $sessionsJson['schema'];
+        $this->assertIsArray($sessionsSchema);
+        $sessionsProperties = $sessionsSchema['properties'];
+        $this->assertIsArray($sessionsProperties);
+        $sessionsData = $sessionsProperties['data'];
+        $this->assertIsArray($sessionsData);
+        $sessionsItems = $sessionsData['items'];
+        $this->assertIsArray($sessionsItems);
+        $sessionItemProperties = $sessionsItems['properties'];
+        $this->assertIsArray($sessionItemProperties);
+        $isCurrent = $sessionItemProperties['is_current'];
+        $this->assertIsArray($isCurrent);
+        $this->assertSame('boolean', $isCurrent['type']);
         /** @var array<string, mixed> $profileResponses */
         $profileResponses = $profileGet['responses'];
         $this->assertArrayHasKey('429', $profileResponses, 'Throttled profile route must declare 429');
