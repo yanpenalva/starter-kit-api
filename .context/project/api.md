@@ -1,6 +1,8 @@
-# HTTP API Contract Draft
+# HTTP API Contract
 
-This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. They define the proposed v1 conventions and the initial login/profile surface before those endpoints exist. Runtime authentication, Scramble generation, artifact publication, and CI compatibility checks remain unimplemented and belong to API Issues #11 and #13.
+This file defines the canonical HTTP behavior and compatibility policy. The generated OpenAPI snapshot is [`../../contracts/openapi.json`](../../contracts/openapi.json); `.context/project/openapi.yaml` remains the historical initial draft and is not a substitute for the generated contract. Authentication, administration, audit, Scramble export, artifact publication, and compatibility checks are implemented and have owning work-item evidence.
+
+The documentation branch includes PRs #79, #82, #83, #84, #86, #87, and #89. Their role-grant, active-session, admin MFA, custom-role, privilege-mutation, and OpenAPI-envelope changes are reflected in the current implementation and snapshot. This documentation work does not change runtime behavior or the API contract. ADRs 0010–0012 record the related decisions and identify implementation and integration evidence by slice.
 
 ## Transport and responses
 
@@ -10,12 +12,13 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - Use 200 for a returned representation, 201 for a created resource, and 204 when an operation has no response body.
 - Validation errors use HTTP 422 with a JSON object containing `message` and field-keyed `errors`. Error messages are display text, not stable machine identifiers. Do not include input values, credentials, or sensitive data in errors.
 - Use 401 for missing/invalid authentication, 403 for an authenticated but explicitly blocked account or denied action, 404 for an unavailable resource, 409 for a state conflict, 419 for invalid/missing CSRF, and 429 for throttling. Authentication errors must not reveal whether an account exists. A throttled response includes `Retry-After` when Laravel provides it.
-- Timestamps are RFC 3339 UTC strings. This initial profile omits CPF; credentials and sensitive inputs never appear in public errors or logs.
+- Timestamps are RFC 3339 UTC strings. The authentication profile omits CPF; credentials and sensitive inputs never appear in public errors or logs.
 
 ## Authentication contract
 
 - The first-party SPA uses Sanctum stateful session cookies and CSRF. It calls `GET /sanctum/csrf-cookie` before state-changing requests and sends the XSRF token in `X-XSRF-TOKEN` with credentials enabled.
-- Successful `POST /api/v1/login` returns 204; the client then loads `GET /api/v1/auth/my-profile`. The SPA login does not issue or return a personal access token.
+- HTTP authentication uses Sanctum stateful sessions, session cookies, and CSRF only. The API does not issue or accept bearer, personal access, JWT, or integration API tokens.
+- A successful non-MFA `POST /api/v1/login` returns 204; the client then loads `GET /api/v1/auth/my-profile`. Login creates a session and never returns an access token.
 - A confirmed-MFA admin login invalidates any existing web session and instead returns HTTP 200 `{ "requires_mfa": true }`. The client submits a TOTP or one-time recovery code to `/api/v1/auth/mfa/challenge`; every protected `auth:sanctum` route rejects an MFA-enabled admin until that challenge succeeds, including sessions created before enrollment.
 - Admin MFA enrollment at `/api/v1/auth/mfa/enroll` requires the current password. Plaintext recovery codes are returned once; only one-way hashes are stored. Confirmation returns `{ "confirmed": true }` without returning recovery codes again.
 - `POST /api/v1/logout` invalidates the current session and returns 204. It does not revoke separately authorized integration tokens.
@@ -23,8 +26,9 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - Active-session listing and revocation (including bulk revocation), password-reset invalidation, and account-suspension invalidation require `SESSION_DRIVER=database`. The `sessions.id` primary key remains Laravel's opaque string session ID; `users.id` and `sessions.user_id` use bigint keys.
 - A newly registered, not-yet-verified user may establish a limited session and read a minimal profile for verification. Business routes remain denied until email verification automatically activates the basic profile. An explicitly deactivated account receives 403. This distinction was approved by yanpenalva on 2026-10-02 and clarifies API #13 against the accepted ADR 0004.
 - An authenticated profile contains only the current user's identity plus effective role and permission identifiers. Before verification, roles and permissions are empty and the identity is limited to the fields in the OpenAPI schema. CPF is omitted from this initial minimal auth profile; any future CPF response must follow the holder/specific-permission access in ADR 0004, never public exposure. Permission names remain owned by API #16.
-- The authenticated Sanctum session is the only source of the profile subject. Client-supplied user IDs, roles, and permissions never select an identity or grant access; the profile is display context, and the API rechecks authorization against server-side state on every protected request.
-- Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment. The session driver for active-session management is `database`.
+- The authenticated session is the sole authority for the profile subject; client-supplied IDs, roles, or permissions never select the user or grant authority. The profile endpoint reloads the session user and already-loaded RBAC relations before eligibility checks and serialization, so reads reflect persisted identity, role, permission, and deactivation changes. Before verification, roles and permissions are empty. CPF, credentials, and remember tokens are excluded; administrative CPF access follows ADR 0004.
+- The API rechecks authorization against server-side state on every protected request. The session driver for active-session management is `database`.
+- Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment.
 
 ## SPA origins and email links
 
@@ -32,41 +36,40 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - Verification and password-reset messages link to routes on the configured SPA origin and use the API's callback/validation flow. Construct the final URL before signing or encoding it; never alter a signed URL afterward. Exact routes, payloads, expiry, and replay behavior belong to API #14 and #15.
 - Do not put passwords, CPF, or reusable credentials into links, logs, analytics, or public error responses. The mail transport and production delivery policy remain owned by the corresponding feature.
 
-## Filters and pagination
+## Administration, filters, and pagination
 
+- User and role administration uses the session-only Sanctum guard, permission gates, and policies. The user mutation Actions and role store, permission-update, and delete Actions recheck policy with a refreshed actor inside `PrivilegeTransaction::runWithActor`; PostgreSQL serializes these mutations with its advisory transaction lock. `RenameRole` still uses `run` with the actor it receives, so it does not get that actor refresh.
+- Non-admin actors may assign only roles whose permissions are all included in their own effective permissions; the role set is checked as a whole. Role detail and custom-role rename are available. Built-in `admin` and `user` names remain reserved, role permission assignments survive a rename, and deleting an assigned role is denied.
+- `GET /api/v1/roles/{id}` requires `roles.view`; `PATCH /api/v1/roles/{id}` and `DELETE /api/v1/roles/{id}` require `roles.manage`. Rename accepts a unique name up to 255 characters. The `admin` role cannot be renamed or deleted, and assigned roles cannot be deleted.
+- The audit feed filters by allowlisted event and subject types, date range, and causer; it does not accept an action-code filter. Audit payload properties and serialized descriptions are restricted by ADR 0005; audit-write failure rolls back the privileged mutation.
 - The users, roles, and activity-log collections accept `page` (positive integer, default 1) and `per_page` (integer 1–100, default 15). Each response uses the Laravel resource envelope: `data`, `links` (`first`, `last`, nullable `prev` and `next`), and `meta` (`current_page`, nullable `from`, `last_page`, `links`, `path`, `per_page`, nullable `to`, and `total`). Each `meta.links` item has nullable `url` and `page`, a string `label`, and a boolean `active` flag.
 - User `email_verified_at` and `deactivated_at`, and audit `created_at`, are required nullable UTC date-time strings. The user `cpf` property is optional and nullable because it is omitted unless the actor may read it.
-- Each endpoint declares its own filter and sort allowlist. Unknown fields are rejected with 422; clients never choose SQL columns or operators.
-- Sort uses a documented `sort` field allowlist and `direction=asc|desc`; absent values use the endpoint's stable default order.
-
-## Role administration
-
-- `GET /api/v1/roles/{id}` requires an authenticated, verified actor with `roles.view` and returns the role's `id`, `name`, `guard_name`, and sorted permission names in the standard `data` envelope.
-- `PATCH /api/v1/roles/{id}` requires `roles.manage` and a unique `name` string (maximum 255 characters). It renames a custom role and preserves its permission assignments. Built-in role names cannot be changed.
-- `DELETE /api/v1/roles/{id}` requires `roles.manage`; `admin` cannot be deleted, and a role assigned to users cannot be deleted. Role mutations are audited transactionally.
-- The `admin` role is immutable through the API: its name, permission set, and existence cannot be changed. Reading its details still requires `roles.view`.
+- Filters are endpoint-specific: users accept `search`, `status`, and `role`; roles accept `search`; the audit feed accepts `event`, `subject_type`, `from`, `to`, and `causer_id`. Requests validate accepted values and ignore unrecognized query keys; clients never choose SQL columns or operators.
+- Ordering is server-defined and stable: users and roles by ascending `id`, audit entries by descending `id`. The API does not accept client-selected `sort` or `direction` fields.
 
 ## Availability and compatibility
 
 - `GET /api/v1` is a minimal availability response. Laravel's `/up` is liveness: it only indicates that the application can answer. No readiness endpoint or database-readiness contract exists yet; do not expose connection, host, or infrastructure details.
 - Adding an endpoint or optional response field is compatible. Removing or renaming a field, making an optional input required, or changing status/authentication semantics is breaking and requires a new major API path or an explicit migration plan.
-- API #11 owns the generated-schema comparison in CI and the versioned OpenAPI 3.1 contract. Scramble exports the contract from implemented Controllers, Form Requests, and Resources through the producer workflow on `main`; feature branches do not update `contracts/openapi.json` directly.
+- OpenAPI 3.1 is generated by Scramble `0.13.47` from implemented Controllers, Form Requests, Resources, and the contract transformer. `Quality` runs deterministic export, snapshot freshness, structural validation, and breaking-change comparison with pinned `oasdiff 1.33.0`.
+- `.github/workflows/openapi.yml` is a manual producer guarded to `main`; it exports twice and publishes `openapi-<full-sha>` for 90 days. A feature branch may generate a local candidate snapshot for review and the `Quality` gate, but that candidate is not the official artifact. After integration, run the producer on `main` and inspect its artifact; versioned snapshot changes remain part of a reviewed change.
+- The [contract release guide](../../docs/contract-release.md) records the operator steps, and the [provenance recipe](../../docs/openapi-contract-recipe.md) covers artifact verification; CI and producer definitions remain the executable source for workflow behavior.
 
 ## Evidence and decisions
 
 - API Issue [#3](https://github.com/yanpenalva/starter-kit-api/issues/3) defines the initial conventions and login/profile surface.
 - API Issue [#13](https://github.com/yanpenalva/starter-kit-api/issues/13) defines the exact login, profile, logout, session, and failure-status paths.
-- Accepted architecture: [ADR 0002](../../docs/adr/0002-autenticacao-spa.md), [ADR 0003](../../docs/adr/0003-persistencia-contratos.md), and [ADR 0004](../../docs/adr/0004-identidade-rbac.md).
+- Accepted architecture: [ADR 0002](../../docs/adr/0002-autenticacao-spa.md), [ADR 0003](../../docs/adr/0003-persistencia-contratos.md), and [ADR 0004](../../docs/adr/0004-identidade-rbac.md), with current successor records [ADR 0010](../../docs/adr/0010-autenticacao-http-somente-sessao.md), [ADR 0011](../../docs/adr/0011-rbac-auditoria-e-roles-customizadas.md), and [ADR 0012](../../docs/adr/0012-contrato-openapi-e-release.md).
 - Laravel 13 documents Sanctum SPA authentication as cookie/session based and separate from personal access token authentication: [Sanctum SPA authentication](https://laravel.com/framework/docs/13.x/sanctum#spa-authentication).
 - Scramble documents OpenAPI 3.1 generation and its current Composer manifest declares Laravel 13 compatibility: [Scramble](https://github.com/dedoc/scramble), [composer.json](https://github.com/dedoc/scramble/blob/main/composer.json).
 
-**Review state (historical snapshot):** draft for API #3 at authoring time. **Superseded 2026-10-03:** the initial conventions were accepted by the human and integrated via [PR #30](https://github.com/yanpenalva/starter-kit-api/pull/30) (merged 2026-10-02T23:34:49Z; closure of API #3 confirmed by yanpenalva in the PR; [FEAT-3](../work/FEAT-3/work-item.json) closed as a receipt — the acceptance is not reopened). The limited pre-verification session rule remains explicitly approved. Still genuinely open: generated publication, endpoint-level contracts and compatibility CI belong to API #11 and the owning implementation issues; API names/matrix, production domains, session configuration, and per-resource filters remain `NOT FOUND` until their owning features.
+**Review state (historical):** initial conventions were accepted and integrated via [PR #30](https://github.com/yanpenalva/starter-kit-api/pull/30); API #11 contract generation and compatibility are recorded as completed in [FEAT-11](../work/FEAT-11/work-item.json). The limited pre-verification session rule remains approved. Production CORS origins, session domain/lifetime, TLS termination, and production proxy configuration remain `NOT FOUND` until deployment planning.
 
 ## Private OpenAPI transport policy (approved 2026-10-03)
 
-yanpenalva approved this policy via the question tool ("Aprovar transporte") on 2026-10-03. Routine SHA/workflow pins need no new human choice; CI credential provision remains a human decision. Producer and consumer workflows do not exist yet; this slice is documentation only.
+yanpenalva approved this policy via the question tool ("Aprovar transporte") on 2026-10-03. Routine SHA/workflow pins need no new human choice; CI credential provision remains a human decision. The API producer exists in .github/workflows/openapi.yml and is limited to workflow_dispatch on main. Quality validates the committed snapshot; the API producer has no cross-repository write permission.
 
-### Producer (API repository; API #11, wave 3)
+### Producer (API repository; API #11)
 
 - Generate the OpenAPI document only from real implemented Controllers, Form Requests and Resources, in a successful trusted run on `main` at an exact full revision SHA that is already reviewed and integrated under the recorded delivery authorization.
 - Identify the run by an allowlist of trusted workflow id/path/triggering event; verify the artifact by id, name and digest.
@@ -88,18 +91,18 @@ yanpenalva approved this policy via the question tool ("Aprovar transporte") on 
 - Dual-digest separation (ARCHIVE digest ≠ FILE hash): The archive digest (`archive_sha256`, ZIP from GitHub Actions provider) and the extracted OpenAPI file hash (`artifact_file_sha256`) are stored separately in the receipt and both validated. Never copy the ZIP archive digest as the OpenAPI file hash. The file hash is independently recomputed from the extracted spec file stream.
 - Record per delivery: API repository SHA, workflow run id, path and workflow SHA, artifact id, archive digest (`archive_sha256`), file hash (`artifact_file_sha256`), contract version, generator version (`dedoc/scramble 0.13.47`), plus the SPA paired SHA and provenance. The archive digest proves transfer integrity, not authorship attestation.
 - Receipt metadata authentication vs attestation: The receipt authenticates GitHub Actions workflow run and artifact metadata; it does NOT implement cryptographic attestation or signing (no signing/notary is implemented at Stage A).
-- Explicit expiration policy (fetch-time enforcement): Two operational modes are supported in `scripts/verify_contract_artifact.py`:
+- Explicit expiration policy (fetch-time enforcement): Two operational modes are supported in `scripts/contract_cli.py`:
   1. `--mode download-fresh`: enforced during the initial fetch by the local orchestrator, applying `max_age` (default 90 days matching GitHub Actions retention) against a reliable UTC clock. Timestamps in the future beyond a 300-second skew tolerance fail closed immediately.
   2. `--mode verify-committed`: used during consumer CI runs over durably committed contract files. No age expiration is evaluated, ensuring approved, committed specifications do not break CI randomly.
 - Recovery is limited to an API-owner rerun (Actions:write via the API-authorized identity, never the SPA token) or a newly explicit reviewed SHA. Never pretend that a workflow dispatch can reproduce an old `main` historical SHA arbitrarily.
 - Stage B deterministic export requirement: the producer export pipeline must execute under `LC_ALL=C` and enforce 2x idempotent export verification before generating the artifact hash.
-- Contract scope discipline: Stage A does not generate a fake live contract; `/up` is an operational liveness probe, not an application contract. When real controllers are implemented in Stage B, a transformer overlay will document real routes (with `/up` optional).
+- Contract scope discipline: the generated artifact reflects real implemented routes. `/up` is an operational liveness probe, not an application contract; it may be included in the document but does not promise database or dependency readiness.
 
 ### Scope limits and current assumptions
 
-- Retention: the 90-day default is proposed as the technical default under existing policy; absent/expired artifacts fail the gate at first fetch.
+- Retention: the producer artifact retention is 90 days; absent or expired artifacts fail the first fetch closed.
 - Production and backups are out of scope.
-- Scramble version pin: `dedoc/scramble 0.13.47` installed (exact pin; lock ref `d1597812fa8ce40a257d83c527bec28cb60de7a5`). Stage B real export active on branch `feat/wave-3-openapi-prep`, PENDING independent review.
-- Producer workflow: `.github/workflows/openapi.yml` (`name: OpenAPI Contract`) exports the real document on `main` (workflow_dispatch + push to main, wrong-branch guard fail-closed) with `LC_ALL=C` 2x byte-identical verification, then uploads artifact `openapi-<fullSHA>` (retention 90d). No secrets, no PAT, no frontend writes. The receipt is constructed by operator fetch AFTER trusted metadata + raw ZIP verification (never inside the same ZIP).
-- Generated snapshot: `contracts/openapi.json` (OpenAPI 3.1.0, info 1.0.0 logical, 20447 bytes, SHA256 be6e4acd79e8bb9383b39b1e698ba9e3e147cda3c3cf12db223e82cdeee88b8d). Paths: `GET /` (availability), `POST /login` (204 public + XSRF header, 401/403/419/422/429), `POST /logout` (204 sessionCookie + XSRF, 401/419/429), `GET /auth/my-profile` (200 sessionCookie wrapped data, 401/403/429), `GET /sanctum/csrf-cookie` (204 public overlay + 429). Schemes: `sessionCookie` (apiKey cookie `starter-kit-api-session`, HttpOnly SameSite=lax) + `xsrfToken` (apiKey header `X-XSRF-TOKEN`); no Bearer/PAT/JWT. Docs UI (`/docs/api`, `/docs/api.json`) protected outside local by admin Gate `viewApiDocs` (verified active admin, Role enum; no header PAT fallback).
+- Scramble version pin: `dedoc/scramble 0.13.47` installed (exact pin; lock ref `d1597812fa8ce40a257d83c527bec28cb60de7a5`). FEAT-11 Stage B and its consumer acceptance are recorded complete. PR #87 integrated Slice 9's collection-envelope and nullable-field refinements with a reviewed snapshot update.
+- Producer workflow: `.github/workflows/openapi.yml` (`name: OpenAPI Contract`) accepts only `workflow_dispatch` on `main`, enforces `LC_ALL=C` and two byte-identical exports, and uploads `openapi-<fullSHA>` for 90 days. The receipt is constructed by the operator after trusted workflow/artifact metadata and raw ZIP verification; it is not placed inside the ZIP being verified.
+- At this branch's base, `origin/main` includes PRs #79, #83, #86, #89, and #87 and their reviewed snapshot updates. A feature branch may propose a candidate snapshot for review, but only the main-only producer publishes the official artifact. The contract uses session-cookie and XSRF schemes only; Bearer/PAT/JWT are forbidden.
 - Sources: [fine-grained PAT permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), [GITHUB_TOKEN security](https://docs.github.com/en/actions/concepts/security/github_token), [security hardening](https://docs.github.com/en/actions/reference/security/secure-use), [workflow runs API](https://docs.github.com/en/rest/actions/workflow-runs), [artifact retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization), [gh run download](https://cli.github.com/manual/gh_run_download).

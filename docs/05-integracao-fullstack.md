@@ -106,10 +106,11 @@ próprio.
 
 O snapshot entra no repositório por fluxo controlado: após integrar mudanças de rotas
 ou contratos na `main`, o produtor exporta o contrato duas vezes para provar
-determinismo (bytes idênticos), publica o artefato versionado e o snapshot é atualizado
-em commit próprio após revisão. O gate de contrato do CI confirma que o snapshot
-commitado corresponde ao contrato atual. Exportações locais servem para inspeção, não
-substituem o produtor oficial.
+determinismo (bytes idênticos) e publica o artifact versionado. O snapshot é atualizado
+com os bytes desse artifact em uma alteração revisada. O gate `contract` do CI confirma
+que o snapshot commitado corresponde ao runtime e rejeita mudanças incompatíveis.
+Exportações locais servem para inspeção, não substituem o produtor oficial. Para os
+passos operacionais e a validação de provenance, siga o [guia de release do contrato](contract-release.md).
 
 ## 5. Quando o contrato muda: o que cada lado faz
 
