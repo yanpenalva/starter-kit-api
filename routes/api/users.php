@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Users\UserController;
 use App\Http\Middleware\DisallowHeaderAuthentication;
+use App\Http\Middleware\EnsureMfaChallenge;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum'])->group(static function (): void {
+Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', EnsureMfaChallenge::class])->group(static function (): void {
     Route::prefix('users')->name('users.')->group(static function (): void {
         Route::post('/', [UserController::class, 'store']);
         Route::get('/', [UserController::class, 'index']);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\Role;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Support\ApiMessage;
@@ -57,6 +58,18 @@ final class LoginController
             $user->forceFill(['password' => Hash::make($password)])->save();
         }
 
+        if ($user->hasRole(Role::Admin->value) && $user->hasMfaEnabled()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            $request->session()->put('mfa:user_id', $user->id);
+
+            return response()->json([
+                'requires_mfa' => true,
+            ]);
+        }
+
+        $request->session()->forget(['mfa:user_id', 'mfa:verified_user_id']);
         Auth::guard('web')->login($user);
 
         $request->session()->regenerate();

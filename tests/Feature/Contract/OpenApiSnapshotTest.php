@@ -60,6 +60,12 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertArrayHasKey('/api/v1/register', $paths);
         $this->assertArrayHasKey('/api/v1/forgot-password', $paths);
         $this->assertArrayHasKey('/api/v1/reset-password', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/mfa/challenge', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/mfa/status', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/mfa/enroll', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/mfa/confirm', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/mfa/disable', $paths);
+        $this->assertArrayHasKey('/api/v1/auth/mfa/recovery-codes', $paths);
         $this->assertArrayHasKey('/api/v1/email/verify/{id}/{hash}', $paths);
         $this->assertArrayHasKey('/api/v1/email/verification-notification', $paths);
         $this->assertArrayHasKey('/sanctum/csrf-cookie', $paths);
@@ -226,6 +232,41 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertMessageExamplesMatchApiMessageConstants($document);
 
         unlink($output);
+    }
+
+    public function test_openapi_export_is_byte_deterministic(): void
+    {
+        $previousLocale = setlocale(LC_ALL, '0');
+        $firstOutput = storage_path('app/openapi-determinism-first.json');
+        $secondOutput = storage_path('app/openapi-determinism-second.json');
+
+        setlocale(LC_ALL, 'C');
+        config(['app.url' => 'http://deterministic-origin.test']);
+
+        try {
+            foreach ([$firstOutput, $secondOutput] as $output) {
+                $exit = Artisan::call('scramble:export', ['--path' => $output]);
+                $this->assertSame(0, $exit);
+                $this->assertFileExists($output);
+            }
+
+            $firstPayload = file_get_contents($firstOutput);
+            $secondPayload = file_get_contents($secondOutput);
+
+            $this->assertIsString($firstPayload);
+            $this->assertIsString($secondPayload);
+            $this->assertSame($firstPayload, $secondPayload);
+        } finally {
+            foreach ([$firstOutput, $secondOutput] as $output) {
+                if (is_file($output)) {
+                    unlink($output);
+                }
+            }
+
+            if (is_string($previousLocale)) {
+                setlocale(LC_ALL, $previousLocale);
+            }
+        }
     }
 
     public function test_contract_examples_match_real_runtime_responses(): void
