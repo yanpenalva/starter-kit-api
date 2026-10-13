@@ -113,6 +113,7 @@ final class CorrelationRedactionTest extends TestCase
                 'token' => 'synthetic-token',
                 'full_payload' => '{"everything":"else"}',
                 'actor_type' => 'cli',
+                'action' => Audit::ACTION_USER_STATUS,
             ],
         );
 

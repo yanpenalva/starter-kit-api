@@ -204,7 +204,7 @@ flowchart TD
     M[Mutação privilegiada] --> TX[PrivilegeTransaction<br/>transação + trava consultiva]
     TX --> OP[aplica a mudança]
     OP --> AU[Audit.record<br/>só eventos allowlist:<br/>privileged.change,<br/>cli.bootstrap]
-    AU --> ENV[envelope mínimo:<br/>correlation_id,<br/>actor_type, actor_id, action]
+    AU --> ENV[envelope mínimo:<br/>correlation_id,<br/>actor_type, actor_id,<br/>action allowlist]
     ENV --> AS[afirma que o registro<br/>existe na mesma transação]
     AS -->|existe| CM[commit]
     AS -->|falhou| RB[rollback da mutação]
@@ -218,12 +218,20 @@ O que o desenho garante, ponto a ponto:
   é verificada antes do commit. Se a gravação falha, a mutação é revertida: nunca
   existe privilégio concedido sem registro correspondente.
 - **Envelope mínimo por negação padrão.** Só sobrevivem as chaves aprovadas
-  (`correlation_id`, `actor_type`, `actor_id` e ações fechadas como `role.rename`);
-  todo o resto é descartado. Senhas,
+  (`correlation_id`, `actor_type`, `actor_id` e `action`, com códigos aprovados como
+  `role.rename`); todo o resto é descartado. Senhas,
   hashes, tokens, cookies, CSRF, CPF, e-mail e payload integral são proibidos, e IP
   não é coletado por padrão.
+- **Ação específica e validada.** `event` agrupa mudanças privilegiadas e bootstrap;
+  `properties.action` identifica a operação com um código da allowlist, como
+  `user.store`, `user.status`, `role.update_permissions`, `role.rename` ou
+  `admin.bootstrap`. O feed
+  aceita `?action=<código aprovado>` e rejeita códigos fora da lista.
 - **Leitura controlada.** A trilha não pode ser editada nem removida pela API, e a
   leitura exige a permissão `logs.view`. A limpeza após 90 dias é restrita ao processo
   operacional agendado (`activitylog:clean`), nunca a um endpoint.
+- **Filtro por ação.** `GET /api/v1/activity-log?action=<código>` aceita apenas um
+  dos códigos de operação aprovados; `event` continua disponível para filtrar a
+  categoria ampla da atividade.
 - **Retenção declarada.** Eventos vivem 90 dias. Classificação fina, responsabilidades
   operacionais e tratamento em backups são definidos antes da coleta em produção.

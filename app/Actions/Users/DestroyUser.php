@@ -8,6 +8,7 @@ use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
 use App\Policies\UserPolicy;
 use App\Support\ApiMessage;
+use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -24,7 +25,7 @@ final class DestroyUser
                 abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
 
-            $this->auditUserChange($actor, $target);
+            $this->auditUserChange($actor, $target, Audit::ACTION_USER_DESTROY);
             $target->delete();
         });
     }

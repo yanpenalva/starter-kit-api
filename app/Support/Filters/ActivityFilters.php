@@ -21,6 +21,7 @@ final class ActivityFilters
     public static function apply(Builder $query, array $filters): Builder
     {
         $event = self::present($filters['event'] ?? null);
+        $action = self::present($filters['action'] ?? null);
         $subjectType = self::present($filters['subject_type'] ?? null);
         $from = self::present($filters['from'] ?? null);
         $to = self::present($filters['to'] ?? null);
@@ -30,6 +31,10 @@ final class ActivityFilters
             ->when($event !== null, static function (Builder $filtered) use ($event): void {
                 assert(is_string($event));
                 $filtered->where('event', $event);
+            })
+            ->when($action !== null, static function (Builder $filtered) use ($action): void {
+                assert(is_string($action));
+                $filtered->where('properties->action', $action);
             })
             ->when($subjectType !== null, static function (Builder $filtered) use ($subjectType): void {
                 assert(is_string($subjectType));

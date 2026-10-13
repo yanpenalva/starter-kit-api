@@ -543,6 +543,29 @@
                         }
                     },
                     {
+                        "name": "action",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "user.store",
+                                "user.update",
+                                "user.destroy",
+                                "user.status",
+                                "user.assign_roles",
+                                "role.store",
+                                "role.update_permissions",
+                                "role.destroy",
+                                "role.rename",
+                                "admin.bootstrap",
+                                null
+                            ]
+                        }
+                    },
+                    {
                         "name": "subject_type",
                         "in": "query",
                         "schema": {
@@ -947,6 +970,24 @@
                     "204": {
                         "description": "No content"
                     },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "requires_mfa": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "requires_mfa"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "403": {
                         "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
                         "content": {
@@ -1344,7 +1385,7 @@
                                     "type": "object",
                                     "properties": {
                                         "mfa_enabled": {
-                                            "type": "string"
+                                            "type": "boolean"
                                         }
                                     },
                                     "required": [

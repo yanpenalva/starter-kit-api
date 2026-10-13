@@ -21,6 +21,16 @@ final class Audit
 
     public const EVENT_PRIVILEGED_CHANGE = 'privileged.change';
 
+    public const ACTION_USER_STORE = 'user.store';
+
+    public const ACTION_USER_UPDATE = 'user.update';
+
+    public const ACTION_USER_DESTROY = 'user.destroy';
+
+    public const ACTION_USER_STATUS = 'user.status';
+
+    public const ACTION_USER_ASSIGN_ROLES = 'user.assign_roles';
+
     public const ACTION_ROLE_STORE = 'role.store';
 
     public const ACTION_ROLE_UPDATE_PERMISSIONS = 'role.update_permissions';
@@ -29,14 +39,22 @@ final class Audit
 
     public const ACTION_ROLE_RENAME = 'role.rename';
 
+    public const ACTION_BOOTSTRAP = 'admin.bootstrap';
+
+    private const ALLOWED_EVENTS = [self::EVENT_CLI_BOOTSTRAP, self::EVENT_PRIVILEGED_CHANGE];
+
     private const ALLOWED_ACTIONS = [
+        self::ACTION_USER_STORE,
+        self::ACTION_USER_UPDATE,
+        self::ACTION_USER_DESTROY,
+        self::ACTION_USER_STATUS,
+        self::ACTION_USER_ASSIGN_ROLES,
         self::ACTION_ROLE_STORE,
         self::ACTION_ROLE_UPDATE_PERMISSIONS,
         self::ACTION_ROLE_DESTROY,
         self::ACTION_ROLE_RENAME,
+        self::ACTION_BOOTSTRAP,
     ];
-
-    private const ALLOWED_EVENTS = [self::EVENT_CLI_BOOTSTRAP, self::EVENT_PRIVILEGED_CHANGE];
 
     private const ALLOWED_PROPERTY_KEYS = ['correlation_id', 'actor_type', 'actor_id', 'action'];
 
@@ -49,6 +67,14 @@ final class Audit
     public static function allowedEvents(): array
     {
         return self::ALLOWED_EVENTS;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function allowedActions(): array
+    {
+        return self::ALLOWED_ACTIONS;
     }
 
     /**
@@ -67,6 +93,10 @@ final class Audit
         }
 
         $properties = self::minimalProperties($properties + ['correlation_id' => $correlationId]);
+
+        if (! isset($properties['action'])) {
+            throw new RuntimeException('Audit action is not approved.');
+        }
 
         $activity = Activity::query()->create([
             'log_name' => 'privilege',

@@ -1,6 +1,6 @@
 # ADR 0005 — Auditoria por eventos e diffs permitidos
 
-- Estado: aceito; decisão arquitetural aprovada, ainda não implementada.
+- Estado: aceito; implementação incremental registrada na arquitetura e nas fatias do roadmap.
 - Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em [FEAT-1](../../.context/work/FEAT-1/approval.md).
 
 ## Contexto e evidência
@@ -18,6 +18,8 @@ Fontes consultadas em 2026-10-01: [Activitylog introdução](https://spatie.be/d
 ## Decisão
 
 Adotar Activitylog v5 como única trilha inicial, com resolução Composer no scaffold antes da instalação. Registrar eventos de ativação/desativação, concessão/revogação de privilégios, bootstrap administrativo e mutações relevantes da primeira feature. Não auditar todo modelo ou todo request automaticamente.
+
+Manter `event` como categoria ampla (`privileged.change` ou `cli.bootstrap`) e registrar `properties.action` com um código de operação distinto, escolhido de uma allowlist fechada. O feed pode filtrar por esses mesmos códigos; valores desconhecidos são descartados pelo escritor e rejeitados na entrada HTTP. Exemplos incluem `user.store`, `user.status`, `role.update_permissions` e `admin.bootstrap`.
 
 Usar envelope mínimo: identificador de evento, instante UTC, ação, referência interna do ator/alvo, resultado e correlation ID gerado pelo servidor. Referências de identidade têm classificação pendente; minimizar e restringir acesso, sem exportá-las para logs públicos. Diffs usam allowlist explícita por evento; inicialmente vazia até aprovação dos atributos. Proibir senhas, hashes, tokens, cookies, CSRF, CPF, email, payload integral e texto livre. Não coletar IP/user-agent por padrão.
 

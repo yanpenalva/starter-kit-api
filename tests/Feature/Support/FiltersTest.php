@@ -102,7 +102,7 @@ final class FiltersTest extends TestCase
             'user',
             $otherId,
             '123e4567-e89b-42d3-a456-426614174000',
-            ['actor_type' => 'user', 'actor_id' => $actorId]
+            ['actor_type' => 'user', 'actor_id' => $actorId, 'action' => Audit::ACTION_USER_STATUS]
         );
 
         $role = RoleModel::where('name', Role::User->value)->firstOrFail();
@@ -113,7 +113,7 @@ final class FiltersTest extends TestCase
             'role',
             $roleId,
             '123e4567-e89b-42d3-a456-426614174001',
-            ['actor_type' => 'user', 'actor_id' => $otherId]
+            ['actor_type' => 'user', 'actor_id' => $otherId, 'action' => Audit::ACTION_ROLE_STORE]
         );
 
         $this->assertSame(2, ActivityFilters::apply(Activity::query(), [])->count());

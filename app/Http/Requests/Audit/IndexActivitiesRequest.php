@@ -40,6 +40,7 @@ final class IndexActivitiesRequest extends FormRequest
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
             'event' => ['sometimes', 'nullable', 'string', Rule::in(Audit::allowedEvents())],
+            'action' => ['sometimes', 'nullable', 'string', Rule::in(Audit::allowedActions())],
             'subject_type' => ['sometimes', 'nullable', 'string', Rule::in(self::SUBJECT_TYPES)],
             'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
@@ -54,7 +55,7 @@ final class IndexActivitiesRequest extends FormRequest
     {
         $filters = [];
 
-        foreach (['event', 'subject_type', 'from', 'to', 'causer_id'] as $key) {
+        foreach (['event', 'action', 'subject_type', 'from', 'to', 'causer_id'] as $key) {
             $value = $this->validated($key, null);
 
             if ((is_string($value) && $value !== '') || is_int($value)) {

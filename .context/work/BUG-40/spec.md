@@ -1,0 +1,47 @@
+# Specification — BUG-40 Corrigir gates de auditoria e contrato na PR #85
+
+## Request
+
+- Source: solicitação explícita nesta sessão para diagnosticar e corrigir os três gates da PR #85, integrar `main` primeiro, validar Pest e lint e enviar somente à branch existente.
+- Requester: yanpenalva
+- Date: 2026-10-13
+
+## Objective
+
+Deixar a PR #85 compatível com a `main` atual e corrigir as falhas reproduzíveis de aplicação, cobertura e snapshot OpenAPI.
+
+## Scope
+
+- Integrar `origin/main` vigente antes da validação (21fa573, merge de #90 após #82, #84 e #87) em `feat/slice-7-audit-distinct-action-codes`.
+- Alinhar o teste da allowlist à ação `role.rename` já permitida.
+- Revisar o artifact oficial de `main` e versionar um snapshot candidato determinístico da revisão da PR, incluindo o filtro `action`. Após a integração, validar o artifact oficial em `main`.
+- Rodar Pest relevante, lint e validar novamente os gates da PR.
+- Entregar somente na branch existente da PR #85.
+
+## Out of scope
+
+- Criar outra branch ou PR, fazer merge de PR #85, forjar/atribuir proveniência oficial ao candidato local, ou alterar comportamento de produção sem evidência necessária.
+
+## Evidence and context
+
+- Repository evidence: `Audit::allowedActions()` inclui `ACTION_ROLE_RENAME`; a expectativa do teste não.
+- Product or incident evidence: Quality run `38331058231` falhou em application, coverage e freshness do snapshot; contexto passou.
+- Relevant project context: `.context/project/quality.md`, `.context/project/delivery.md`, `.context/project/api.md`; o candidato da PR é gerado na revisão proposta, enquanto o artifact oficial é publicado somente pelo workflow em `main` após integração.
+- Unknowns (`NOT FOUND`): resultado dos gates no novo SHA antes do push.
+
+## Rules and contracts
+
+- Business or operational rules: ação de auditoria permitida permanece coberta pelo teste exato da allowlist.
+- Interfaces, data and permissions: sem mudança intencional de API, esquema ou permissões nesta correção.
+- Security and privacy impact: relevante ao contrato de auditoria; não enfraquecer a allowlist nem incluir dados sensíveis.
+
+## Tests and acceptance criteria
+
+- A branch inclui `origin/main` vigente antes da validação (`21fa573`, merge de #90 após #82, #84 e #87).
+- O Pest focado de auditoria/roles passa.
+- `composer lint` passa.
+- Snapshot candidato é determinístico na revisão da PR e inclui o filtro `action`; os gates remotos application, coverage e contract passam na PR #85.
+
+## Open decisions
+
+- Nenhuma. A autorização explícita limita o push à branch da PR #85 e proíbe merge.
