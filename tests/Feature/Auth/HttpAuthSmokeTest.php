@@ -11,6 +11,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -41,8 +42,7 @@ final class HttpAuthSmokeTest extends TestCase
         $this->assertIsolatedTestingRuntime();
 
         Cache::store('file')->flush();
-
-        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL, self::IMPERSONATION_EMAIL])->delete();
+        $this->cleanSmokeUserFixtures();
     }
 
     protected function tearDown(): void
@@ -50,10 +50,26 @@ final class HttpAuthSmokeTest extends TestCase
         $this->assertIsolatedTestingRuntime();
 
         Cache::store('file')->flush();
-
-        User::query()->whereIn('email', [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL, self::IMPERSONATION_EMAIL])->delete();
+        $this->cleanSmokeUserFixtures();
 
         parent::tearDown();
+    }
+
+    public function test_smoke_fixture_cleanup_removes_polymorphic_role_assignments(): void
+    {
+        $this->assertIsolatedTestingRuntime();
+        $this->seed(RbacCatalogueSeeder::class);
+
+        $user = User::factory()->create(['email' => self::SMOKE_EMAIL]);
+        $user->assignRole(Role::User->value);
+        $userId = $user->getKey();
+
+        $this->cleanSmokeUserFixtures();
+
+        $this->assertSame(0, DB::table('model_has_roles')
+            ->where('model_type', User::class)
+            ->where('model_id', $userId)
+            ->count());
     }
 
     public function test_real_http_session_cookie_csrf_fixation_and_cors_lifecycle(): void
@@ -427,6 +443,19 @@ final class HttpAuthSmokeTest extends TestCase
             'http_errors' => false,
             'timeout' => 5,
         ]);
+    }
+
+    private function cleanSmokeUserFixtures(): void
+    {
+        $emails = [self::SMOKE_EMAIL, self::DEACTIVATED_EMAIL, self::IMPERSONATION_EMAIL];
+        $userIds = User::query()->whereIn('email', $emails)->pluck('id');
+
+        DB::table('model_has_roles')
+            ->where('model_type', User::class)
+            ->whereIn('model_id', $userIds)
+            ->delete();
+
+        User::query()->whereIn('email', $emails)->delete();
     }
 
     private function waitUntilServerIsUp(Client $client, Process $server): Client

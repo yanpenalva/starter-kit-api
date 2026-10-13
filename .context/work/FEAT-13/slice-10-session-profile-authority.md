@@ -39,3 +39,13 @@
 - `scripts/contract_compat.py --base-commit=origin/main --candidate=contracts/openapi.json` could not run because `oasdiff` is not installed locally. PostgreSQL/Compose execution was unavailable because the Docker daemon is not running.
 - The shared `vendor` symlink's generated autoloader points at `/opt/data/work/starter-kit-api`; local Pest checks used a temporary worktree-first autoloader so they exercised this branch's source without changing the shared vendor tree.
 - Pushed the updated branch to the existing PR #88 at commit `d5d0d2fb92ce7a1af7c4122486bfe8d88fff70ca`; no new PR was created and no PR merge was issued.
+
+## PostgreSQL profile seeder isolation follow-up
+
+- Synced the branch with `origin/main` after #82, #84 and #87 at `3c76812` in merge `5eee62f`, then with the subsequent #90 update at `21fa573` in merge `dd7c737`. These are main-to-feature merges; PR #88 remains unmerged.
+- The PostgreSQL-only `HttpAuthSmokeTest` assigned roles to smoke fixture users and deleted only their `users` rows. `model_has_roles` is polymorphic and has no user foreign key cascade, so the assignments survived teardown and made the next `ProfileTest` seeder reject the non-empty table. SQLite skips the live HTTP smoke case, which hid the leak there.
+- Added narrow fixture cleanup for role assignments before deleting those three smoke users, plus a PostgreSQL regression test proving a fixture's polymorphic assignment is removed. The regression passed on local PostgreSQL: 1 passed, 31 assertions. PostgreSQL `ProfileTest.php` passed: 19 passed, 150 assertions.
+- The complete real HTTP smoke test was also attempted locally, but its separately spawned PHP server loaded the shared `vendor` symlink's autoloader from `/opt/data/work/starter-kit-api` and failed to autoload this branch's `MfaChallengeController`; the added cleanup regression and `ProfileTest` both passed. The `vendor` symlink was preserved.
+- Focused SQLite Pest after the OpenAPI contract assertions: 37 passed, 1 expected PostgreSQL-only skip, 1128 assertions. `composer lint`: passed.
+- After #82's older contract snapshot was found to omit the login 200 response and label `mfa_enabled` as a string, the deterministic Scramble producer was run twice from this worktree with its pinned generator, under `APP_ENV=testing`, PostgreSQL test DB, `LC_ALL=C` and `TZ=UTC`. Outputs were byte-identical and the promoted `contracts/openapi.json` compares equal to the generated output. The snapshot now captures `requires_mfa: boolean` and `mfa_enabled: boolean`; SHA-256 `3b34c5622ec19e509a8cd93c4011810ddaff1e75457fae28c0ba9661d7bfa342` (158994 bytes).
+- `git diff --check` and `python3 scripts/validate_context.py --strict` are part of final revalidation for this follow-up.

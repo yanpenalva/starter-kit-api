@@ -70,6 +70,18 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertArrayHasKey('/api/v1/email/verification-notification', $paths);
         $this->assertArrayHasKey('/sanctum/csrf-cookie', $paths);
 
+        $loginResponses = $paths['/api/v1/login']['post']['responses'];
+        $this->assertSame(
+            'boolean',
+            $loginResponses['200']['content']['application/json']['schema']['properties']['requires_mfa']['type'],
+        );
+
+        $mfaStatusResponses = $paths['/api/v1/auth/mfa/status']['get']['responses'];
+        $this->assertSame(
+            'boolean',
+            $mfaStatusResponses['200']['content']['application/json']['schema']['properties']['mfa_enabled']['type'],
+        );
+
         $registeredUris = array_map(
             fn (\Illuminate\Routing\Route $route): string => '/'.ltrim($route->uri(), '/'),
             Route::getRoutes()->getRoutes(),
