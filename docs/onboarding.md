@@ -76,7 +76,7 @@ Os comandos locais de validação de contexto estão em [quality configuration](
 
 ## OpenAPI
 
-`contracts/openapi.json` é um snapshot versionado produzido pelo workflow manual **OpenAPI Contract**, exclusivamente na branch `main`. Execute-o após a integração em `main` de alterações de rotas/contratos: em Actions, selecione o workflow, confirme `main` e informe o motivo. O produtor exporta duas vezes, verifica determinismo e publica o artifact `openapi-<commit>`; o resultado exportado substitui o snapshot no workspace do workflow, não cria commit automaticamente. Baixe/revise o artifact e atualize `contracts/openapi.json` em um commit/PR próprio. O gate `contract` confirma que o snapshot commitado corresponde ao contrato atual. Não gere nem atualize o snapshot por export local como substituto do produtor.
+`contracts/openapi.json` é um snapshot versionado. Quando uma alteração de rota ou resposta muda o contrato, gere o candidato na revisão proposta com `LC_ALL=C php artisan scramble:export --path=contracts/openapi.json` e inclua o snapshot na mesma entrega (no mesmo PR quando houver PR). O gate `contract` confirma exportação determinística, estrutura e compatibilidade. Depois da integração em `main`, execute o workflow manual **OpenAPI Contract** em Actions, confirme `main` e informe o motivo. O produtor exporta duas vezes e publica o artifact `openapi-<commit>`; não cria commit automaticamente. Revise o artifact da execução no SHA integrado e confirme que corresponde ao snapshot versionado. A exportação local gera o candidato para revisão e não substitui o artifact oficial nem sua proveniência.
 
 ## Deploy e smoke
 

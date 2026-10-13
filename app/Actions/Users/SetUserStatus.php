@@ -19,7 +19,7 @@ final class SetUserStatus
 
     public function run(User $actor, User $user, string $status): User
     {
-        PrivilegeTransaction::run(function () use ($actor, $user, $status): void {
+        PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($user, $status): void {
             /** @var User $target */
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
