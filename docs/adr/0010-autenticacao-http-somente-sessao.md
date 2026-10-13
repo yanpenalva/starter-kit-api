@@ -4,6 +4,7 @@
 - Substitui parcialmente: ADR 0002 (tokens de integração) e ADR 0004 (autoridade do perfil).
 - Data: 2026-10-12. Owner: yanpenalva.
 - Evidência: solicitação desta sequência de slices; branches feat/slice-6-admin-mfa-optional (677a8ec) e feat/slice-10-session-profile-authority (37e1ddf). As branches estão entregues e pushadas, mas este ADR não declara integração ou deploy.
+- A gestão do ciclo de vida de sessões foi integrada separadamente pela PR #83, registrada em FEAT-27. Ela usa o mesmo transporte de sessão e `SESSION_DRIVER=database`; não cria uma segunda forma de autenticação.
 
 ## Contexto
 
@@ -18,6 +19,9 @@ sessão existente continuasse aberta.
   nem aceita Bearer, PAT, JWT ou access token de integração.
 - Login regenera e estabelece a sessão; logout invalida a sessão atual. Nenhuma
   credencial de API separada pode substituir esse fluxo.
+- A API lista e revoga sessões do usuário autenticado e invalida sessões após reset
+  de senha ou suspensão da conta. A revogação em massa mantém a sessão atual; os
+  endpoints de sessão dependem do armazenamento de sessões no banco.
 - A sessão identifica o usuário autenticado; ela não é a fonte da identidade,
   elegibilidade ou permissões. O endpoint de perfil recarrega o usuário e suas
   relações RBAC do banco antes de serializar o perfil.

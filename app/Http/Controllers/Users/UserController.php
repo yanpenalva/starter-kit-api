@@ -114,7 +114,7 @@ final class UserController
         $actor = $request->user();
         assert($actor instanceof User);
 
-        $this->authorize('assignRoles', $user);
+        $this->authorize('assignRoles', [$user, $request->roleNames()]);
 
         return new UserResource($this->assignUserRoles->run($actor, $user, $request->roleNames()));
     }

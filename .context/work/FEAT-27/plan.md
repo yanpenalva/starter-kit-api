@@ -1,51 +1,32 @@
-# Plan — FEAT-27 — Slice 12
+# Plan
 
-## Approved approach
+## Execution
 
-Describe the already implemented workflow in a canonical release guide and detailed provenance recipe, document current decisions in successor ADRs, and remove contradictory status text from canonical API context. Keep the existing workflow and snapshot untouched.
-
-## Confirmed touchpoints
-
-- Files/components/services: docs/adr, docs/onboarding.md, docs/contract-release.md, docs/openapi-contract-recipe.md, docs/vertical-slice-recipe.md, .context/project/api.md, tests/tools.
-- Interfaces and data: OpenAPI release artifact and versioned snapshot process; no runtime or schema change.
-- Dependencies: existing workflow and quality gate; no new dependency.
-
-## Execution order
-
-1. Add a focused test for contract-guide alignment and observe its baseline failure.
-2. Write the release/provenance guides, vertical-slice recipe, successor ADRs, ADR index updates, and API context corrections.
-3. Run the focused Python check, strict context validation, PHP gates, and relevant SQLite-safe Pest.
-4. Review every changed file against the spec, record verification and limitations, then commit and push this branch.
+1. Preserve the existing route, limiter, API-message, controller, session-driver, and module-documentation changes.
+2. Close focused test gaps for revocation usability, reset success and failure, suspension through HTTP, cross-user bulk revocation, and the session/user key-type match.
+3. Check `.env.example` and Compose for only the database session-driver requirement; keep credential values absent.
+4. Inventory all three session operations and their HTTP methods in `ScaffoldTest`; document session-cookie security, XSRF, boolean `is_current`, and error responses in the contract overlay and test.
+5. Apply migrations to an isolated SQLite database, export twice with `LC_ALL=C` to temporary files, and compare them. Copy the generated output to `contracts/openapi.json`; do not hand-edit the snapshot. The user explicitly authorized this local export for the active-session snapshot, following slices 1/6/7.
+6. Run `ScaffoldTest`, active-session Pest tests, lint, analysis, and strict context validation. Use SQLite for focused local feedback; use the canonical PostgreSQL 18 profile only when its runtime is available without installing dependencies.
+7. Review the complete diff, commit and push only to the existing PR #83. Do not create another PR or merge PR #83.
 
 ## Subtasks and waves
 
-| Subtask ID | Owner | Dependencies | Acceptance evidence | Wave | Context domains |
-| --- | --- | --- | --- | --- | --- |
-| FEAT-27-DOCS | yanpenalva | none | Current ADRs and linked release/vertical-slice guides | 1 | core,project,architecture,security,release |
-| FEAT-27-VERIFY | yanpenalva | FEAT-27-DOCS | Python/context/PHP/Pest results and diff review | 2 | core,project,testing |
+| Subtask ID | Owner | Dependencies | Acceptance evidence | Wave |
+| --- | --- | --- | --- | --- |
+| A | yanpenalva | None | Focused `ActiveSessionsTest` assertions | 1 |
+| B | yanpenalva | None | Diff and contract inspection | 1 |
+| C | yanpenalva | A, B | Exact command results and reviewed diff | 2 |
 
-Implementation and integration owner: Codex for this slice. Independent reader review: NOT FOUND in this execution; record as a limitation and leave issue-level acceptance open.
+## Data and rollback
 
-## Test plan
-
-- Python unittest for contract-release documentation facts checked against .github/workflows/openapi.yml and onboarding discoverability.
-- python3 scripts/validate_context.py --strict --examples.
-- python3 -m unittest discover -s tests -v.
-- composer lint; composer analyse; SQLite-safe relevant Pest subset.
-
-## Risks and rollback
-
-- Risk: overstating an unintegrated slice as deployed behavior, or recording stale producer behavior.
-- Mitigation: identify source branch/commit evidence in ADRs and separate decision state from integration status; test release instructions against the workflow file.
-- Rollback: revert this documentation/test commit; no database, runtime or artifact state changes.
+The existing `sessions` migration uses a string primary key for Laravel's session ID and `foreignId('user_id')` for a bigint-compatible owner key. No new migration or data backfill is planned. Reverting the branch commit restores the previous application behavior; no production deployment is part of this work.
 
 ## Delivery
 
-- Branch: `feat/slice-12-contract-release-docs`, based on `origin/main` `98cf64147080c03e17c14d664ac6ac08231fcb02`.
-- Target: `main`; remote: `origin`; authorization: EXC-0001.
-- Commit and push the validated branch. Do not open a PR, merge, deploy, or change the frontend.
-
-## Required approvals
-
-- User explicitly authorized this slice, branch, commit and push, and prohibited PR/merge.
-- No production release or architectural scope expansion is requested.
+- Branch: `feat/slice-5-active-sessions`.
+- Target: `main`; remote: `origin`.
+- User authorized updating existing PR #83 after gates, and explicitly prohibited creating another PR or merging #83.
+- User explicitly authorized the local deterministic Scramble export for `contracts/openapi.json` in this work item.
+- The `origin/main` baseline is merged into this branch; see the merge commit in `verification.md`.
+- Roadmap delivery authorization: `EXC-0001`.

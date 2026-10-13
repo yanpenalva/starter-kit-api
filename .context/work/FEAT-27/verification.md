@@ -1,46 +1,26 @@
-# Verification — FEAT-27 — Slice 12
+# Verification
 
-## TDD
+## Application gates
 
-In a detached checkout of the recorded `origin/main`, the focused documentation
-check exited 1 because the release guide and vertical-slice guide/links were absent.
-After the guides were added and linked, all four focused tests passed.
-
-## Passed
-
-- `python3 -m unittest discover -s tests/tools -p 'test_contract_release_docs.py' -v` — 4 tests passed.
-- `python3 scripts/validate_context.py --strict` — passed.
-- `python3 scripts/validate_context.py --strict --examples` — passed; expected warning because no example suite is installed.
-- `source /opt/data/php/env.sh && /opt/data/php/root/usr/bin/php8.5 /opt/data/php/composer lint` — Pint passed.
-- `source /opt/data/php/env.sh && /opt/data/php/root/usr/bin/php8.5 /opt/data/php/composer analyse` — PHPStan level 10 passed, 127 files, no errors.
-- SQLite Pest, using temporary PHPUnit config with `DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:`: `/opt/data/php/root/usr/bin/php8.5 vendor/bin/pest --configuration=/tmp/phpunit-slice12-sqlite.xml tests/Feature/Contract/OpenApiSnapshotTest.php` — 2 tests passed, 549 assertions.
-- `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` — CSD healthy (1.2.1).
-- `python3 scripts/contract_cli.py --help` — passed; CLI options match the documented invocation.
+- `source /opt/data/php/env.sh && APP_ENV=testing php vendor/bin/pest --configuration=phpunit.xml tests/Feature/ScaffoldTest.php` — passed, exit 0, 265 assertions. Pest reported 13 warnings because this checkout has no `.env`; the project CI creates an empty file before tests. No credentials were added.
+- `source /opt/data/php/env.sh && APP_ENV=testing php vendor/bin/pest --configuration=phpunit.sqlite.xml tests/Feature/Auth/ActiveSessionsTest.php` — passed, exit 0, 115 assertions (14 warnings from the absent `.env`).
+- `source /opt/data/php/env.sh && APP_ENV=testing php vendor/bin/pest --configuration=phpunit.sqlite.xml tests/Feature/Contract/OpenApiSnapshotTest.php` — passed, exit 0, 591 assertions (2 warnings from the absent `.env`).
+- `source /opt/data/php/env.sh && APP_ENV=testing php /opt/data/php/composer lint` — passed (Pint).
+- `source /opt/data/php/env.sh && APP_ENV=testing php /opt/data/php/composer analyse` — passed (Larastan, 129 files, no errors).
+- Deterministic snapshot export: applied migrations to isolated SQLite at `/tmp/slice5-openapi-migrated.2viz06/openapi.sqlite` with `CACHE_STORE=array` and `SESSION_DRIVER=array`; ran `LC_ALL=C APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=<isolated-db> php artisan scramble:export --path=<pass1>` and repeated to `<pass2>`. `cmp <pass1> <pass2>` passed with no Scramble warnings. Copied the generated second export to `contracts/openapi.json`; no manual snapshot edits. A first in-memory export without migrations emitted three schema warnings and was discarded.
 - `git diff --check` — passed.
 
-## Environment limitation
+## Context and environment
 
-- python3 -m unittest discover -s tests -v ran 117 tests but ended with 2 failures and 5 errors in compatibility checks that require oasdiff. The executable is absent from PATH on this aarch64 host.
-- The full Composer/Pest CI suite was not run locally because the canonical test profile requires PostgreSQL 18, Redis, and Mailpit. The relevant contract Pest subset passed with SQLite.
-- No remote CI result is claimed.
-
-## Scope
-
-No application behavior, workflow YAML, frontend, dependency manifest, or contracts/openapi.json changed. No contract artifact was generated or published.
-
-## Follow-up review verification — 2026-10-12
-
-- Inspected `.github/workflows/quality.yml`: the contract job runs for pull requests
-  and pushes to main, exports twice, and compares the result to the snapshot in the
-  checked-out revision.
-- Inspected `.github/workflows/openapi.yml`: `OpenAPI Contract` is manual and its
-  guard rejects refs other than `main`; it uploads an artifact and does not commit
-  the snapshot.
-- Cross-checked the release guide, ADR 0012, onboarding, vertical-slice recipe, and
-  provenance recipe for consistent candidate-snapshot and official-artifact order.
-- Inspected `PrivilegeTransaction::runWithActor` on
-  `origin/feat/slice-11-privilege-races` and `RenameRole` on
-  `origin/feat/slice-8-custom-role-renaming`: `RenameRole` calls `run`, locks the
-  role target, and authorizes the supplied actor without reloading it.
 - `python3 scripts/validate_context.py --strict` — passed.
-- `git diff --check` — passed.
+- `python3 scripts/validate_context.py --strict --examples` — passed; warning that no example suite is installed.
+- `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` — passed (CSD 1.2.1).
+- `python3 -m unittest discover -s tests -v` — previously failed, 113 tests: 2 failures and 5 errors because the pinned `oasdiff` executable is not installed; all other tests passed.
+- The canonical PostgreSQL 18 Compose profile was not run: the Docker Compose plugin and running daemon are unavailable in this environment.
+- `.env.example` and `compose.yaml` differ from `origin/main` only in `SESSION_DRIVER` settings; no credential values were added.
+- `vendor/` was left untouched; `composer install` was not run.
+- `origin/main` at `0050157` was merged into this branch in `99bc87b95b858f7a1b37285410149e748f140d0f`.
+
+## Delivery
+
+Commit `6d8a1df4ec9c9b6fbc12a70161d9fae77f90debc` was pushed to `origin/feat/slice-5-active-sessions`. Remote branch verification and GitHub API both report that SHA as PR #83's head; PR #83 is open, targets `main`, and is not merged. No other PR was created. The user explicitly authorized the local deterministic snapshot export for this work item.

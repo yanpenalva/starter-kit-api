@@ -9,11 +9,12 @@ A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As decis�
 | [0001](0001-api-spa-independentes.md) | Fronteiras e estrutura Laravel | Aceito | Scaffold |
 | [0002](0002-autenticacao-spa.md) | Sanctum e sessão SPA | Aceito; permissão histórica para bearer tokens superada por [0010](0010-autenticacao-http-somente-sessao.md) | Autenticação |
 | [0003](0003-persistencia-contratos.md) | PostgreSQL, dependências e OpenAPI | Aceito; release e compatibilidade esclarecidos por [0012](0012-contrato-openapi-e-release.md) | Scaffold e contrato |
-| [0004](0004-identidade-rbac.md) | Cadastro, verificação, ativação, CPF e RBAC | Aceito; sessão e perfil por [0010](0010-autenticacao-http-somente-sessao.md) e mutações por [0011](0011-rbac-auditoria-e-roles-customizadas.md) | Identidade e RBAC |
-| [0005](0005-auditoria.md) | Activitylog v5 e retenção de 90 dias | Aceito; implementação atual em [0011](0011-rbac-auditoria-e-roles-customizadas.md) | Auditoria e feed |
+| [0004](0004-identidade-rbac.md) | Cadastro, verificação, ativação, CPF e RBAC | Aceito; ativação detalhada em [0009](0009-ativacao-por-verificacao-email.md), sessão/perfil em [0010](0010-autenticacao-http-somente-sessao.md) e mutações em [0011](0011-rbac-auditoria-e-roles-customizadas.md) | Identidade e RBAC |
+| [0005](0005-auditoria.md) | Activitylog v5 e retenção de 90 dias | Aceito; [0011](0011-rbac-auditoria-e-roles-customizadas.md) registra o allowlist integrado e separa as ações ainda branch-only | Auditoria e feed |
 | 0006 (histórico) | Legado | Incorporado nos ADRs [0001](0001-api-spa-independentes.md), [0002](0002-autenticacao-spa.md) e [0004](0004-identidade-rbac.md) | Registro original em FEAT-1 |
 | [0007](0007-matriz-rbac.md) | Matriz RBAC revisada, regras protegidas e contrato de administração | Aceito; detalhe atual em [0011](0011-rbac-auditoria-e-roles-customizadas.md) | RBAC e administração |
 | [0008](0008-catalogo-permissoes.md) | Catálogo fechado de permissões, sem CRUD HTTP | Aceito | CRUD administrativo |
+| [0009](0009-ativacao-por-verificacao-email.md) | Ativação condicionada por motivo de bloqueio | Aceito; substitui parcialmente o 0004 | Autenticação e ativação |
 | [0010](0010-autenticacao-http-somente-sessao.md) | Autenticação HTTP exclusivamente por sessão | Sucessor parcial de 0002 e 0004 | Login, MFA e perfil de sessão |
 | [0011](0011-rbac-auditoria-e-roles-customizadas.md) | RBAC, auditoria e roles customizadas | Sucessor parcial de 0004, 0005 e 0007; reafirma 0008 | Mutações privilegiadas |
 | [0012](0012-contrato-openapi-e-release.md) | Contrato OpenAPI e release verificável | Sucessor parcial de 0003 | Publicação e compatibilidade do contrato |

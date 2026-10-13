@@ -1,20 +1,19 @@
 {
   "schema_version": "1.0",
   "id": "FEAT-27",
-  "title": "Slice 12: contrato OpenAPI, ADRs sucessores e receita vertical",
+  "title": "Complete active-session lifecycle and revocation",
   "track": "product",
   "type": "feature",
-  "phase": "release",
+  "phase": "verify",
   "status": "active",
-  "risk": "medium",
+  "risk": "high",
   "owner": "yanpenalva",
   "conversation_profile": "senior-software-engineer",
   "git_finalization_mode": "automatic",
-  "implementation_required": true,
   "classification": {
-    "complexity": "medium",
+    "complexity": "high",
     "impact": "cross-module",
-    "security": "relevant",
+    "security": "sensitive",
     "confidence": "high"
   },
   "routing": {
@@ -23,15 +22,12 @@
   },
   "context": {
     "budget": "extended",
-    "required": ["core", "project", "architecture", "security", "testing", "release"],
+    "required": ["core", "project", "testing", "security", "architecture", "release"],
     "deferred": ["incident"],
-    "triggers": [
-      "Issue API #27 pede documentação de contrato e release",
-      "O contrato OpenAPI é uma interface pública e tem proveniência de artifact",
-      "A Slice 12 requer registro de branch, commit e push conforme EXC-0001"
-    ]
+    "triggers": ["session revocation and password-reset/suspension invalidation", "database session driver and branch delivery"]
   },
-  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify", "release"],
-  "last_updated": "2026-10-12",
+  "reclassification": [],
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify"],
+  "last_updated": "2026-10-13",
   "policy_exceptions": ["EXC-0001"]
 }

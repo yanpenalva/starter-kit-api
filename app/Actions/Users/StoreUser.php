@@ -17,7 +17,7 @@ final class StoreUser
      */
     public function run(User $actor, array $payload): User
     {
-        return PrivilegeTransaction::run(function () use ($actor, $payload): User {
+        $user = PrivilegeTransaction::run(function () use ($actor, $payload): User {
             $active = $payload['active'] ?? null;
             assert(is_bool($active));
 
@@ -33,5 +33,9 @@ final class StoreUser
 
             return $user;
         });
+
+        $user->sendEmailVerificationNotification();
+
+        return $user;
     }
 }

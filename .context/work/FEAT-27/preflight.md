@@ -1,36 +1,17 @@
-# Preflight Validation — FEAT-27
+# Preflight
 
-## Checks
+## Scope and authorization
 
-- [x] Request and objective are clear.
-- [x] Scope and out of scope agree.
-- [x] Evidence supports the proposed behavior.
-- [x] Plan touchpoints exist or are explicitly approved as new.
-- [x] Security and privacy impact is addressed.
-- [x] Tests and acceptance criteria are executable.
-- [x] Rollback and operational ownership are defined.
-- [x] Required human approvals are recorded.
-- [x] Applicable core policies were checked.
-- [x] Quality commands, thresholds or approved exceptions are identified.
-- [x] AI/data/tool permissions are addressed when an agent or external model is involved.
-- [x] Subtasks, owners, dependencies and waves are explicit.
+The user authorized updating existing PR #83 only and prohibited creating another PR or merging #83. GitHub confirms #83 is open, targets `main`, and uses `feat/slice-5-active-sessions`. The active-session implementation is committed in `411e568` and `43f4cf4`; this follow-up adds method-level route assertions and completes the OpenAPI overlay checks. `origin/main` at `0050157` was merged locally as `99bc87b95b858f7a1b37285410149e748f140d0f`. Existing uncommitted work was stashed before integration and reapplied; changes already present in `origin/main` remain in the merge. No dependencies were installed.
 
-## Findings
+## Readiness checks
 
-- The producer workflow already performs a main-only deterministic export and artifact upload; changing YAML would add no needed behavior.
-- The current API context contains contradictory historical status claims. Successors must preserve the original records and state their scope.
-- Remote branches for slices 6–11 exist; this branch is based on main and must not imply sibling-branch integration or production release.
+- Session endpoints are inside the authenticated route group and account-status middleware group.
+- DELETE routes use the shared `sessions` limiter.
+- `.env.example` and Compose change only session-driver settings; no credential values are added.
+- The session migration keeps Laravel's string session ID and uses `foreignId` for the bigint user key.
+- `ScaffoldTest` asserts the exact route inventory and `GET`, `DELETE`, and item `DELETE` operations. The overlay documents session-cookie protection, XSRF and 419 on DELETE, and boolean `is_current`.
+- The user explicitly authorized generating this active-session snapshot from the local Scramble producer after two `LC_ALL=C` exports compare byte-identically, following slices 1/6/7. The authorization is scoped to this snapshot; the artifact was not hand-edited.
+- `.env.example` and `compose.yaml` differ from `origin/main` only in `SESSION_DRIVER` values; no credential values were added. `vendor/` was not modified and Composer install was not run.
 
-## Evidence record
-
-- 2026-10-12: git fetch origin main and git rev-parse HEAD origin/main exited 0; both were 98cf64147080c03e17c14d664ac6ac08231fcb02.
-- 2026-10-12: git status --short --branch exited 0 and showed a clean feat/slice-12-contract-release-docs checkout tracking origin/main.
-- 2026-10-12: inspected .github/workflows/openapi.yml and the contract section of .github/workflows/quality.yml; confirmed workflow_dispatch, main guard, Scramble 0.13.47, LC_ALL=C, two identical exports, 90-day artifact, snapshot validation and compatibility check.
-- 2026-10-12: inspected AGENTS.md, .context/INDEX.md, quality/delivery context and the applicable CSD routing and security policies.
-
-## Verdict
-
-READY
-
-Reviewer: Codex (implementation owner; independent reader NOT FOUND)
-Date: 2026-10-12
+This is the executor's preflight against the supplied scope and repository evidence. It is not represented as an independent review.

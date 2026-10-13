@@ -1,33 +1,22 @@
-# Discovery — FEAT-27 — Slice 12
+# Discovery
 
-## Problem
+## Problem and evidence
 
-- User/operator: API maintainers implementing and releasing vertical slices.
-- Situation: the onboarding page summarizes OpenAPI publication, while canonical API context still labels Scramble generation, artifact publication and compatibility CI as unimplemented.
-- Pain or opportunity: stale status makes the contract release procedure and the boundary between a feature branch and the official snapshot unclear.
+The active-session capability is already present on `feat/slice-5-active-sessions`, but its pending work needs non-vacuous coverage for revoked cookies, password-reset outcomes, HTTP suspension, and bulk revocation ownership. The branch also needs its database-session requirement, shared DELETE throttle, API message, and key-type contract recorded together.
 
-## Evidence
+The user explicitly scoped this continuation and authorized lint, analysis, Pest, then commit and push on this branch. Existing uncommitted work is part of the accepted starting point.
 
-- The API roadmap tracks API #27 as continuous documentation/onboarding work and calls for current contracts and reproducible commands.
-- The OpenAPI producer is present at .github/workflows/openapi.yml. It is manually dispatched, guarded to main, performs two exports, and uploads an artifact retained for 90 days.
-- The Quality workflow checks snapshot freshness and compatibility. The API context still contains earlier statements that these controls do not exist.
-- Several accepted ADRs retain implementation-status language from the initial scaffold.
+The user also explicitly authorized generating `contracts/openapi.json` from two byte-identical local Scramble exports under `LC_ALL=C`, following slices 1/6/7. This applies to this snapshot only; do not hand-edit it.
 
-Confidence: high for the repository evidence. A clean-checkout read-through by another maintainer remains a later acceptance signal.
+## Audience and expected value
 
-## Hypothesis
+Signed-in API users need to see and revoke their own sessions and know that a password reset or account suspension invalidates existing cookies. The measurable completion signal is the focused behavior suite and required quality gates passing with the API contract documenting the database session driver.
 
-If API maintainers get current successor ADRs, one canonical contract release guide, and a concise vertical-slice recipe, they can implement and release API slices without following stale transport or snapshot instructions.
+## Constraints
 
-## Success
+- Preserve the existing worktree changes and remain in `/opt/data/cache/scratch/api-fixwork2`.
+- Do not add credentials or real values to `.env.example` or `compose.yaml`; do not run Composer install.
+- Keep session IDs as Laravel's opaque string keys and keep `sessions.user_id` aligned with the bigint user primary key.
+- Update existing PR #83 only, after gates pass. Do not create another PR or merge #83.
 
-- The API documentation describes every producer and contract gate present in the workflows and points to one canonical release guide.
-- The vertical recipe identifies scope, tests, local/CI gates, and contract update boundaries.
-- Strict context validation passes and relevant PHP/Python checks are recorded.
-- Baseline: no current successor ADRs for this delivery set; release facts are summarized in onboarding but contradicted by .context/project/api.md.
-- Target: all acceptance criteria in spec.md pass on feat/slice-12-contract-release-docs.
-
-## Constraints and alternatives
-
-- Constraints: work from the refreshed origin/main; commit and push this slice branch; do not create a PR or merge; do not change frontend files; never locally regenerate or change contracts/openapi.json.
-- Alternatives: edit .github/workflows/openapi.yml itself. Rejected for this slice because the existing producer matches the intended manual main-only flow; the missing work is accurate, canonical guidance and successor decision records.
+Related API contract: Issue #13 and `.context/project/api.md`.

@@ -3,7 +3,7 @@
 - Estado: aceito.
 - Substitui parcialmente: ADR 0003 (status de geração/publicação); mantém sua decisão PostgreSQL e de versões fixadas.
 - Data: 2026-10-12. Owner: yanpenalva.
-- Evidência: workflow já integrado em main e Quality; refinamento de envelopes na branch feat/slice-9-openapi-envelopes (2bed058). A branch de envelope ainda não publicou um snapshot atualizado em main.
+- Evidência: workflow integrado em main e job Quality; o snapshot atual inclui as atualizações das PRs #79, #83 e #86. O refinamento de envelopes da branch feat/slice-9-openapi-envelopes (2bed058) ainda não está integrado e, portanto, ainda requer candidato revisado e verificação oficial após integração.
 
 ## Contexto
 

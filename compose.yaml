@@ -37,7 +37,7 @@ x-api: &api
     DB_USERNAME: starter_api_dev
     DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
     CACHE_STORE: file
-    SESSION_DRIVER: file
+    SESSION_DRIVER: database
     QUEUE_AFTER_COMMIT: "true"
     MAIL_MAILER: log
     LOG_CHANNEL: stderr
@@ -201,7 +201,7 @@ services:
       DB_USERNAME: starter_api_dev
       DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
       CACHE_STORE: file
-      SESSION_DRIVER: file
+      SESSION_DRIVER: database
       QUEUE_CONNECTION: database
       QUEUE_AFTER_COMMIT: "true"
       REDIS_HOST: redis
@@ -245,7 +245,7 @@ services:
       DB_USERNAME: starter_api_dev
       DB_PASSWORD: ${DB_PASSWORD:?Run the documented local environment setup first}
       CACHE_STORE: file
-      SESSION_DRIVER: file
+      SESSION_DRIVER: database
       QUEUE_CONNECTION: database
       QUEUE_AFTER_COMMIT: "true"
       REDIS_HOST: redis
@@ -289,7 +289,7 @@ services:
       DB_USERNAME: ${RELEASE_POSTGRES_USER:-starter_api}
       DB_PASSWORD: ${RELEASE_DB_CREDENTIAL:?missing}
       CACHE_STORE: redis
-      SESSION_DRIVER: redis
+      SESSION_DRIVER: database
       QUEUE_CONNECTION: database
       QUEUE_AFTER_COMMIT: "true"
       REDIS_HOST: redis-release

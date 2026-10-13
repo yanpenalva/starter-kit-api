@@ -1,37 +1,13 @@
-# Review — FEAT-27 — Slice 12
+# Review
 
-The implementation owner reviewed the full changed scope against the approved
-specification and repository evidence:
+## Scope reviewed
 
-- The ADR index contains one successor for session-only authentication, one for
-  RBAC/audit/custom roles, and one for OpenAPI release. Historical ADRs remain
-  records of their original decisions and point to successors where needed.
-- Release guidance matches `.github/workflows/openapi.yml`, the `contract` job in
-  `.github/workflows/quality.yml`, and the provenance helper/CLI behavior. It does
-  not claim that the feature branch can publish or update the canonical snapshot.
-- Onboarding links to release, provenance, and vertical-slice guidance. The
-  vertical recipe preserves Sanctum session/CSRF, `ActsAsSanctumUser`, allowlisted
-  filters, SQLite-first feedback, and the project quality gates.
-- Canonical API and security context no longer labels implemented authentication,
-  RBAC, audit, producer or compatibility gates as unimplemented.
-- No frontend, runtime source, workflow, dependency manifest, or OpenAPI snapshot
-  changed.
+Reviewed session ownership in the controller, account-status route group, shared DELETE limiter, API error message, database-driver settings, key types, route inventory, OpenAPI overlay, and focused tests. The local diff changes `.env.example` and `compose.yaml` only to use the database session driver; it adds no credential values.
 
-The focused docs/Pest checks and static gates passed as recorded in
-`verification.md`. An independent reader was not available in this execution; the
-full Python suite is limited by the missing pinned `oasdiff` binary on this
-`aarch64` host.
+## Findings
 
-## Follow-up review — 2026-10-12
+No security or behavior issue found in the scoped implementation. Individual and bulk deletion remain scoped to the authenticated user; revocation, reset, suspension, negative reset, cross-user isolation, throttling, and key-type behavior have focused coverage. The contract overlay now documents 419 for DELETE and the boolean current-session field.
 
-Addressed the three high findings:
+The snapshot is copied from the second of two byte-identical local Scramble exports after migrations were applied to an isolated SQLite database. It documents 419 responses on both DELETE operations and boolean `is_current`, and the focused contract test passes. The user explicitly authorized this scoped local export; no manual snapshot edits were made.
 
-- The release guide and its onboarding, ADR 0012, vertical-slice, and provenance
-  references now distinguish the PR snapshot candidate from the main-only producer
-  artifact published after integration.
-- ADR 0011 now says that `runWithActor` reloads and locks the actor, while
-  `RenameRole` locks the target role and uses the supplied actor without reloading.
-- The audit action allowlist now includes `role.rename`.
-
-The follow-up changes are documentation only. No workflow, application code, test,
-or OpenAPI snapshot changed.
+This was an author review, not an independent review. See `verification.md` for commands and results.

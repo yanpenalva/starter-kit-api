@@ -1,50 +1,27 @@
-# Specification — FEAT-27 — Slice 12
-
-## Request
-
-- Source: user instruction for Slice 12, 2026-10-12; API #27 continuous documentation scope.
-- Requester: yanpenalva.
+# Specification
 
 ## Objective
 
-Keep current API decisions and the OpenAPI release procedure discoverable and accurate, and give maintainers an executable recipe for one vertical slice.
+Complete and verify the active-session listing, revocation, and lifecycle invalidation already started on this branch.
 
-## Scope
+## Acceptance criteria
 
-- Add successor ADRs that record already approved/as-built decisions for session authentication, privilege/audit behavior, and OpenAPI contract production/release.
-- Update the ADR index and identify the historical scope of superseded statements without erasing their record.
-- Add one canonical contract-release guide, a detailed artifact-provenance recipe, and one vertical-slice recipe; link all three from onboarding.
-- Correct stale statements in .context/project/api.md about session-only authentication, Scramble, artifact publication, and compatibility CI.
-- Add a focused documentation synchronization check for the contract producer workflow.
+- A revoked database session cookie can no longer authenticate; a separate valid session remains usable.
+- A successful password reset removes every session for that user and leaves other users' sessions intact. A failed reset leaves sessions unchanged.
+- Suspending an account through its HTTP endpoint removes its sessions and makes the prior cookie unauthenticated.
+- Bulk revocation removes the requesting user's other sessions, keeps the current session, and leaves another user's sessions intact.
+- Both session DELETE routes share a per-user limit of 10 requests per minute.
+- Session-not-found errors use `ApiMessage`; routes share the account-status middleware group.
+- `SESSION_DRIVER=database` is documented and configured without adding credentials. `sessions.user_id` matches the type of `users.id`; `sessions.id` stays a string.
+- `ScaffoldTest` inventories all three registered active-session routes, including both methods on the collection URI.
+- `contracts/openapi.json` reflects the active-session endpoints as `sessionCookie`-protected, documents XSRF on DELETE and their error responses, and matches two byte-identical exports run under `LC_ALL=C`.
+- `composer lint`, `composer analyse`, Pest, and strict context validation results are recorded before Git finalization.
+- The user-authorized local Scramble export is deterministic across two `LC_ALL=C` runs; use its output for the snapshot without hand-editing.
 
 ## Out of scope
 
-- Frontend changes, API behavior changes, workflow configuration changes, PR creation, merge, deployment, or production release.
-- Editing or generating `contracts/openapi.json` as part of this documentation-only slice. For later API contract changes, the candidate snapshot belongs in the same PR because Quality compares it with the generated contract; the official producer remains main-only and does not commit the snapshot.
-- Introducing new architecture decisions beyond documenting the decisions and behavior already authorized in this roadmap.
+Production deployment and production session-domain/TLS decisions. Only existing PR #83 may be updated; creating another PR and merging #83 are out of scope. The local-export authorization applies only to this snapshot and does not change the general producer workflow.
 
-## Evidence and context
+## Security and compatibility
 
-- Repository evidence: current workflows, docs, ADRs, scripts, and pushed slice branches 6–11.
-- Relevant project context: API contract, release workflow, code quality and security policies.
-- Unknowns (NOT FOUND): independent reader review for this slice; no production or external artifact operation is part of scope.
-
-## Rules and contracts
-
-- Authentication remains Sanctum session/cookie and CSRF only; no bearer, personal access, JWT, or API tokens.
-- Official contract publication is dispatched on main; producer validates deterministic output and publishes a commit-SHA artifact, while Quality validates the committed snapshot and compatibility.
-- Slice branches are isolated from one another and based on main. Successor ADRs must distinguish design decisions from integration/deployment state.
-- Use repository context routing, TDD, SQLite-safe local Pest where relevant, Pint, PHPStan, and strict context validation.
-
-## Tests and acceptance criteria
-
-- A focused Python test fails before the release guide exists and passes after implementation; it detects drift between the guide and workflow trigger, main guard, Scramble pin, deterministic export, and 90-day artifact retention.
-- ADR index links every added successor; predecessor documents retain their history and point to successors where applicable.
-- All three guides are linked from onboarding and accurately describe repository commands and release boundaries.
-- .context/project/api.md no longer claims that active Scramble generation, producer publication, or compatibility CI are unimplemented.
-- Required local validation passes: strict context with examples, Python tests, composer lint, composer analyse, and relevant SQLite-safe Pest. Any unavailable/irrelevant gate is recorded.
-- Branch feat/slice-12-contract-release-docs is committed and pushed to origin; no PR or merge is created.
-
-## Open decisions
-
-- None within the authorized scope. The contract snapshot must remain unchanged.
+Cookie/session-only Sanctum authentication remains in force. Session reads and deletes stay scoped to the authenticated user. DELETE responses remain 204, foreign or missing IDs share the same 404 message, and rate-limit overflow remains 429.

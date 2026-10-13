@@ -8,8 +8,8 @@
 - Public registration; email verification automatically activates access permitted to the basic profile, without administrative privileges. Explicitly deactivated accounts remain blocked.
 - First administrator: explicitly selected verified account promoted by a restricted operational command, transactionally and idempotently with audit.
 - Optional CPF on user profiles for cadastral identification: normalize to 11 digits, validate format/check digits, enforce uniqueness when supplied. Read access for the subject and management with a specific permission; no public exposure or audit capture.
-- User and role administration uses verified active session actors, enum-owned permissions, gates and policies. Privileged mutations re-read the actor and recheck policy after acquiring the transaction lock.
-- Activitylog v5 writes explicit allowlisted action codes with a minimal property envelope, a permission-gated feed, and 90-day retention. Audit-write failure rolls back privilege changes/admin bootstrap.
+- User and role administration uses verified active session actors, enum-owned permissions, gates and policies. Current main rechecks policies inside the privilege transaction lock; the broader actor-refresh hardening in Slice 11 is still branch-only.
+- Activitylog v5 writes role action codes from a closed allowlist with a minimal property envelope, a permission-gated feed, and 90-day retention. Audit-write failure rolls back privileged mutations.
 - LDAP excluded; domain rules/texts come from new feature requirements rather than automatic legacy reuse.
 
 ## Accepted ADRs — API #1
