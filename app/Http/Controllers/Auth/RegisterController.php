@@ -11,6 +11,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role as PermissionRole;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -31,7 +32,10 @@ final class RegisterController
                     'email_verified_at' => null,
                     'deactivated_at' => now(),
                 ]);
-                $user->assignRole(Role::User->value);
+                $user->assignRole(PermissionRole::query()->firstOrCreate([
+                    'name' => Role::User->value,
+                    'guard_name' => 'web',
+                ]));
 
                 return $user;
             });
