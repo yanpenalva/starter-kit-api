@@ -38,3 +38,4 @@
 - Deterministic OpenAPI export ran twice with `LC_ALL=C`, compared the outputs byte for byte, and regenerated `contracts/openapi.json` at SHA-256 `88bcccf993dd74915da9db2dd1a4eaaba1f4354b616054fe8b74c70042a3fb66` (133841 bytes). The artifact is byte-identical to the latest `origin/main` snapshot.
 - `scripts/contract_compat.py --base-commit=origin/main --candidate=contracts/openapi.json` could not run because `oasdiff` is not installed locally. PostgreSQL/Compose execution was unavailable because the Docker daemon is not running.
 - The shared `vendor` symlink's generated autoloader points at `/opt/data/work/starter-kit-api`; local Pest checks used a temporary worktree-first autoloader so they exercised this branch's source without changing the shared vendor tree.
+- Pushed the updated branch to the existing PR #88 at commit `d5d0d2fb92ce7a1af7c4122486bfe8d88fff70ca`; no new PR was created and no PR merge was issued.
