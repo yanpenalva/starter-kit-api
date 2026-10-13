@@ -710,9 +710,7 @@
                                         }
                                     },
                                     "required": [
-                                        "data",
-                                        "links",
-                                        "meta"
+                                        "data"
                                     ]
                                 }
                             }
@@ -1722,9 +1720,7 @@
                                         }
                                     },
                                     "required": [
-                                        "data",
-                                        "links",
-                                        "meta"
+                                        "data"
                                     ]
                                 }
                             }
@@ -2185,9 +2181,7 @@
                                         }
                                     },
                                     "required": [
-                                        "data",
-                                        "links",
-                                        "meta"
+                                        "data"
                                     ]
                                 }
                             }
@@ -2989,7 +2983,23 @@
                     "roles": {
                         "type": "array",
                         "items": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                "relations": {
+                                    "type": "array",
+                                    "prefixItems": [
+                                        {
+                                            "type": "string",
+                                            "const": "roles"
+                                        }
+                                    ],
+                                    "minItems": 1,
+                                    "maxItems": 1
+                                }
+                            },
+                            "required": [
+                                "relations"
+                            ]
                         }
                     },
                     "cpf": {

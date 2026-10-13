@@ -40,7 +40,7 @@ final class OpenApiResponseShapeTest extends TestCase
             $from = $this->object($metaProperties['from'] ?? null);
             $to = $this->object($metaProperties['to'] ?? null);
 
-            $this->assertSame(['data', 'links', 'meta'], $schema['required'] ?? null, $path);
+            $this->assertSame(['data'], $schema['required'] ?? null, $path);
             $this->assertSame(['first', 'last', 'prev', 'next'], $links['required'] ?? null, $path);
             $this->assertSame(['string', 'null'], $previous['type'] ?? null, $path);
             $this->assertSame(['string', 'null'], $next['type'] ?? null, $path);
@@ -62,6 +62,8 @@ final class OpenApiResponseShapeTest extends TestCase
         $userProperties = $this->object($user['properties'] ?? null);
         $roles = $this->object($userProperties['roles'] ?? null);
         $roleItems = $this->object($roles['items'] ?? null);
+        $roleItemProperties = $this->object($roleItems['properties'] ?? null);
+        $relations = $this->object($roleItemProperties['relations'] ?? null);
         $cpf = $this->object($userProperties['cpf'] ?? null);
         $userRequired = $user['required'] ?? null;
         $this->assertIsArray($userRequired);
@@ -71,7 +73,12 @@ final class OpenApiResponseShapeTest extends TestCase
         $permissions = $this->object($roleProperties['permissions'] ?? null);
         $permissionItems = $this->object($permissions['items'] ?? null);
 
-        $this->assertSame('string', $roleItems['type'] ?? null);
+        $this->assertSame('object', $roleItems['type'] ?? null);
+        $this->assertSame(['relations'], $roleItems['required'] ?? null);
+        $this->assertSame('array', $relations['type'] ?? null);
+        $this->assertSame([['type' => 'string', 'const' => 'roles']], $relations['prefixItems'] ?? null);
+        $this->assertSame(1, $relations['minItems'] ?? null);
+        $this->assertSame(1, $relations['maxItems'] ?? null);
         $this->assertSame('string', $permissionItems['type'] ?? null);
         $this->assertSame(['string', 'null'], $cpf['type'] ?? null);
         $this->assertNotContains('cpf', $userRequired);

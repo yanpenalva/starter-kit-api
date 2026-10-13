@@ -158,7 +158,7 @@ final class ContractDocumentTransformer
 
     private function fixResourceArraySchemas(OpenApi $openApi): void
     {
-        foreach (['RoleResource' => 'permissions', 'UserResource' => 'roles'] as $schemaName => $propertyName) {
+        foreach (['RoleResource' => 'permissions'] as $schemaName => $propertyName) {
             $schema = $openApi->components->schemas[$schemaName] ?? null;
             if (! $schema instanceof Schema || ! $schema->type instanceof ObjectType || ! $schema->type->hasProperty($propertyName)) {
                 continue;
@@ -207,7 +207,6 @@ final class ContractDocumentTransformer
 
                     $schema->type->addProperty('links', $this->paginationLinksSchema());
                     $schema->type->addProperty('meta', $this->paginationMetaSchema());
-                    $schema->type->addRequired(['links', 'meta']);
                 }
             }
         }
