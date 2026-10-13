@@ -117,7 +117,15 @@ A regra de separação é simples de aplicar na prática:
   operação com a auditoria no mesmo commit; qualquer falha reverte tudo.
 - **Resources** controlam o JSON de saída. O `UserResource` expõe o CPF somente quando
   o ator tem a permissão de leitura para aquele alvo; nos demais casos o campo nem
-  aparece. Datas saem em UTC no formato `Y-m-d\TH:i:s\Z`.
+  aparece. Datas saem em UTC no formato `Y-m-d\TH:i:s\Z`. As listagens de usuários,
+  papéis e auditoria documentam o envelope paginado `data`/`links`/`meta`; datas
+  nullable mantêm o formato `date-time` no OpenAPI. `data` continua obrigatório no
+  schema; `links` e `meta` são opcionais para que o envelope seja aditivo para clientes
+  do contrato anterior, embora a API emita os três campos.
+
+No OpenAPI, `UserResource.roles.items` mantém o objeto com `relations` obrigatório do
+snapshot-base. O transformer preserva esse schema e limita esta extensão aos campos
+opcionais `links` e `meta` nos envelopes de listagem.
 - **Support** concentra comportamento transversal: vocabulário de mensagens de erro,
   escritor de auditoria, correlação, filtros de listagem com allowlist e verificações
   de prontidão usadas pelo healthcheck.
