@@ -566,6 +566,17 @@
                         }
                     },
                     {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
                         "name": "subject_type",
                         "in": "query",
                         "schema": {

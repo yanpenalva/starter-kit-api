@@ -588,6 +588,38 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertPrivilegedAudit($target, $actor);
     }
 
+    public function test_assign_roles_persists_admin_and_user_then_replaces_only_submitted_roles(): void
+    {
+        SpatieRole::create(['name' => 'analyst', 'guard_name' => 'web']);
+
+        $target = User::factory()->verified()->create();
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", [
+            'roles' => [Role::Admin->value, Role::User->value],
+        ])->assertOk()->assertJsonPath('data.roles', [Role::Admin->value, Role::User->value]);
+
+        $this->assertTrue($target->refresh()->hasAllRoles([Role::Admin->value, Role::User->value]));
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", [
+            'roles' => [Role::User->value, 'analyst'],
+        ])->assertOk()->assertJsonPath('data.roles', ['analyst', Role::User->value]);
+
+        $this->assertTrue($target->refresh()->hasAllRoles([Role::User->value, 'analyst']));
+        $this->assertFalse($target->hasRole(Role::Admin->value));
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['analyst']])
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['analyst']);
+
+        $this->assertTrue($target->refresh()->hasRole('analyst'));
+        $this->assertFalse($target->hasRole(Role::User->value));
+    }
+
     public function test_assign_roles_denies_delegated_operator_escalating_to_admin(): void
     {
         $target = User::factory()->verified()->create();
@@ -731,6 +763,15 @@ final class UsersAdminHttpTest extends TestCase
         $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => []])
             ->assertStatus(422)
             ->assertJsonValidationErrors('roles');
+
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => [Role::User->value, Role::User->value]])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('roles.1');
+
+        $this->assertDatabaseMissing('model_has_roles', [
+            'model_type' => User::class,
+            'model_id' => $target->id,
+        ]);
     }
 
     public function test_assign_roles_denies_self_assignment(): void
@@ -767,6 +808,24 @@ final class UsersAdminHttpTest extends TestCase
             ->assertOk();
 
         $this->assertFalse($soleAdmin->refresh()->hasRole(Role::Admin->value));
+    }
+
+    public function test_assign_roles_rolls_back_when_audit_recording_fails(): void
+    {
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+
+        Schema::drop('activity_log');
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => [Role::Admin->value]])
+            ->assertStatus(500);
+
+        $this->assertTrue($target->refresh()->hasRole(Role::User->value));
+        $this->assertFalse($target->hasRole(Role::Admin->value));
     }
 
     public function test_audit_failure_rolls_the_mutation_back(): void
