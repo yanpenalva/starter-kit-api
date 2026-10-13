@@ -23,7 +23,7 @@ final class RenameRole
 
     public function run(User $actor, Role $role, string $name): Role
     {
-        return PrivilegeTransaction::run(function () use ($actor, $role, $name): Role {
+        return PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($role, $name): Role {
             $target = Role::query()->lockForUpdate()->whereKey($role->getKey())->firstOrFail();
 
             if (! app(RolePolicy::class)->rename($actor, $target)) {
