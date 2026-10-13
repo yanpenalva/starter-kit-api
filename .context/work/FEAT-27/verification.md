@@ -2,20 +2,25 @@
 
 ## Application gates
 
-- `source /opt/data/php/env.sh && /opt/data/php/root/usr/bin/php8.5 /opt/data/php/composer lint` — passed (Pint).
-- `source /opt/data/php/env.sh && APP_ENV=testing /opt/data/php/root/usr/bin/php8.5 /opt/data/php/composer analyse` — passed (Larastan, 129 files, no errors). The first attempt without `APP_ENV=testing` stopped during application bootstrap because the local default was production with `MAIL_MAILER=log`.
-- Focused Pest command: `source /opt/data/php/env.sh && /opt/data/php/root/usr/bin/php8.5 /opt/data/php/composer test -- tests/Feature/Auth/ActiveSessionsTest.php` — passed, 14 tests and 115 assertions. An empty, ignored `.env.testing` file was present only during the run and removed afterwards.
-- Full local Pest command: `source /opt/data/php/env.sh && /opt/data/php/root/usr/bin/php8.5 /opt/data/php/composer test` — failed with exit code 2 (264 passed, 21 failed). The host run did not have the isolated Compose services: smoke tests expected `postgres-test` but resolved `127.0.0.1`, subprocesses could not resolve `postgres-test`, and Mailpit/Redis integration checks were unavailable. The active-session test file passed in this run.
-- Canonical Pest command `docker compose --profile test run --rm test` — unavailable: this Docker client has no Compose plugin; `docker info` also reports that no daemon is running.
-
-## Context and repository checks
-
-- `python3 scripts/validate_context.py --strict` — passed after correcting the plan's subtask IDs.
-- `python3 scripts/validate_context.py --strict --examples` — passed; it warned that no example suite is installed.
-- `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` — passed (CSD 1.2.1).
-- `python3 -m unittest discover -s tests -v` — failed (113 tests; 2 failures and 5 errors) because the pinned `oasdiff` 1.33.0 executable was unavailable. The repository installer only supplies its amd64 release asset; this environment is aarch64 and that binary could not execute. The temporary `/tmp` artifact was removed.
+- `source /opt/data/php/env.sh && APP_ENV=testing php vendor/bin/pest --configuration=phpunit.xml tests/Feature/ScaffoldTest.php` — passed, exit 0, 265 assertions. Pest reported 13 warnings because this checkout has no `.env`; the project CI creates an empty file before tests. No credentials were added.
+- `source /opt/data/php/env.sh && APP_ENV=testing php vendor/bin/pest --configuration=phpunit.sqlite.xml tests/Feature/Auth/ActiveSessionsTest.php` — passed, exit 0, 115 assertions (14 warnings from the absent `.env`).
+- `source /opt/data/php/env.sh && APP_ENV=testing php vendor/bin/pest --configuration=phpunit.sqlite.xml tests/Feature/Contract/OpenApiSnapshotTest.php` — passed, exit 0, 591 assertions (2 warnings from the absent `.env`).
+- `source /opt/data/php/env.sh && APP_ENV=testing php /opt/data/php/composer lint` — passed (Pint).
+- `source /opt/data/php/env.sh && APP_ENV=testing php /opt/data/php/composer analyse` — passed (Larastan, 129 files, no errors).
+- Deterministic snapshot export: applied migrations to isolated SQLite at `/tmp/slice5-openapi-migrated.2viz06/openapi.sqlite` with `CACHE_STORE=array` and `SESSION_DRIVER=array`; ran `LC_ALL=C APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=<isolated-db> php artisan scramble:export --path=<pass1>` and repeated to `<pass2>`. `cmp <pass1> <pass2>` passed with no Scramble warnings. Copied the generated second export to `contracts/openapi.json`; no manual snapshot edits. A first in-memory export without migrations emitted three schema warnings and was discarded.
 - `git diff --check` — passed.
 
-## Delivery gate
+## Context and environment
 
-The full Pest gate did not pass and the canonical PostgreSQL 18 runner is unavailable. No commit or push was made. No PR or merge was created.
+- `python3 scripts/validate_context.py --strict` — passed.
+- `python3 scripts/validate_context.py --strict --examples` — passed; warning that no example suite is installed.
+- `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` — passed (CSD 1.2.1).
+- `python3 -m unittest discover -s tests -v` — previously failed, 113 tests: 2 failures and 5 errors because the pinned `oasdiff` executable is not installed; all other tests passed.
+- The canonical PostgreSQL 18 Compose profile was not run: the Docker Compose plugin and running daemon are unavailable in this environment.
+- `.env.example` and `compose.yaml` differ from `origin/main` only in `SESSION_DRIVER` settings; no credential values were added.
+- `vendor/` was left untouched; `composer install` was not run.
+- `origin/main` at `0050157` was merged into this branch in `99bc87b95b858f7a1b37285410149e748f140d0f`.
+
+## Delivery
+
+PR #83 is open, targets `main`, and has head branch `feat/slice-5-active-sessions`. The user authorized updating this PR only and prohibited creating another PR or merging it. The user explicitly authorized the local deterministic snapshot export for this work item. Commit and push results are pending.

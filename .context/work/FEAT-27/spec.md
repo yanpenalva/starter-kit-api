@@ -13,11 +13,14 @@ Complete and verify the active-session listing, revocation, and lifecycle invali
 - Both session DELETE routes share a per-user limit of 10 requests per minute.
 - Session-not-found errors use `ApiMessage`; routes share the account-status middleware group.
 - `SESSION_DRIVER=database` is documented and configured without adding credentials. `sessions.user_id` matches the type of `users.id`; `sessions.id` stays a string.
+- `ScaffoldTest` inventories all three registered active-session routes, including both methods on the collection URI.
+- `contracts/openapi.json` reflects the active-session endpoints as `sessionCookie`-protected, documents XSRF on DELETE and their error responses, and matches two byte-identical exports run under `LC_ALL=C`.
 - `composer lint`, `composer analyse`, Pest, and strict context validation results are recorded before Git finalization.
+- The user-authorized local Scramble export is deterministic across two `LC_ALL=C` runs; use its output for the snapshot without hand-editing.
 
 ## Out of scope
 
-Production deployment, production session-domain/TLS decisions, OpenAPI snapshot generation, PR creation, and merge.
+Production deployment and production session-domain/TLS decisions. Only existing PR #83 may be updated; creating another PR and merging #83 are out of scope. The local-export authorization applies only to this snapshot and does not change the general producer workflow.
 
 ## Security and compatibility
 

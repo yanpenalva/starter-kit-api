@@ -1,3 +1,3 @@
 # Release
 
-No production release or deployment is part of this work. The user requested a branch push only after the lint, analysis, and Pest gates pass, and prohibited PR creation and merge. The full Pest gate could not pass in this environment, so commit and push remain pending.
+No production release or deployment is part of this work. The user authorized a push to existing PR #83 only, prohibited creating another PR, and prohibited merging #83. The local deterministic snapshot export was explicitly authorized for this work item. Record the final commit SHA and push result after Git delivery; PR #83 remains unmerged.

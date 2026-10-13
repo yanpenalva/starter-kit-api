@@ -5,8 +5,10 @@
 1. Preserve the existing route, limiter, API-message, controller, session-driver, and module-documentation changes.
 2. Close focused test gaps for revocation usability, reset success and failure, suspension through HTTP, cross-user bulk revocation, and the session/user key-type match.
 3. Check `.env.example` and Compose for only the database session-driver requirement; keep credential values absent.
-4. Run Pint, Larastan, Pest, and strict context validation. Use the repository's SQLite profile for local feedback and attempt the canonical PostgreSQL 18 profile only if its runtime is available without installing dependencies.
-5. Review the complete diff, then commit and push this branch only if the required gates pass. Do not create a PR or merge.
+4. Inventory all three session operations and their HTTP methods in `ScaffoldTest`; document session-cookie security, XSRF, boolean `is_current`, and error responses in the contract overlay and test.
+5. Apply migrations to an isolated SQLite database, export twice with `LC_ALL=C` to temporary files, and compare them. Copy the generated output to `contracts/openapi.json`; do not hand-edit the snapshot. The user explicitly authorized this local export for the active-session snapshot, following slices 1/6/7.
+6. Run `ScaffoldTest`, active-session Pest tests, lint, analysis, and strict context validation. Use SQLite for focused local feedback; use the canonical PostgreSQL 18 profile only when its runtime is available without installing dependencies.
+7. Review the complete diff, commit and push only to the existing PR #83. Do not create another PR or merge PR #83.
 
 ## Subtasks and waves
 
@@ -24,5 +26,7 @@ The existing `sessions` migration uses a string primary key for Laravel's sessio
 
 - Branch: `feat/slice-5-active-sessions`.
 - Target: `main`; remote: `origin`.
-- User authorized commit and push after gates, and explicitly prohibited PR creation and merge.
+- User authorized updating existing PR #83 after gates, and explicitly prohibited creating another PR or merging #83.
+- User explicitly authorized the local deterministic Scramble export for `contracts/openapi.json` in this work item.
+- The `origin/main` baseline is merged into this branch; see the merge commit in `verification.md`.
 - Roadmap delivery authorization: `EXC-0001`.
