@@ -16,12 +16,6 @@ use Spatie\Permission\Models\Permission as PermissionModel;
 use Spatie\Permission\Models\Role as RoleModel;
 use Tests\TestCase;
 
-/**
- * Wave A: the reviewed ability matrix as executable assertions. Every gate
- * maps one catalogue permission to verified+active+permission eligibility;
- * policies add the object-level protections (self, last active admin,
- * immutable admin role); the seeder enforces the exact approved set.
- */
 final class RbacAbilityMatrixTest extends TestCase
 {
     use RefreshDatabase;

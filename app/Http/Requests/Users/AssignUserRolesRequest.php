@@ -10,11 +10,6 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Wave B contract: replace the target's role set with catalogue roles. The
- * wave owning the route enforces UserPolicy::assignRoles (no self-assignment,
- * last active admin preserved) for the resolved target inside a
- * PrivilegeTransaction.
- *
  * Grant ceiling: a non-admin actor may only assign roles whose permissions are
  * all held by the actor (directly or through the actor's roles). The role list
  * is evaluated as a whole — if any requested role exceeds the ceiling (or is

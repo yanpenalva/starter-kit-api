@@ -16,12 +16,6 @@ use Spatie\Activitylog\Models\Activity;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
-/**
- * Wave B: HTTP slice of the audit feed. The read path requires the
- * logs.view gate with eligibility, filters stay allowlisted and bounded,
- * and every exposed field comes from the approved minimal envelope — no
- * PII, no invented events, no raw payloads.
- */
 final class AuditFeedTest extends TestCase
 {
     use ActsAsSanctumUser;

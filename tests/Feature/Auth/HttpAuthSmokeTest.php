@@ -15,14 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
-/**
- * Real HTTP cookie-jar smoke test against an ephemeral single-process php -S instance
- * running with APP_ENV=testing.
- *
- * NOTE: This is a socket-level HTTP and session-cookie boundary test verifying framework
- * middleware, CSRF tokens, SameSite attributes, anti-fixation session migration, and
- * invalidation. It is NOT a full browser/SPA end-to-end test.
- */
 final class HttpAuthSmokeTest extends TestCase
 {
     private const SERVER_HOST = '127.0.0.1';

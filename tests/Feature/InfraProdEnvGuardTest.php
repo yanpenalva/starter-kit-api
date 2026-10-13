@@ -12,20 +12,6 @@ use Illuminate\Support\Facades\Schema;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
-/**
- * FEAT-20 negative guards (F1/F2/F5), verified against a SIMULATED
- * production environment inside the test container only — no real
- * production deployment is involved:
- * - production must NOT register the dev-only infra:probe schedule entry;
- * - invoking infra:probe outside local/testing must be a no-op SUCCESS
- *   with no Redis connection (proven by pointing it at a closed port) and
- *   no keys created;
- * - invoking infra:smoke-mail / infra:fail-job outside local/testing must
- *   be a no-op SUCCESS: no mailable sent (sync+SMTP would land in the
- *   isolated Mailpit if the guard leaked) and no job dispatched;
- * - queue.connections.redis.after_commit must default to FALSE when
- *   QUEUE_AFTER_COMMIT is absent.
- */
 final class InfraProdEnvGuardTest extends TestCase
 {
     /**

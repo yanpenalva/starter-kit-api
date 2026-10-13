@@ -8,10 +8,6 @@ use App\Enums\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 
-/**
- * Wave B contract: list the catalogue roles with allowlisted filters and
- * bounded pagination. No route binds this request yet.
- */
 final class IndexRolesRequest extends FormRequest
 {
     public const DEFAULT_PER_PAGE = 15;

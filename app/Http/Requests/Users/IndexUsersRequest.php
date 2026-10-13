@@ -9,10 +9,6 @@ use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * Wave B contract: list users with allowlisted filters and bounded
- * pagination. No route binds this request yet.
- */
 final class IndexUsersRequest extends FormRequest
 {
     public const DEFAULT_PER_PAGE = 15;
@@ -40,11 +36,7 @@ final class IndexUsersRequest extends FormRequest
         ];
     }
 
-    /**
-     * Only the allowlisted filter keys reach the query layer.
-     *
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     public function filters(): array
     {
         $filters = [];

@@ -8,9 +8,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
-/**
- * Wave B contract: allowlisted query filters for role lists.
- */
 final class RoleFilters
 {
     /**

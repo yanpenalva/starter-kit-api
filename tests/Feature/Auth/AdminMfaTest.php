@@ -62,7 +62,6 @@ final class AdminMfaTest extends TestCase
         $this->assertIsArray($recoveryCodes);
         $this->assertCount(8, $recoveryCodes);
 
-        // Status is still false until confirmed
         $admin->refresh();
         $this->assertFalse($admin->hasMfaEnabled());
     }
@@ -306,7 +305,6 @@ final class AdminMfaTest extends TestCase
         $this->assertCount(1, $remaining);
         $this->assertNotContains($usedCode, $remaining);
 
-        // Trying to use same recovery code again fails
         $responseReuse = $this->withSession(['mfa:user_id' => $admin->id])
             ->withHeaders([
                 'Origin' => 'http://localhost:5173',

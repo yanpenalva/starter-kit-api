@@ -21,12 +21,6 @@ use Spatie\Permission\Models\Role as SpatieRole;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
-/**
- * Wave B: HTTP slice of the users admin CRUD. Authorization is proven end
- * to end — catalogue gates for the ability, UserPolicy object protections
- * (self, last active admin) inside the privilege transaction, and the
- * fail-closed audit trail per mutation.
- */
 final class UsersAdminHttpTest extends TestCase
 {
     use ActsAsSanctumUser;
@@ -116,7 +110,6 @@ final class UsersAdminHttpTest extends TestCase
         $createdUser = User::findOrFail($createdId);
         $this->assertNull($createdUser->email_verified_at);
 
-        // 1. StoreUser dispatched verification/invitation email with signed URL
         Notification::assertSentTo($createdUser, VerifyEmail::class, static function (VerifyEmail $notification) use ($createdUser): bool {
             $mail = $notification->toMail($createdUser);
 
@@ -124,14 +117,12 @@ final class UsersAdminHttpTest extends TestCase
                 && str_contains((string) $mail->actionUrl, 'signature=');
         });
 
-        // 2. Resend verification email
         Notification::fake();
         self::actingAsSanctum($createdUser);
         $this->postJson('/api/v1/email/verification-notification')
             ->assertStatus(202);
         Notification::assertSentTo($createdUser, VerifyEmail::class);
 
-        // 3. Expired verification link is rejected with 403
         $expiredUrl = URL::temporarySignedRoute(
             'verification.verify',
             now()->subMinute(),
@@ -140,7 +131,6 @@ final class UsersAdminHttpTest extends TestCase
         $this->get($expiredUrl)->assertForbidden();
         $this->assertNull($createdUser->fresh()?->email_verified_at);
 
-        // 4. Valid signed URL verifies email
         $validUrl = URL::temporarySignedRoute(
             'verification.verify',
             now()->addHours(24),

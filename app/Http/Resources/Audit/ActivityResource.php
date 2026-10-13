@@ -10,10 +10,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Activitylog\Models\Activity;
 
 /**
- * Wave B contract: minimal, allowlisted audit feed entry. The envelope
- * exposes only the approved minimal properties (correlation id and actor
- * identifiers); causer, raw payloads and any unapproved key never leave the
- * API.
+ * The envelope exposes only the approved minimal properties (correlation id
+ * and actor identifiers); causer, raw payloads and any unapproved key never
+ * leave the API.
  *
  * @property-read Activity $resource
  */

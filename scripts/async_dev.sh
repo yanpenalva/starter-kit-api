@@ -1,5 +1,4 @@
 #!/bin/sh
-# FEAT-20 dev-only async operations script (worker/scheduler/smoke/cleanup).
 # NEVER touches the primary `starter-kit-api` compose project: everything
 # runs under the isolated project `starter-wave2-async` with its own image
 # tag and 127.0.0.1-only ports (18080/18025 by default).

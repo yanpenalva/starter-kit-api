@@ -68,7 +68,6 @@ final class ActiveSessionsTest extends TestCase
 
         self::actingAsSanctum($user);
 
-        // Start session so current session ID exists in test request
         $this->withSession(['test' => 'data']);
         $currentSessionId = $this->app['session']->getId();
         $otherSessionId = Str::random(40);
@@ -76,7 +75,6 @@ final class ActiveSessionsTest extends TestCase
         $this->createSessionRow($user->id, $currentSessionId, Carbon::now()->getTimestamp(), '192.168.1.1', 'CurrentAgent/1.0');
         $this->createSessionRow($user->id, $otherSessionId, Carbon::now()->subHour()->getTimestamp(), '192.168.1.2', 'OtherAgent/2.0');
 
-        // Another user's session shouldn't appear
         /** @var User $anotherUser */
         $anotherUser = User::factory()->verified()->create();
         $this->createSessionRow($anotherUser->id, Str::random(40), Carbon::now()->getTimestamp());
@@ -294,8 +292,6 @@ final class ActiveSessionsTest extends TestCase
         $this->assertNotSame($keep['id'], $victim['id']);
         $this->assertSame(2, DB::table('sessions')->where('user_id', $user->id)->count());
 
-        // Non-vacuous: before revocation both cookies authenticate, and the
-        // listing reports the real current session id for each of them.
         $list = $this->asBrowser($victim['id'])->getJson('/api/v1/auth/sessions')->assertOk();
         $data = $list->json('data');
         $this->assertIsArray($data);
@@ -365,7 +361,6 @@ final class ActiveSessionsTest extends TestCase
         $bystanderSession = Str::random(40);
         $this->createSessionRow($bystander->id, $bystanderSession, Carbon::now()->getTimestamp());
 
-        // Non-vacuous: the browser cookie authenticates before suspension.
         $this->asBrowser($targetSession['id'])->getJson('/api/v1/auth/my-profile')->assertOk();
 
         $this->resetRequestState();

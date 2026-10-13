@@ -13,13 +13,6 @@ use Illuminate\Support\Str;
 use Tests\Concern\RunsAsyncInfraStack;
 use Tests\TestCase;
 
-/**
- * FEAT-20: retry/backoff and the observable failure path. The synthetic
- * job fails on attempt 1 (re-released with a 1s backoff delay) and is
- * stored in failed_jobs after the final attempt. Assertions use counts
- * and the synthetic exception text only — payload bodies are never
- * dumped.
- */
 final class InfraQueueFailureTest extends TestCase
 {
     use RefreshDatabase;

@@ -354,7 +354,6 @@ final class ProfileTest extends TestCase
 
     public function test_owner_can_change_password_via_profile_patch_requiring_current_password(): void
     {
-        // Synthetic test-only password; never used by a real account or service.
         $newPassword = 'fake-profile-password-123';
         $user = User::factory()->create(['password' => Hash::make('old-password-123')]);
 

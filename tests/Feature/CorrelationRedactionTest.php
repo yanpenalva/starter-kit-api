@@ -51,10 +51,6 @@ final class CorrelationRedactionTest extends TestCase
         $this->assertTrue(Str::isUuid($correlation));
     }
 
-    /**
-     * R1 regression: outside production, a valid client UUID is preserved in
-     * the response header and matches the structured log context.
-     */
     public function test_local_or_testing_preserves_a_valid_client_header_as_log_context(): void
     {
         $clientUuid = 'b3a1d2c4-5f6e-4a7b-8c9d-0e1f2a3b4c5d';
@@ -67,12 +63,6 @@ final class CorrelationRedactionTest extends TestCase
         $this->assertSame($clientUuid, Correlation::current());
     }
 
-    /**
-     * R1 regression: production ignores the incoming UUID (body-guard for the
-     * contract in Correlation::fromRequest) and answers with a fresh valid
-     * UUID, unique across consecutive requests. Simulated environment only —
-     * isolated test PG, no real deployment target.
-     */
     public function test_production_ignores_client_correlation_headers(): void
     {
         $foreign = 'c4d5e6f7-8a9b-4c0d-9e1f-2a3b4c5d6e7f';

@@ -8,10 +8,6 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Wave B contract: allowlisted query filters for user lists. Unknown keys
- * are ignored; the owning request validates the accepted ones.
- */
 final class UserFilters
 {
     /**

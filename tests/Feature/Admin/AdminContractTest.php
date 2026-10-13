@@ -26,12 +26,6 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role as RoleModel;
 use Tests\TestCase;
 
-/**
- * Wave A: the prepared Wave B contract. Requests authorize through the
- * catalogue gates and validate the exact input shapes; filters stay
- * allowlisted; resources and the pagination envelope pin the payloads the
- * Wave B routes must produce. No route or CRUD exists yet.
- */
 final class AdminContractTest extends TestCase
 {
     use RefreshDatabase;

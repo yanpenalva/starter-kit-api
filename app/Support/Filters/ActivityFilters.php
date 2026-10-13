@@ -7,10 +7,6 @@ namespace App\Support\Filters;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Activitylog\Models\Activity;
 
-/**
- * Wave B contract: allowlisted query filters for the audit feed. Unknown
- * keys are ignored; the owning request validates the accepted ones.
- */
 final class ActivityFilters
 {
     /**

@@ -10,9 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Wave B contract: administrative representation of an account. The CPF is
- * exposed only to actors authorized by UserPolicy::readCpf for this target;
- * every other field follows the basic profile conventions.
+ * The CPF is exposed only to actors authorized by UserPolicy::readCpf
+ * for this target; every other field follows the basic profile conventions.
  *
  * @property-read User $resource
  */

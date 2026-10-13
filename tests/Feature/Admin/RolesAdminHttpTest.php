@@ -16,12 +16,6 @@ use Spatie\Permission\Models\Role as RoleModel;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
-/**
- * Wave B: HTTP slice of the roles admin surface. Index lists the catalogue,
- * update-permissions syncs a role's permission set under RolePolicy (admin
- * role immutable) inside the privilege transaction with a fail-closed audit
- * record.
- */
 final class RolesAdminHttpTest extends TestCase
 {
     use ActsAsSanctumUser;

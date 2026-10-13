@@ -9,11 +9,6 @@ use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * Wave B contract: activate or deactivate an account. The wave owning the
- * route enforces UserPolicy::setStatus (self and last-admin protections)
- * for the resolved target inside a PrivilegeTransaction.
- */
 final class SetUserStatusRequest extends FormRequest
 {
     public function authorize(): bool

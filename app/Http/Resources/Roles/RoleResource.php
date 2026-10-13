@@ -9,8 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Permission\Models\Role;
 
 /**
- * Wave B contract: catalogue role with its permission set. Collections load
- * the permissions relation eagerly to avoid N+1 on lists.
+ * Collections load the permissions relation eagerly to avoid N+1 on lists.
  *
  * @property-read Role $resource
  */

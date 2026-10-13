@@ -12,13 +12,6 @@ use Illuminate\Support\Str;
 use Tests\Concern\RunsAsyncInfraStack;
 use Tests\TestCase;
 
-/**
- * FEAT-20 real end-to-end: a queued synthetic mailable is processed by a
- * real bounded worker (redis testqueue) and lands in the isolated
- * Mailpit. Verified via the Mailpit HTTP API using synthetic metadata
- * only. afterCommit rollback semantics are covered separately by
- * AfterCommitDispatchTest against the real redis queue.
- */
 final class InfraMailDeliveryTest extends TestCase
 {
     use RefreshDatabase;

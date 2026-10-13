@@ -12,12 +12,8 @@ use RuntimeException;
 use Tests\TestCase;
 
 /**
- * FEAT-20: afterCommit semantics proven against the REAL redis queue
- * (no fakes). The probe uses a dedicated queue name so leftovers from
- * other tests cannot interfere; queue keys are cleaned up afterwards.
- * NOTE: no RefreshDatabase here on purpose — RefreshDatabase wraps the
- * whole test in an outer transaction, and afterCommit callbacks only
- * fire when the OUTERMOST transaction commits.
+ * No RefreshDatabase: its outer transaction prevents afterCommit callbacks
+ * from firing until the outermost transaction commits.
  */
 final class AfterCommitDispatchTest extends TestCase
 {

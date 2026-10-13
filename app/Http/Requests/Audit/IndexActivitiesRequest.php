@@ -10,12 +10,6 @@ use App\Support\Audit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * Wave B contract: read the audit feed with allowlisted filters and bounded
- * pagination. Events are restricted to the approved Audit allowlist and
- * subject types to the two privileged domains; unknown query keys never
- * reach the query layer.
- */
 final class IndexActivitiesRequest extends FormRequest
 {
     public const DEFAULT_PER_PAGE = 15;

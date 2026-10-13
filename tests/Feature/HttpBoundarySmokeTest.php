@@ -12,11 +12,6 @@ use Illuminate\Support\Facades\Route;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
-/**
- * Real HTTP smoke against a non-testing server instance (APP_ENV=local) with
- * its own cookie jar and the isolated test PostgreSQL database. The framework
- * APP_ENV=testing CSRF bypass is never used as proof here.
- */
 final class HttpBoundarySmokeTest extends TestCase
 {
     private const SERVER_HOST = '127.0.0.1';

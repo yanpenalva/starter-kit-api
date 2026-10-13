@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 
-/**
- * FEAT-20: the scheduler fixture. The dev-only `infra:probe` command must
- * be registered on the schedule and must write its short-lived Redis
- * marker when executed.
- */
 final class InfraSchedulerTest extends TestCase
 {
     public function test_infra_probe_is_registered_on_the_schedule(): void
