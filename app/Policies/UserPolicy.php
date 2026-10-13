@@ -7,6 +7,7 @@ namespace App\Policies;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
  * Policy foundation for the approved privilege mutations consumed by the
@@ -98,8 +99,12 @@ final class UserPolicy
     /**
      * Assigning (or changing) roles denies every self-assignment, preserves
      * the last standing admin and requires an eligible verified actor.
+     * When target roles are specified, non-admin actors cannot assign roles
+     * whose permissions exceed the actor's own permissions (grant ceiling).
+     *
+     * @param  list<string>  $roleNames
      */
-    public function assignRoles(User $actor, User $target): bool
+    public function assignRoles(User $actor, User $target, array $roleNames = []): bool
     {
         if (! $this->canOperate($actor)) {
             return false;
@@ -118,6 +123,38 @@ final class UserPolicy
 
             if (! is_int($targetId) || ! User::otherAdminsRemain($targetId)) {
                 return false;
+            }
+        }
+
+        if ($actor->hasRole(Role::Admin->value)) {
+            return true;
+        }
+
+        if ($roleNames === []) {
+            return true;
+        }
+
+        if (in_array(Role::Admin->value, $roleNames, true)) {
+            return false;
+        }
+
+        $actorPermissions = $actor->getAllPermissions()->pluck('name')->all();
+
+        $targetRoles = SpatieRole::query()
+            ->whereIn('name', $roleNames)
+            ->where('guard_name', 'web')
+            ->with('permissions')
+            ->get();
+
+        if ($targetRoles->count() !== count(array_unique($roleNames))) {
+            return false;
+        }
+
+        foreach ($targetRoles as $role) {
+            foreach ($role->permissions as $permission) {
+                if (! in_array($permission->name, $actorPermissions, true)) {
+                    return false;
+                }
             }
         }
 

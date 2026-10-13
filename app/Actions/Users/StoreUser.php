@@ -20,7 +20,7 @@ final class StoreUser
      */
     public function run(User $actor, array $payload): User
     {
-        return PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($payload): User {
+        $user = PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($payload): User {
             if (! app(UserPolicy::class)->manage($actor)) {
                 abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
@@ -40,5 +40,9 @@ final class StoreUser
 
             return $user;
         });
+
+        $user->sendEmailVerificationNotification();
+
+        return $user;
     }
 }

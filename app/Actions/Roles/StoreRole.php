@@ -8,6 +8,7 @@ use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
 use App\Policies\RolePolicy;
 use App\Support\ApiMessage;
+use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,7 +25,7 @@ final class StoreRole
             }
 
             $role = Role::query()->create(['name' => $name, 'guard_name' => 'web']);
-            $this->auditRoleChange($actor, $role);
+            $this->auditRoleChange($actor, $role, Audit::ACTION_ROLE_STORE);
 
             return $role;
         });

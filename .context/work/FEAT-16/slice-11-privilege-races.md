@@ -34,7 +34,7 @@
 - `python3 scripts/validate_context.py --strict`, `python3 scripts/validate_context.py --strict --examples` and `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project`: passed; `--examples` reported that no example suite is installed.
 - `python3 -m unittest discover -s tests -v`: 113 tests, 2 failures and 5 errors because `oasdiff` is absent from this local environment; these are contract-tool checks outside this slice.
 - `git diff --check`: passed.
-- Delivery: implementation commit `2765b36` was pushed to `origin/feat/slice-11-privilege-races`; no PR or merge was created.
+- Initial delivery: implementation commit `2765b36` was pushed to `origin/feat/slice-11-privilege-races`; no PR or GitHub merge was created at that time.
 - Production deployment and issue closure were not performed.
 
 ## Final worker verification
@@ -42,3 +42,11 @@
 - The portable worker uses Symfony Process instead of `pcntl`; the test confirms distinct PostgreSQL backend PIDs and waits for the real competing Action to reach the advisory lock. Its trigger matches a unique `application_name` set by this test's parent connection, so unrelated lock waiters cannot release the barrier.
 - PostgreSQL 17 focused run: `source /opt/data/php/env.sh && REDIS_HOST=127.0.0.1 REDIS_QUEUE=testqueue DB_HOST=127.0.0.1 DB_PASSWORD=ci-ephemeral-test-only MAIL_HOST=127.0.0.1 MAIL_PORT=1025 MAILPIT_API_URL=http://127.0.0.1:8025 APP_BASE_PATH=/opt/data/cache/scratch/api-fixwork6 php8.5 vendor/bin/pest -c /tmp/phpunit.pgsql.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php`: 1 passed / 29 assertions.
 - SQLite focused run with the same custom PHPUnit bootstrap: `source /opt/data/php/env.sh && REDIS_HOST=127.0.0.1 REDIS_QUEUE=testqueue APP_BASE_PATH=/opt/data/cache/scratch/api-fixwork6 php8.5 vendor/bin/pest -c /tmp/phpunit.sqlite.api-fixwork6.xml tests/Feature/Actions/PrivilegeMutationPostgresRaceTest.php tests/Feature/Actions/PrivilegeRaceTest.php tests/Feature/Actions/UsersActionsTest.php tests/Feature/Actions/RolesActionsTest.php tests/Feature/PrivilegeFoundationTest.php`: 42 passed / 136 assertions; 1 PostgreSQL-only skip.
+
+## Main sync follow-up — 2026-10-13
+
+- Merged `origin/main` at `4a85316` (PRs #79, #83 and #86) into this published branch to avoid force-pushing. Conflicts kept the slice's `runWithActor` policy rechecks while incorporating main's explicit role audit action codes and post-commit user verification invitation.
+- Regenerated `contracts/openapi.json` with `LC_ALL=C` using `scripts/contract_export.py`; the two exports matched under `cmp`. Snapshot SHA-256: `bcbbe442c4c9a0976415b57991251d90817e45182e98ea7a323bb3df799ee451`.
+- `composer lint`: passed.
+- SQLite Pest selection covering privilege races, user/role Actions and admin endpoints, active sessions, and the OpenAPI snapshot: exit 0, 1183 assertions, 1 PostgreSQL-only skip. PHPUnit reported warnings because this scratch worktree has no local `.env`; no test failed.
+- PR #89 already targeted this branch. The branch update reuses that PR; no additional PR was created and no GitHub merge was performed.

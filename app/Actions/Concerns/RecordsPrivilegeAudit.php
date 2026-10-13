@@ -27,7 +27,7 @@ trait RecordsPrivilegeAudit
         );
     }
 
-    private function auditRoleChange(User $actor, Role $role): void
+    private function auditRoleChange(User $actor, Role $role, string $action): void
     {
         $roleKey = $role->getKey();
         assert(is_int($roleKey));
@@ -39,7 +39,7 @@ trait RecordsPrivilegeAudit
             'role',
             $roleKey,
             Correlation::current(),
-            ['actor_type' => 'user', 'actor_id' => $actorKey],
+            ['actor_type' => 'user', 'actor_id' => $actorKey, 'action' => $action],
         );
     }
 }
