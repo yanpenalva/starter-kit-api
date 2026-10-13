@@ -2,7 +2,7 @@
 
 This file defines the canonical HTTP behavior and compatibility policy. The generated OpenAPI snapshot is [`../../contracts/openapi.json`](../../contracts/openapi.json); `.context/project/openapi.yaml` remains the historical initial draft and is not a substitute for the generated contract. Authentication, administration, audit, Scramble export, artifact publication, and compatibility checks are implemented and have owning work-item evidence.
 
-The documentation branch is based on main after PRs #79, #83, #86, #89, and #87. Their role-grant, active-session, custom-role, privilege-mutation, and OpenAPI-envelope changes are reflected in the current implementation and snapshot. This documentation work does not change runtime behavior or the API contract. ADRs 0010–0012 record the related decisions and identify implementation and integration evidence by slice.
+The documentation branch includes PRs #79, #82, #83, #84, #86, #87, and #89. Their role-grant, active-session, admin MFA, custom-role, privilege-mutation, and OpenAPI-envelope changes are reflected in the current implementation and snapshot. This documentation work does not change runtime behavior or the API contract. ADRs 0010–0012 record the related decisions and identify implementation and integration evidence by slice.
 
 ## Transport and responses
 
@@ -16,11 +16,14 @@ The documentation branch is based on main after PRs #79, #83, #86, #89, and #87.
 
 ## Authentication contract
 
+- The first-party SPA uses Sanctum stateful session cookies and CSRF. It calls `GET /sanctum/csrf-cookie` before state-changing requests and sends the XSRF token in `X-XSRF-TOKEN` with credentials enabled.
 - HTTP authentication uses Sanctum stateful sessions, session cookies, and CSRF only. The API does not issue or accept bearer, personal access, JWT, or integration API tokens.
-- Successful POST /api/v1/login returns 204; the client then loads GET /api/v1/auth/my-profile. Login creates a session and never returns an access token.
-- POST /api/v1/logout invalidates the current session and returns 204; no separate integration-token authorization exists.
-- GET /api/v1/auth/sessions lists only the signed-in user's sessions. DELETE /api/v1/auth/sessions/{id} revokes one of that user's sessions; DELETE /api/v1/auth/sessions revokes every other session and keeps the current one. Both DELETE routes allow 10 requests per minute per user and then return 429.
-- Active-session listing/revocation and invalidation after password reset or account suspension require `SESSION_DRIVER=database`. `sessions.id` remains Laravel's opaque string ID; `sessions.user_id` matches the bigint `users.id`.
+- A successful non-MFA `POST /api/v1/login` returns 204; the client then loads `GET /api/v1/auth/my-profile`. Login creates a session and never returns an access token.
+- A confirmed-MFA admin login invalidates any existing web session and instead returns HTTP 200 `{ "requires_mfa": true }`. The client submits a TOTP or one-time recovery code to `/api/v1/auth/mfa/challenge`; every protected `auth:sanctum` route rejects an MFA-enabled admin until that challenge succeeds, including sessions created before enrollment.
+- Admin MFA enrollment at `/api/v1/auth/mfa/enroll` requires the current password. Plaintext recovery codes are returned once; only one-way hashes are stored. Confirmation returns `{ "confirmed": true }` without returning recovery codes again.
+- `POST /api/v1/logout` invalidates the current session and returns 204. It does not revoke separately authorized integration tokens.
+- `GET /api/v1/auth/sessions` lists only the signed-in user's sessions. `DELETE /api/v1/auth/sessions/{id}` revokes one of that user's sessions; `DELETE /api/v1/auth/sessions` revokes every other session and keeps the current one. Both DELETE routes allow 10 requests per minute per user and return 429 after the limit.
+- Active-session listing and revocation (including bulk revocation), password-reset invalidation, and account-suspension invalidation require `SESSION_DRIVER=database`. The `sessions.id` primary key remains Laravel's opaque string session ID; `users.id` and `sessions.user_id` use bigint keys.
 - A newly registered, not-yet-verified user may establish a limited session and read a minimal profile for verification. Business routes remain denied until email verification automatically activates the basic profile. An explicitly deactivated account receives 403. This distinction was approved by yanpenalva on 2026-10-02 and clarifies API #13 against the accepted ADR 0004.
 - The authenticated session is the sole authority for the profile subject; client-supplied IDs, roles, or permissions never select the user or grant authority. The profile endpoint reloads the session user and already-loaded RBAC relations before eligibility checks and serialization, so reads reflect persisted identity, role, permission, and deactivation changes. Before verification, roles and permissions are empty. CPF, credentials, and remember tokens are excluded; administrative CPF access follows ADR 0004.
 - Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment.

@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "id": "EXC-0002",
+  "policy": "core.review-release prohibition on force pushes and destructive Git operations; project API and onboarding instructions requiring the official main-branch OpenAPI producer",
+  "scope": "One-time remediation of existing API PR #82 only: locally regenerate and commit contracts/openapi.json on feat/slice-4-self-service-profile; interactively rewrite commits 7d34e0373ebbbfe16568acaf96321d569a069875 and db5c8c1261f88078f4d48a492d97b900205e3354, the two PR-history commits containing the flagged test fixture, to use its documented synthetic value; force-push only that branch to origin with an explicit lease. No other branch or PR, no merge, and no other snapshot producer operation is authorized.",
+  "rationale": "The user explicitly authorized both the deterministic local OpenAPI export and commit, and the rewrite plus leased force-push, because PR #82 is still unmerged and GitGuardian flags a test-only password in its history. A full branch-history search found the same fixture in commit 7d34e03 and its ancestor db5c8c1, so both occurrences must be replaced to satisfy the requested absence check. The work item documents the replacement as fake-profile-password-123. This exception expires after the single requested branch update.",
+  "risk": "high",
+  "compensating_controls": [
+    "Verify PR #82 is open, unmerged, targets main, and names feat/slice-4-self-service-profile before rewriting or pushing.",
+    "Export the OpenAPI document twice with LC_ALL=C and TZ=UTC, compare the outputs byte-for-byte, and review the resulting snapshot diff.",
+    "Edit only the flagged fixture in the two identified historical commits, preserve the merge topology, and verify the old value is absent from every commit reachable from the final branch.",
+    "Run the requested lint and ScaffoldTest gates, validate changed context files, and inspect the final diff before pushing.",
+    "Push only refs/heads/feat/slice-4-self-service-profile with --force-with-lease tied to the observed remote SHA; verify PR #82 remains open and unmerged at the new head."
+  ],
+  "owner": "yanpenalva",
+  "approver": "user via explicit authorization in this session",
+  "created_at": "2026-10-13",
+  "expires_at": "2026-10-14",
+  "status": "approved"
+}
