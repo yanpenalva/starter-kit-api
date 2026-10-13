@@ -219,6 +219,8 @@ final class ScaffoldTest extends TestCase
             'api/v1',
             'api/v1/activity-log',
             'api/v1/auth/my-profile',
+            'api/v1/auth/my-profile',
+            'api/v1/auth/password',
             'api/v1/email/verification-notification',
             'api/v1/email/verify/{id}/{hash}',
             'api/v1/forgot-password',
@@ -243,5 +245,10 @@ final class ScaffoldTest extends TestCase
             'sanctum/csrf-cookie',
             'up',
         ], $uris);
+
+        $profileUpdate = Route::getRoutes()->match(Request::create('/api/v1/auth/my-profile', 'PATCH'));
+        $passwordUpdate = Route::getRoutes()->match(Request::create('/api/v1/auth/password', 'PUT'));
+        $this->assertSame(['PATCH'], $profileUpdate->methods());
+        $this->assertSame(['PUT'], $passwordUpdate->methods());
     }
 }
