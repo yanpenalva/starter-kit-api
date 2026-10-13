@@ -88,3 +88,13 @@ No application behavior, workflow YAML, frontend, dependency manifest, or contra
   documentation sync. No official OpenAPI artifact was produced or published.
 - Delivery remains limited to existing PR #90; it is not merged and no other PR is
   created.
+
+## Sync after PRs #82 and #84 — 2026-10-13
+
+- `git fetch origin` — exit 0; `origin/main` is `3c76812c10ca396de69beda0cea72115eb8d5e52`, including PRs #82 and #84.
+- `git merge --no-edit origin/main` — automatic resolution stopped on `.context/project/api.md`; reconciled the session-cookie/CSRF and admin-MFA contract text. No other conflict occurred.
+- `git diff --check` — exit 0.
+- `python3 scripts/validate_context.py --strict` — exit 0 (`Context validation passed.`).
+- `composer lint` — exit 0 (`Pint passed`) in the direct validation and the merge commit's pre-commit hook.
+- Merge commit: `42917a89ace15cad5374187b1b809da2085133db` (`Merge remote-tracking branch 'origin/main' into feat/slice-12-contract-release-docs`).
+- The merge includes the upstream changes from #82/#84; conflict resolution changed documentation only. PR #90 remains the only delivery target and is not merged.
