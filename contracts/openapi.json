@@ -3454,6 +3454,7 @@
                         "items": {
                             "type": "string"
                         },
+                        "minItems": 1,
                         "uniqueItems": true
                     }
                 },
@@ -3462,7 +3463,8 @@
                     "email",
                     "cpf",
                     "password",
-                    "active"
+                    "active",
+                    "roles"
                 ],
                 "title": "StoreUserRequest"
             },
