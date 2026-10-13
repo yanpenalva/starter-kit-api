@@ -14,9 +14,11 @@ use App\Actions\Users\UpdateUser;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
+use App\Notifications\VerifyEmail;
 use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role as SpatieRole;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -76,6 +78,29 @@ final class UsersActionsTest extends TestCase
         ]);
 
         $this->assertNotNull($deactivated->deactivated_at);
+    }
+
+    public function test_store_user_dispatches_verification_invitation_with_signed_url(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersManage->value);
+
+        $user = app(StoreUser::class)->run($actor, [
+            'name' => 'Invited User',
+            'email' => 'invited@example.test',
+            'cpf' => '12345678909',
+            'password' => 'test-password-01',
+            'active' => true,
+        ]);
+
+        Notification::assertSentTo($user, VerifyEmail::class, static function (VerifyEmail $notification) use ($user): bool {
+            $mail = $notification->toMail($user);
+
+            return str_contains((string) $mail->actionUrl, 'verify-email')
+                && str_contains((string) $mail->actionUrl, 'signature=');
+        });
     }
 
     public function test_show_user_returns_the_target_for_eligible_actors(): void
