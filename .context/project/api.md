@@ -17,9 +17,11 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - The first-party SPA uses Sanctum stateful session cookies and CSRF. It calls `GET /sanctum/csrf-cookie` before state-changing requests and sends the XSRF token in `X-XSRF-TOKEN` with credentials enabled.
 - Successful `POST /api/v1/login` returns 204; the client then loads `GET /api/v1/auth/my-profile`. The SPA login does not issue or return a personal access token.
 - `POST /api/v1/logout` invalidates the current session and returns 204. It does not revoke separately authorized integration tokens.
+- `GET /api/v1/auth/sessions` lists only the signed-in user's sessions. `DELETE /api/v1/auth/sessions/{id}` revokes one of that user's sessions; `DELETE /api/v1/auth/sessions` revokes every other session and keeps the current one. Both DELETE routes allow 10 requests per minute per user and return 429 after the limit.
+- Active-session listing and revocation (including bulk revocation), password-reset invalidation, and account-suspension invalidation require `SESSION_DRIVER=database`. The `sessions.id` primary key remains Laravel's opaque string session ID; `users.id` and `sessions.user_id` use bigint keys.
 - A newly registered, not-yet-verified user may establish a limited session and read a minimal profile for verification. Business routes remain denied until email verification automatically activates the basic profile. An explicitly deactivated account receives 403. This distinction was approved by yanpenalva on 2026-10-02 and clarifies API #13 against the accepted ADR 0004.
 - An authenticated profile contains only the current user's identity plus effective role and permission identifiers. Before verification, roles and permissions are empty and the identity is limited to the fields in the OpenAPI schema. CPF is omitted from this initial minimal auth profile; any future CPF response must follow the holder/specific-permission access in ADR 0004, never public exposure. Permission names remain owned by API #16.
-- Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment.
+- Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment. The session driver for active-session management is `database`.
 
 ## SPA origins and email links
 
@@ -33,6 +35,13 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 - User `email_verified_at` and `deactivated_at`, and audit `created_at`, are required nullable UTC date-time strings. The user `cpf` property is optional and nullable because it is omitted unless the actor may read it.
 - Each endpoint declares its own filter and sort allowlist. Unknown fields are rejected with 422; clients never choose SQL columns or operators.
 - Sort uses a documented `sort` field allowlist and `direction=asc|desc`; absent values use the endpoint's stable default order.
+
+## Role administration
+
+- `GET /api/v1/roles/{id}` requires an authenticated, verified actor with `roles.view` and returns the role's `id`, `name`, `guard_name`, and sorted permission names in the standard `data` envelope.
+- `PATCH /api/v1/roles/{id}` requires `roles.manage` and a unique `name` string (maximum 255 characters). It renames a custom role and preserves its permission assignments. Built-in role names cannot be changed.
+- `DELETE /api/v1/roles/{id}` requires `roles.manage`; `admin` cannot be deleted, and a role assigned to users cannot be deleted. Role mutations are audited transactionally.
+- The `admin` role is immutable through the API: its name, permission set, and existence cannot be changed. Reading its details still requires `roles.view`.
 
 ## Availability and compatibility
 
