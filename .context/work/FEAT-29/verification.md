@@ -48,3 +48,10 @@ The local PHP wrappers provide PHP 8.5.11 and the required `LD_LIBRARY_PATH`/ext
 - CI PostgreSQL 18 full suite and contract freshness/compatibility gates.
 - Frontend mock/UI integration and end-to-end session smoke are outside this backend task.
 - GitHub Issue association is NOT FOUND; no external issue was created.
+
+## Delivery
+
+- Commits: `4c27018` (`test(rbac): cover multi-role assignment and profile permissions`), `d7666a9` (`feat(audit): add case-insensitive audit search`), `eacc0ec` (`docs(api): update audit search contract candidate`).
+- Pushed with upstream tracking to `origin/feat/be-adj-w2-multirole`; remote ref matched `eacc0ec49467d11e2f18e5cc0017491666a02b06` at verification.
+- Pull request: https://github.com/yanpenalva/starter-kit-api/pull/92, targeting `main`, open for review.
+- GitHub Actions `Quality` run 227 was `in_progress` when checked after PR creation.
