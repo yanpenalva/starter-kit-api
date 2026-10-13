@@ -9,7 +9,7 @@
 ## Expected behavior
 
 - A expectativa do teste corresponde exatamente à allowlist vigente.
-- A branch contém o snapshot versionado e determinístico produzido no fluxo oficial em `main`.
+- A revisão da PR inclui candidato de snapshot determinístico gerado no código implementado da branch. O artifact oficial de `main` não contém o parâmetro `action` desta mudança.
 - Os gates `application`, `coverage` e `contract` passam na revisão atualizada da PR #85.
 
 ## Steps and evidence
@@ -23,4 +23,4 @@ Evidence: https://github.com/yanpenalva/starter-kit-api/actions/runs/38331058231
 
 - Reproducibility: determinística nesse SHA.
 - Affected versions/environments: CI da PR #85, PHP 8.5, PostgreSQL 18.
-- Suspected boundary: expectativa da allowlist e snapshot OpenAPI desatualizados após integração da `main`.
+- Suspected boundary: expectativa da allowlist e candidato OpenAPI ausente para o novo filtro `action`.

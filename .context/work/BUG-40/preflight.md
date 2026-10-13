@@ -18,8 +18,9 @@
 ## Findings
 
 - O run remoto reproduz a expectativa incompatível com `role.rename`; aplicação e cobertura falham pelo mesmo teste. O gate de cobertura não informa uma queda abaixo de 85%, pois Pest já encerra em falha.
-- O produtor oficial no `main` detectou snapshot desatualizado após mudanças do contrato; PR #82 e #90 avançaram `main` enquanto a PR #85 estava sendo corrigida. O workflow OpenAPI foi disparado em `21fa573` e publicou artifact após duas exportações idênticas.
-- A correção local fica restrita ao teste de allowlist. Merge e push estão explicitamente autorizados para a branch e PR informadas; merge da PR está proibido.
+- PRs #82 e #90 avançaram `main` durante o trabalho. O workflow OpenAPI em `21fa573` publicou artifact após duas exportações idênticas; o artifact registra alterações do MFA presentes na `main`.
+- Quality #214 confirmou exportação determinística, aplicação e coverage verdes na revisão `871e0b5`, mas freshness falhou porque o snapshot de `main` não inclui o filtro `action` desta PR. `.context/project/api.md` autoriza gerar um candidato local na revisão da PR; após integração, o produtor oficial em `main` valida/publica o artifact correspondente.
+- A correção abrange o teste de allowlist e o snapshot candidato OpenAPI. Merge e push estão explicitamente autorizados para a branch e PR informadas; merge da PR está proibido.
 
 ## Evidence record
 

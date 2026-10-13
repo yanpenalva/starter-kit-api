@@ -13,14 +13,14 @@
 ## Correct
 
 - The added expected value matches the already allowlisted `role.rename` action.
-- `main` was synchronized through `21fa573` (PR #90). The snapshot was replaced with the official artifact from OpenAPI Contract run `38335202904`, which passed the double-export determinism step.
+- `main` was synchronized through `21fa573` (PR #90), and its official OpenAPI artifact was reviewed. The PR candidate was then generated twice from this branch and compared byte-for-byte; it adds the expected `action` query parameter absent from main's artifact.
 - Merge conflict resolutions retained both explicit audit action codes from this branch and actor-policy revalidation from upstream.
 
 ## Problems and risks
 
 - Priority: follow-up gate
 - Location: PR #85 remote checks
-- Evidence: final PR #85 Quality run still needs to execute on the pushed SHA.
+- Evidence: run #214 on `871e0b5` passed application, coverage and deterministic export, but failed snapshot freshness because it still contained the main-only artifact; the candidate snapshot correction is now prepared for the next push.
 - Impact: application, coverage and contract acceptance on the final PR #85 SHA are not confirmed until GitHub Actions completes.
 - Recommendation: push only the existing branch, then observe its CI run before declaring the gates green.
 

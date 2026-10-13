@@ -14,19 +14,19 @@ Deixar a PR #85 compatível com a `main` atual e corrigir as falhas reproduzíve
 
 - Integrar `origin/main` vigente antes da validação (21fa573, merge de #90 após #82, #84 e #87) em `feat/slice-7-audit-distinct-action-codes`.
 - Alinhar o teste da allowlist à ação `role.rename` já permitida.
-- Preservar o snapshot OpenAPI oficial e determinístico trazido de `main` pelo workflow produtor.
+- Revisar o artifact oficial de `main` e versionar um snapshot candidato determinístico da revisão da PR, incluindo o filtro `action`. Após a integração, validar o artifact oficial em `main`.
 - Rodar Pest relevante, lint e validar novamente os gates da PR.
 - Entregar somente na branch existente da PR #85.
 
 ## Out of scope
 
-- Criar outra branch ou PR, fazer merge de PR #85, exportar/atualizar `contracts/openapi.json` localmente, ou alterar comportamento de produção sem evidência necessária.
+- Criar outra branch ou PR, fazer merge de PR #85, forjar/atribuir proveniência oficial ao candidato local, ou alterar comportamento de produção sem evidência necessária.
 
 ## Evidence and context
 
 - Repository evidence: `Audit::allowedActions()` inclui `ACTION_ROLE_RENAME`; a expectativa do teste não.
 - Product or incident evidence: Quality run `38331058231` falhou em application, coverage e freshness do snapshot; contexto passou.
-- Relevant project context: `.context/project/quality.md`, `.context/project/delivery.md`; `contracts/openapi.json` só é produzido pelo workflow oficial em `main`.
+- Relevant project context: `.context/project/quality.md`, `.context/project/delivery.md`, `.context/project/api.md`; o candidato da PR é gerado na revisão proposta, enquanto o artifact oficial é publicado somente pelo workflow em `main` após integração.
 - Unknowns (`NOT FOUND`): resultado dos gates no novo SHA antes do push.
 
 ## Rules and contracts
@@ -40,7 +40,7 @@ Deixar a PR #85 compatível com a `main` atual e corrigir as falhas reproduzíve
 - A branch inclui `origin/main` vigente antes da validação (`21fa573`, merge de #90 após #82, #84 e #87).
 - O Pest focado de auditoria/roles passa.
 - `composer lint` passa.
-- Snapshot é o artefato versionado e validado na `main` atual; os gates remotos application, coverage e contract passam na PR #85.
+- Snapshot candidato é determinístico na revisão da PR e inclui o filtro `action`; os gates remotos application, coverage e contract passam na PR #85.
 
 ## Open decisions
 

@@ -38,6 +38,7 @@
       "main avançou por PR #87 para 9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7",
       "main avançou por PR #84 para 0955e1eedf322cb5d1dcf258ba14c5e568cd4bc5 e PR #82 para 3c76812c10ca396de69beda0cea72115eb8d5e52",
       "main avançou novamente por PR #90 para 21fa57335c78b447391df71f5a0ff5bc080b6c57; snapshot oficial foi produzido nesse SHA",
+      "Quality #214 no SHA 871e0b5936b2f04825b8b9471cfe40ffba9f445b: application e coverage passaram; contract determinístico, freshness falhou por ausência do parâmetro action no artifact de main",
       "Entrega restrita à branch feat/slice-7-audit-distinct-action-codes, base main, remote origin, PR #85; sem merge"
     ]
   },
