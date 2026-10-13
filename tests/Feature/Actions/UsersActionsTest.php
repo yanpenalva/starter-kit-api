@@ -129,7 +129,7 @@ final class UsersActionsTest extends TestCase
     {
         $target = User::factory()->verified()->create(['email' => 'verified@example.test']);
         $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo(Permission::UsersManage->value);
+        $actor->givePermissionTo(Permission::UsersUpdate->value);
         $verifiedAt = $target->email_verified_at;
 
         app(UpdateUser::class)->run($actor, $target, ['email' => 'new-address@example.test']);
@@ -155,7 +155,7 @@ final class UsersActionsTest extends TestCase
         $this->assertSame('action-admin@example.test', $target->fresh()?->email);
 
         $operator = User::factory()->verified()->create();
-        $operator->givePermissionTo(Permission::UsersManage->value);
+        $operator->givePermissionTo([Permission::UsersManage->value, Permission::UsersUpdate->value]);
         $updated = app(UpdateUser::class)->run($operator, $target, ['email' => 'changed-admin@example.test']);
 
         $this->assertSame('changed-admin@example.test', $updated->email);

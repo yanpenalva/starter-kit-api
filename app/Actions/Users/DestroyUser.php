@@ -17,7 +17,7 @@ final class DestroyUser
 
     public function run(User $actor, User $user): void
     {
-        PrivilegeTransaction::run(function () use ($actor, $user): void {
+        PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($user): void {
             $target = User::query()->lockForUpdate()->whereKey($user->getKey())->firstOrFail();
 
             if (! app(UserPolicy::class)->delete($actor, $target)) {
