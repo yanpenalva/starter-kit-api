@@ -181,8 +181,9 @@ desenvolvimento sem recarregamento, ou produção revalidando arquivos a cada re
 
 ## 12. Cobertura mínima de 85% com pcov no CI
 
-**Onde vive:** job de cobertura do workflow de qualidade (`vendor/bin/pest
---coverage --min=85` com driver pcov).
+**Onde vive:** job de cobertura do workflow de qualidade (`composer test:coverage`:
+PHPUnit com driver pcov gera o relatório clover e `scripts/coverage-floor.php`
+exige o piso de 85%).
 
 **Motivo.** O gate impede erosão silenciosa: cada pull request precisa manter pelo
 menos 85% das linhas cobertas, então funcionalidade nova chega com testes ou o CI

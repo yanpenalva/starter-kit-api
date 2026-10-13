@@ -34,7 +34,7 @@ novo.
   ActsAsSanctumUser nos testes HTTP. Não adicione bearer, PAT, JWT ou tokens de API.
 - Em filtros, aceite apenas campos e ordenações allowlisted. Não use ilike sem um
   guard explícito por driver.
-- Adicione Pest para comportamento Laravel. Prefira testes SQLite rápidos quando a
+- Adicione testes PHPUnit para comportamento Laravel. Prefira testes SQLite rápidos quando a
   semântica do caso for compatível; PostgreSQL 18, Redis e Mailpit são exercitados
   pelo perfil de teste canônico no CI.
 - Atualize documentação de domínio e contrato no mesmo slice. Mudança material de
@@ -53,7 +53,7 @@ Para comportamento da aplicação:
     composer analyse
     composer test
 
-Rode Pest focado durante o ciclo TDD e, no CI, a suíte do perfil Compose com
+Rode PHPUnit focado durante o ciclo TDD e, no CI, a suíte do perfil Compose com
 PostgreSQL 18, Redis e Mailpit. Para alteração de contexto/documentação:
 
     python3 scripts/validate_context.py --strict

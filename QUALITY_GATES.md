@@ -6,7 +6,7 @@ Canonical commands, thresholds and evidence live in [.context/project/quality.md
 
 - Composer strict validation, installation from `composer.lock`, platform requirements and dependency audit.
 - Pint read-only formatting check; Larastan level 10 across application, bootstrap, routes and tests, without baseline/blanket ignores.
-- Pest against isolated PostgreSQL: boot, `/api/v1` JSON, `/up`, route boundaries and database identity/isolation.
+- PHPUnit against isolated PostgreSQL: boot, `/api/v1` JSON, `/up`, route boundaries and database identity/isolation.
 - Compose validation, image build, healthy startup and HTTP smoke checks from a clean source copy with its own project/volume names.
 - CSD strict, examples adaptation, Python regression suite and pinned CSD doctor.
 

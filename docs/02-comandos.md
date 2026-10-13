@@ -13,7 +13,8 @@ com `composer <script>` se o PHP local estiver correto.
 
 | Script | Comando real | O que faz | Quando usar |
 | --- | --- | --- | --- |
-| `composer test` | `php vendor/bin/pest` | Executa a suíte Pest contra PostgreSQL isolado | Após qualquer mudança de comportamento; é o sinal verde básico |
+| `composer test` | `php vendor/bin/phpunit` | Executa a suíte PHPUnit contra PostgreSQL isolado | Após qualquer mudança de comportamento; é o sinal verde básico |
+| `composer test:coverage` | `phpunit --coverage-clover` + `scripts/coverage-floor.php` | Executa a suíte com cobertura pcov e exige o piso de 85% das linhas | Antes de abrir um pull request; mesmo gate do CI |
 | `composer lint` | `php vendor/bin/pint --test` | Verifica a formatação no preset `laravel` **sem alterar arquivos** | Antes de abrir um pull request; se falhar, rode o Pint sem `--test` localmente para aplicar |
 | `composer analyse` | `php vendor/bin/phpstan analyse --memory-limit=512M` | Roda PHPStan com Larastan no nível 10 sobre aplicação, rotas e testes, sem linha de base de supressão | Antes de abrir um pull request; qualquer erro precisa ser corrigido, não suprimido |
 
@@ -138,7 +139,7 @@ flowchart TD
 | Perfil | Serviços adicionados | Comando típico | Quando usar |
 | --- | --- | --- | --- |
 | (nenhum) | `api`, `nginx`, `postgres` | `docker compose up -d --wait` | Desenvolvimento diário |
-| `test` | `test`, `postgres-test`, `redis-test`, `mailpit-test` | `docker compose --profile test run --rm test` | Rodar a suíte Pest isolada, igual ao CI, sem instalar nada no host |
+| `test` | `test`, `postgres-test`, `redis-test`, `mailpit-test` | `docker compose --profile test run --rm test` | Rodar a suíte PHPUnit isolada, igual ao CI, sem instalar nada no host |
 | `async` | `redis`, `mailpit`, `worker`, `scheduler` | `docker compose --profile async up -d worker scheduler` | Desenvolver com fila, e-mails e agendamento reais |
 | `release` | `app`, `worker-release`, `scheduler-release`, `postgres-release`, `redis-release` | `docker compose --profile release up -d` | Simular a pilha de produção com imagem imutável |
 
