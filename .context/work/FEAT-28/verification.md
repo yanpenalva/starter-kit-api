@@ -58,3 +58,33 @@ No application behavior, workflow YAML, frontend, dependency manifest, or contra
 - `git push origin feat/slice-12-contract-release-docs` — exit 0; fast-forwarded remote head from `11143c940d10d7ffb523e69a4fafc80ab03c92b0` to `f5afe61cb115945240772cbbcd560c41e8919d84`.
 - `git ls-remote origin refs/heads/feat/slice-12-contract-release-docs` — exit 0; confirmed remote head `f5afe61cb115945240772cbbcd560c41e8919d84`.
 - `curl -fsSL https://api.github.com/repos/yanpenalva/starter-kit-api/pulls/90` — exit 0; PR #90 is open, targets `main`, points to that head, and is not merged.
+
+## Latest main sync — 2026-10-13
+
+- `origin/main` was `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7`, including PR #89
+  and PR #87. `git merge --no-edit origin/main` needed manual resolutions in
+  `.context/project/api.md` and `docs/onboarding.md`; the API context, ADRs, and
+  FEAT-28 now reflect the integrated behavior while preserving the canonical guide
+  links.
+- Merge commit: `9b19a17e20d92931f8fbe34fa68cbbbcadbbe940`.
+- The `contracts/openapi.json` brought in from PR #87 was regenerated through
+  `scripts/contract_export.py` using PHP 8.5 and a temporary migrated SQLite DB.
+  Both `LC_ALL=C` exports matched; SHA-256 is
+  `88bcccf993dd74915da9db2dd1a4eaaba1f4354b616054fe8b74c70042a3fb66`, identical
+  to `origin/main`. No additional snapshot change was introduced.
+- `python3 scripts/validate_context.py --strict` — passed.
+- `python3 scripts/validate_context.py --strict --examples` — passed; warning that
+  no example suite is installed.
+- `python3 -m unittest discover -s tests/tools -p 'test_contract_release_docs.py' -v`
+  — 4 tests passed.
+- `npx --yes @owlcodium/context-spec-develop@1.2.1 doctor --scope project` — CSD
+  healthy (1.2.1).
+- Merge commit hook: `composer lint` (Pint) and strict context validation passed.
+- `git diff --check HEAD` — passed.
+- `python3 -m unittest discover -s tests -v` — 117 tests ran; 2 failures and 5
+  errors in compatibility tests because pinned `oasdiff` is unavailable on this
+  ARM64 host. This matches the documented local environment limitation.
+- Composer analysis, Pest application tests, and remote CI were not rerun for this
+  documentation sync. No official OpenAPI artifact was produced or published.
+- Delivery remains limited to existing PR #90; it is not merged and no other PR is
+  created.
