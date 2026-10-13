@@ -49,3 +49,12 @@
 - Focused SQLite Pest after the OpenAPI contract assertions: 37 passed, 1 expected PostgreSQL-only skip, 1128 assertions. `composer lint`: passed.
 - After #82's older contract snapshot was found to omit the login 200 response and label `mfa_enabled` as a string, the deterministic Scramble producer was run twice from this worktree with its pinned generator, under `APP_ENV=testing`, PostgreSQL test DB, `LC_ALL=C` and `TZ=UTC`. Outputs were byte-identical and the promoted `contracts/openapi.json` compares equal to the generated output. The snapshot now captures `requires_mfa: boolean` and `mfa_enabled: boolean`; SHA-256 `3b34c5622ec19e509a8cd93c4011810ddaff1e75457fae28c0ba9661d7bfa342` (158994 bytes).
 - `git diff --check` and `python3 scripts/validate_context.py --strict` are part of final revalidation for this follow-up.
+
+## CI follow-up — 2026-10-13
+
+- Synced the branch with latest `origin/main` at `595c0b4` (PR #85) in merge `72a0ef7`; `origin/main` is now an ancestor of the delivery branch.
+- Added `assertIsArray` guards to the nested login and MFA response reads in `OpenApiSnapshotTest`; assertions and runtime behavior are unchanged.
+- `composer analyse` (PHPStan level 10): passed with no errors. `composer lint`: passed. Focused PostgreSQL Pest for `OpenApiSnapshotTest`: 3 passed, 624 assertions, using the local PostgreSQL 17 service.
+- After syncing, regenerated the Scramble artifact under `LC_ALL=C`, ran two exports and `cmp`; they matched at SHA-256 `650a0d222effb3c6240ad3fc885035c7c9dcfdfa6967c6a21e7f6c0ba9a36885`. The regenerated snapshot is byte-identical to `origin/main`.
+- GitHub Actions for PR #88 at prior head `49dfa141b163614f87f962f6c17796e52fb696c4` passed deterministic export, snapshot freshness and structural validation, then failed at `Real breaking changes comparison`. That run predates the merge above; no post-merge CI result is available yet.
+- PR #88 remains the only delivery target. No additional PR or PR merge was created or issued.
