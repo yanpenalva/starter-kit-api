@@ -34,4 +34,5 @@ The existing `vendor` symlink was preserved and no `composer install` ran. Depen
 - Snapshot: the merge's `contracts/openapi.json` matched a two-pass `dedoc/scramble 0.13.47` export byte for byte; no regeneration or snapshot edit was needed. Export SHA-256 `1a68e9286b960cc906cbc05557aa139eb7c7772f2ec7dfdd06b466c72900ff4e`, 120,269 bytes.
 - Lint: `source /opt/data/php/env.sh`, with the local PHP wrapper directories added to `PATH`, then `composer lint` — PASS, Pint passed.
 - Secret and merge checks: `git grep` credential-pattern scan of tracked files and merge additions found no matches; conflict markers absent; `git diff --check` passed.
-- `vendor` remains the original symlink to `/opt/data/work/starter-kit-api/vendor`; no `composer install` ran. The API test and analysis gates will be reported from CI on the pushed PR head.
+- `vendor` remains the original symlink to `/opt/data/work/starter-kit-api/vendor`; no `composer install` ran.
+- Push and remote gates: normal push to the existing branch succeeded at `61a54db7db0b53beef8e8adc318412f1c3c1be5a`; the branch ref and `refs/pull/82/head` matched. GitHub run `38332269294` reported `application`, coverage, contract generation/compatibility, context, and GitGuardian as successful. The PR page showed PR #82 `OPEN`.

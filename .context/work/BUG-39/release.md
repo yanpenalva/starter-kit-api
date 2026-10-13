@@ -20,7 +20,7 @@ Post-force-push `git ls-remote` confirmed both `refs/heads/feat/slice-4-self-ser
 
 - Production observation window and operational owner: NOT FOUND; no production change is part of this task.
 - Stop without retry if the PR state or remote SHA differs from the preflight, or if the lease fails.
-- If the resulting PR head is not the reviewed local HEAD, stop and request owner direction. No merge or dashboard incident action is authorized.
+- If the resulting PR head is not the reviewed local HEAD, stop and request owner direction. No PR merge or dashboard incident action is authorized.
 
 ## Follow-up: sync `origin/main` after PR #89 (2026-10-13)
 
@@ -28,3 +28,4 @@ Post-force-push `git ls-remote` confirmed both `refs/heads/feat/slice-4-self-ser
 - Preflight confirmed PR #82 was open, unmerged, based on `main`, and at `ac8b82fee8d08e9567af2548e61a4d5609fa1808`; both the branch ref and `refs/pull/82/head` matched that SHA.
 - `origin/main` was `20a14f01bc70e4b9c84116d1de7dabdc6a8d29b0` (merge of PR #89). The normal merge commit is recorded in [verification.md](verification.md).
 - Local lint, deterministic snapshot comparison, credential-pattern grep and merge conflict checks passed. No Composer installation ran, and the existing `vendor` symlink was preserved.
+- The normal push succeeded at `61a54db7db0b53beef8e8adc318412f1c3c1be5a`; the branch and `refs/pull/82/head` match. PR #82 remains open and unmerged. All five GitHub checks passed on that pushed SHA.
