@@ -3448,6 +3448,13 @@
                     },
                     "active": {
                         "type": "boolean"
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "uniqueItems": true
                     }
                 },
                 "required": [
