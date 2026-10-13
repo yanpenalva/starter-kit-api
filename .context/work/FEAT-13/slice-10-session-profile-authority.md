@@ -56,5 +56,5 @@
 - Added `assertIsArray` guards to the nested login and MFA response reads in `OpenApiSnapshotTest`; assertions and runtime behavior are unchanged.
 - `composer analyse` (PHPStan level 10): passed with no errors. `composer lint`: passed. Focused PostgreSQL Pest for `OpenApiSnapshotTest`: 3 passed, 624 assertions, using the local PostgreSQL 17 service.
 - After syncing, regenerated the Scramble artifact under `LC_ALL=C`, ran two exports and `cmp`; they matched at SHA-256 `650a0d222effb3c6240ad3fc885035c7c9dcfdfa6967c6a21e7f6c0ba9a36885`. The regenerated snapshot is byte-identical to `origin/main`.
-- GitHub Actions for PR #88 at prior head `49dfa141b163614f87f962f6c17796e52fb696c4` passed deterministic export, snapshot freshness and structural validation, then failed at `Real breaking changes comparison`. That run predates the merge above; no post-merge CI result is available yet.
+- GitHub Actions for PR #88 at prior head `49dfa141b163614f87f962f6c17796e52fb696c4` passed deterministic export, snapshot freshness and structural validation, then failed at `Real breaking changes comparison`. After merging latest `main`, all checks passed on `4c21aa4ec39be38deb4a49389dc4ee99bb391061`: context, application, coverage, contract generation/compatibility, and GitGuardian.
 - PR #88 remains the only delivery target. No additional PR or PR merge was created or issued.
