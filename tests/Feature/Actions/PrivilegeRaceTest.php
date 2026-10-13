@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Actions;
 
 use App\Actions\Roles\DestroyRole;
+use App\Actions\Roles\RenameRole;
 use App\Actions\Roles\StoreRole;
 use App\Actions\Roles\UpdateRolePermissions;
 use App\Actions\Users\AssignUserRoles;
@@ -104,6 +105,17 @@ final class PrivilegeRaceTest extends TestCase
         $this->assertForbidden(fn () => app(StoreRole::class)->run($actor, 'race-role'));
 
         $this->assertDatabaseMissing('roles', ['name' => 'race-role']);
+    }
+
+    public function test_rename_role_rechecks_manager_permission_inside_the_transaction(): void
+    {
+        $actor = $this->actorWith(Permission::RolesManage);
+        $role = PermissionRole::query()->create(['name' => 'race-role', 'guard_name' => 'web']);
+        $this->revokePermission($actor, Permission::RolesManage);
+
+        $this->assertForbidden(fn () => app(RenameRole::class)->run($actor, $role, 'renamed-role'));
+
+        $this->assertDatabaseHas('roles', ['id' => $role->getKey(), 'name' => 'race-role']);
     }
 
     public function test_update_role_permissions_rechecks_authority_inside_the_transaction(): void
