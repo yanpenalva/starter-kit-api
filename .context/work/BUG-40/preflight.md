@@ -20,6 +20,7 @@
 - O run remoto reproduz a expectativa incompatível com `role.rename`; aplicação e cobertura falham pelo mesmo teste. O gate de cobertura não informa uma queda abaixo de 85%, pois Pest já encerra em falha.
 - PRs #82 e #90 avançaram `main` durante o trabalho. O workflow OpenAPI em `21fa573` publicou artifact após duas exportações idênticas; o artifact registra alterações do MFA presentes na `main`.
 - Quality #214 confirmou exportação determinística, aplicação e coverage verdes na revisão `871e0b5`, mas freshness falhou porque o snapshot de `main` não inclui o filtro `action` desta PR. `.context/project/api.md` autoriza gerar um candidato local na revisão da PR; após integração, o produtor oficial em `main` valida/publica o artifact correspondente.
+- Quality #215 (`e601e99`) passou application, coverage, determinismo, freshness, validação estrutural e context. O oasdiff bloqueou compatibilidade porque a base versionada declara `mfa_enabled` como `string`, enquanto o código atual em `main` e seu artifact oficial declaram `boolean`; essa alteração upstream requer decisão sobre versão/migração do contrato.
 - A correção abrange o teste de allowlist e o snapshot candidato OpenAPI. Merge e push estão explicitamente autorizados para a branch e PR informadas; merge da PR está proibido.
 
 ## Evidence record

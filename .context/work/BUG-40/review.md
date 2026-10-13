@@ -18,11 +18,11 @@
 
 ## Problems and risks
 
-- Priority: follow-up gate
+- Priority: required contract gate
 - Location: PR #85 remote checks
-- Evidence: run #214 on `871e0b5` passed application, coverage and deterministic export, but failed snapshot freshness because it still contained the main-only artifact; the candidate snapshot correction is now prepared for the next push.
-- Impact: application, coverage and contract acceptance on the final PR #85 SHA are not confirmed until GitHub Actions completes.
-- Recommendation: push only the existing branch, then observe its CI run before declaring the gates green.
+- Evidence: run #214 on `871e0b5` passed application and coverage, but failed snapshot freshness. Run #215 on `e601e99` passed application, coverage, deterministic export, snapshot freshness, structural validation and context; oasdiff failed because the base snapshot says `mfa_enabled: string` while the current `main` implementation/export says `boolean`.
+- Impact: contract compatibility remains red due to this upstream API contract discrepancy. Silently changing runtime behavior or weakening the compatibility gate would be unsafe.
+- Recommendation: get the API owner decision on how to handle the `mfa_enabled` type correction, then make only the corresponding change in PR #85 and re-run its gates.
 
 ## Baseline checklist
 
