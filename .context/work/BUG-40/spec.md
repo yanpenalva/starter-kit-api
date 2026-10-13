@@ -12,7 +12,7 @@ Deixar a PR #85 compatível com a `main` atual e corrigir as falhas reproduzíve
 
 ## Scope
 
-- Integrar `origin/main` vigente antes da validação (0955e1e, merge de #84 após #87) em `feat/slice-7-audit-distinct-action-codes`.
+- Integrar `origin/main` vigente antes da validação (21fa573, merge de #90 após #82, #84 e #87) em `feat/slice-7-audit-distinct-action-codes`.
 - Alinhar o teste da allowlist à ação `role.rename` já permitida.
 - Preservar o snapshot OpenAPI oficial e determinístico trazido de `main` pelo workflow produtor.
 - Rodar Pest relevante, lint e validar novamente os gates da PR.
@@ -37,7 +37,7 @@ Deixar a PR #85 compatível com a `main` atual e corrigir as falhas reproduzíve
 
 ## Tests and acceptance criteria
 
-- A branch inclui `origin/main` vigente antes da validação (`0955e1e`, merge de #84 após #87).
+- A branch inclui `origin/main` vigente antes da validação (`21fa573`, merge de #90 após #82, #84 e #87).
 - O Pest focado de auditoria/roles passa.
 - `composer lint` passa.
 - Snapshot é o artefato versionado e validado na `main` atual; os gates remotos application, coverage e contract passam na PR #85.

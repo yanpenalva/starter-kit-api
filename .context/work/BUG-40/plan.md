@@ -12,8 +12,8 @@ Fazer merge de `origin/main` na branch já associada à PR #85 antes de editar; 
 
 ## Execution order
 
-1. Fazer merge de `origin/main` na branch alvo antes da validação; a primeira integração trouxe #87 (`9f3ee25`, merge `f1c36b7`) e a sincronização final inclui #84 (`0955e1e`, merge `6ba1a69`), que avançou durante o trabalho.
-2. Conferir o snapshot versionado na `main` atual e a evidência determinística dos gates upstream.
+1. Fazer merge de `origin/main` na branch alvo antes da validação; integra #87 (`9f3ee25`, merge `f1c36b7`), #84 (`0955e1e`, merge `6ba1a69`), #82 (`3c76812`, merge `b50e244`) e #90 (`21fa573`, merge `f8960af`).
+2. Obter e revisar o snapshot pelo workflow OpenAPI oficial em `main`, conforme a política de contrato.
 3. Acrescentar `Audit::ACTION_ROLE_RENAME` à expectativa da allowlist e rodar Pest focado.
 4. Rodar `composer lint`, inspecionar diff e validar contexto atualizado.
 5. Commitar e fazer push somente para `origin/feat/slice-7-audit-distinct-action-codes`; confirmar PR #85 continua aberta e não mesclada.
@@ -29,7 +29,7 @@ Fazer merge de `origin/main` na branch já associada à PR #85 antes de editar; 
 ## Test plan
 
 - Baseline observada: Pest falha no teste da allowlist no run #192.
-- Após a correção: `vendor/bin/pest tests/Feature/Admin/AuditDistinctActionsTest.php tests/Feature/Admin/CustomRoleManagementTest.php`.
+- Após a correção: `vendor/bin/pest --configuration=/tmp/codex-api-g7-phpunit-worktree.xml` (SQLite local; configuração temporária por causa do symlink `vendor`).
 - Formatação: `composer lint`.
 - Contexto: `python3 scripts/validate_context.py --strict`.
 - CI remoto: jobs application, coverage (mínimo 85%) e contract na PR #85.
