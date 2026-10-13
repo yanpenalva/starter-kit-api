@@ -425,7 +425,7 @@ O orquestrador continua entre waves enquanto a sessão e os recursos permitirem.
 
 ### Gates mínimos da API
 
-Usar os comandos vigentes de [quality.md](quality.md), incluindo validação estrita, testes Python e diagnóstico CSD. Para código PHP, Composer validate/check-platform-reqs/audit, Pint, Larastan nível 10 e Pest no container PHP 8.5 com PostgreSQL de teste. Não validar a aplicação com PHP 8.4 do host.
+Usar os comandos vigentes de [quality.md](quality.md), incluindo validação estrita, testes Python e diagnóstico CSD. Para código PHP, Composer validate/check-platform-reqs/audit, Pint, Larastan nível 10 e PHPUnit no container PHP 8.5 com PostgreSQL de teste. Não validar a aplicação com PHP 8.4 do host.
 
 Se Docker, rede, credenciais de leitura do contrato ou ambiente de deploy não estiverem disponíveis, registrar exatamente o que não executou e o que falta. Não transformar limitações em checks aprovados.
 
@@ -480,7 +480,7 @@ Links apontam para o repo correto. “Onda” indica preparação/implementaçã
 | [API #20](https://github.com/yanpenalva/starter-kit-api/issues/20) | Configurar Redis queues, e-mails, workers e scheduler | Backlog | 2; consumidores em 4 | L |
 | [API #21](https://github.com/yanpenalva/starter-kit-api/issues/21) | Configurar logs seguros e adicionar ferramentas conforme necessidade | Backlog | 2; 6; produção em 8 | L |
 | [API #22](https://github.com/yanpenalva/starter-kit-api/issues/22) | Executar threat modeling e testes de autorização e abuso | In progress | 0; contínuo → 7 | L |
-| [API #23](https://github.com/yanpenalva/starter-kit-api/issues/23) | Evoluir Pest Unit/Feature/Architecture com cada feature | Backlog | Contínuo → 7 | L |
+| [API #23](https://github.com/yanpenalva/starter-kit-api/issues/23) | Evoluir suíte PHPUnit Unit/Feature com cada feature | Backlog | Contínuo → 7 | L |
 | [API #24](https://github.com/yanpenalva/starter-kit-api/issues/24) | Ativar quality gates progressivos no GitHub Actions da API | In progress | Contínuo → 7 | L |
 | [API #25](https://github.com/yanpenalva/starter-kit-api/issues/25) | Criar imagem de produção, readiness e estratégia de rollback API | Backlog | 8 | L |
 | [API #26](https://github.com/yanpenalva/starter-kit-api/issues/26) | Pipeline de deploy independente e smoke tests pós-deploy da API | Backlog | 8 | XL |

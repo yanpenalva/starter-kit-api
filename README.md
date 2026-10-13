@@ -34,7 +34,7 @@ inicializou, sem verificar dependências.
 | Cache e sessões em release | Redis | Extensão `redis-6.3.0` |
 | E-mail local | Mailpit | SMTP em `mailpit:1025`, interface em `127.0.0.1:8025` |
 | Servidor HTTP local | Nginx | `nginx:1.29-alpine` como proxy reverso para o PHP-FPM |
-| Testes | Pest | Plugin Laravel, contra PostgreSQL isolado |
+| Testes | PHPUnit | Contra PostgreSQL isolado |
 | Formatação | Pint | Preset `laravel` |
 | Análise estática | PHPStan via Larastan | Nível 10, sem linha de base |
 | Cobertura | pcov | Gate de 85% no CI |

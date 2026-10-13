@@ -2,34 +2,43 @@
 
 declare(strict_types=1);
 
+namespace Tests\Unit\Services;
+
 use App\Services\TotpService;
+use Tests\TestCase;
 
-it('accepts a fresh totp code once and rejects its reuse within the window', function (): void {
-    $totp = app(TotpService::class);
-    $secret = $totp->generateSecret();
-    $code = $totp->generateCode($secret);
+final class TotpSingleUseTest extends TestCase
+{
+    public function test_accepts_a_fresh_totp_code_once_and_rejects_its_reuse_within_the_window(): void
+    {
+        $totp = app(TotpService::class);
+        $secret = $totp->generateSecret();
+        $code = $totp->generateCode($secret);
 
-    expect($totp->verifyOnce($secret, $code, 'mfa:1'))->toBeTrue();
-    expect($totp->verifyOnce($secret, $code, 'mfa:1'))->toBeFalse();
-});
+        $this->assertTrue($totp->verifyOnce($secret, $code, 'mfa:1'));
+        $this->assertFalse($totp->verifyOnce($secret, $code, 'mfa:1'));
+    }
 
-it('tracks single-use per scope independently', function (): void {
-    $totp = app(TotpService::class);
-    $secret = $totp->generateSecret();
-    $code = $totp->generateCode($secret);
+    public function test_tracks_single_use_per_scope_independently(): void
+    {
+        $totp = app(TotpService::class);
+        $secret = $totp->generateSecret();
+        $code = $totp->generateCode($secret);
 
-    expect($totp->verifyOnce($secret, $code, 'mfa:1'))->toBeTrue();
-    expect($totp->verifyOnce($secret, $code, 'mfa:2'))->toBeTrue();
-});
+        $this->assertTrue($totp->verifyOnce($secret, $code, 'mfa:1'));
+        $this->assertTrue($totp->verifyOnce($secret, $code, 'mfa:2'));
+    }
 
-it('rejects malformed codes without consuming anything', function (): void {
-    $totp = app(TotpService::class);
-    $secret = $totp->generateSecret();
+    public function test_rejects_malformed_codes_without_consuming_anything(): void
+    {
+        $totp = app(TotpService::class);
+        $secret = $totp->generateSecret();
 
-    expect($totp->verifyOnce($secret, '12345', 'mfa:1'))->toBeFalse();
-    expect($totp->verifyOnce($secret, 'abcdef', 'mfa:1'))->toBeFalse();
+        $this->assertFalse($totp->verifyOnce($secret, '12345', 'mfa:1'));
+        $this->assertFalse($totp->verifyOnce($secret, 'abcdef', 'mfa:1'));
 
-    $code = $totp->generateCode($secret);
+        $code = $totp->generateCode($secret);
 
-    expect($totp->verifyOnce($secret, $code, 'mfa:1'))->toBeTrue();
-});
+        $this->assertTrue($totp->verifyOnce($secret, $code, 'mfa:1'));
+    }
+}

@@ -1,6 +1,6 @@
 # Onboarding de desenvolvimento
 
-Este guia leva de um checkout limpo à suíte Pest verde. Os comandos pressupõem a raiz do repositório e Docker Compose v2.
+Este guia leva de um checkout limpo à suíte PHPUnit verde. Os comandos pressupõem a raiz do repositório e Docker Compose v2.
 
 ## Pré-requisitos
 
@@ -69,7 +69,7 @@ php artisan schedule:work
 O workflow **Quality** executa em pull requests e em pushes para `main`. São gates independentes:
 
 - **context**: validação estrita de contexto (com e sem exemplos), testes Python de validação, instalação verificada de `oasdiff` e diagnóstico CSD;
-- **application**: Composer validate/install/requisitos/audit, Pint, Larastan e Pest contra PostgreSQL 18, Redis e Mailpit reais do job;
+- **application**: Composer validate/install/requisitos/audit, Pint, Larastan e PHPUnit contra PostgreSQL 18, Redis e Mailpit reais do job;
 - **contract**: migra banco, exporta o OpenAPI duas vezes e exige bytes idênticos, snapshot versionado atualizado, estrutura contratual válida e ausência de breaking changes contra o baseline imutável.
 
 Os comandos locais de validação de contexto estão em [quality configuration](../.context/project/quality.md). Os workflows são a fonte executável dos requisitos completos de cada job.

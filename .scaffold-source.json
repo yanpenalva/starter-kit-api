@@ -8,6 +8,6 @@
     "no frontend assets or Blade frontend",
     "no default identity model, factories, seeders or migrations",
     "project governance/tests preserved",
-    "PHP 8.5, PostgreSQL, Pest/Pint/Larastan"
+    "PHP 8.5, PostgreSQL, PHPUnit/Pint/Larastan"
   ]
 }
