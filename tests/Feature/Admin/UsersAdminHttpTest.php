@@ -56,11 +56,11 @@ final class UsersAdminHttpTest extends TestCase
     public function test_create_user_validates_and_persists_without_authenticating(): void
     {
         $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo('users.manage');
+        $actor->givePermissionTo([Permission::UsersManage->value, Permission::UsersAssignRoles->value]);
         self::actingAsSanctum($actor);
 
         $this->postJson('/api/v1/users', [])->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'cpf', 'password', 'active']);
+            ->assertJsonValidationErrors(['name', 'email', 'cpf', 'password', 'active', 'roles']);
 
         User::factory()->create(['email' => 'duplicate@example.test']);
         $this->postJson('/api/v1/users', [
@@ -77,14 +77,187 @@ final class UsersAdminHttpTest extends TestCase
             'cpf' => '12345678901',
             'password' => 'test-password-01',
             'active' => true,
+            'roles' => [Role::User->value],
         ]);
 
-        $response->assertCreated()->assertJsonPath('data.name', 'Novo Usuário');
+        $response->assertCreated()
+            ->assertJsonPath('data.name', 'Novo Usuário')
+            ->assertJsonPath('data.roles', [Role::User->value]);
         $this->assertDatabaseHas('users', ['email' => 'novo@example.test', 'cpf' => '12345678901']);
         $createdId = $response->json('data.id');
         $this->assertIsInt($createdId);
-        $this->assertDatabaseMissing('model_has_roles', ['model_id' => $createdId]);
+        $this->assertDatabaseHas('model_has_roles', ['model_id' => $createdId]);
         $this->assertAuthenticatedAs($actor);
+    }
+
+    public function test_create_user_requires_non_empty_roles_and_does_not_create_an_account(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+        self::actingAsSanctum($actor);
+
+        $payload = [
+            'name' => 'Sem Perfil',
+            'cpf' => '12345678904',
+            'password' => 'test-password-01',
+            'active' => true,
+        ];
+
+        $this->postJson('/api/v1/users', array_replace($payload, ['email' => 'sem-perfil@example.test']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('roles');
+        $this->assertDatabaseMissing('users', ['email' => 'sem-perfil@example.test']);
+
+        $this->postJson('/api/v1/users', array_replace($payload, [
+            'email' => 'lista-vazia@example.test',
+            'cpf' => '12345678914',
+            'roles' => [],
+        ]))->assertUnprocessable()->assertJsonValidationErrors('roles');
+        $this->assertDatabaseMissing('users', ['email' => 'lista-vazia@example.test']);
+    }
+
+    public function test_create_user_assigns_multiple_roles(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+        self::actingAsSanctum($actor);
+
+        $created = $this->postJson('/api/v1/users', [
+            'name' => 'Admin Comum',
+            'email' => 'admin-comum@example.test',
+            'cpf' => '12345678903',
+            'password' => 'test-password-01',
+            'active' => true,
+            'roles' => [Role::User->value, Role::Admin->value],
+        ])->assertCreated()->assertJsonPath('data.roles', [Role::Admin->value, Role::User->value]);
+
+        $createdId = $created->json('data.id');
+        $this->assertIsInt($createdId);
+        $createdUser = User::findOrFail($createdId);
+        $this->assertTrue($createdUser->hasRole(Role::Admin->value));
+        $this->assertTrue($createdUser->hasRole(Role::User->value));
+        $actions = Activity::query()
+            ->where('subject_type', 'user')
+            ->where('subject_id', $createdUser->id)
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (Activity $activity): mixed => $activity->properties?->get('action'))
+            ->all();
+        $this->assertSame([Audit::ACTION_USER_ASSIGN_ROLES, Audit::ACTION_USER_STORE], $actions);
+
+    }
+
+    public function test_create_user_with_roles_requires_assign_roles_permission(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersManage->value);
+        self::actingAsSanctum($actor);
+
+        $this->postJson('/api/v1/users', [
+            'name' => 'Sem Atribuição',
+            'email' => 'sem-atribuicao@example.test',
+            'cpf' => '12345678905',
+            'password' => 'test-password-01',
+            'active' => true,
+            'roles' => [Role::User->value],
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['email' => 'sem-atribuicao@example.test']);
+    }
+
+    public function test_create_user_rejects_unknown_and_duplicate_roles_with_422(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+        self::actingAsSanctum($actor);
+
+        $payload = [
+            'name' => 'Papéis inválidos',
+            'cpf' => '12345678906',
+            'password' => 'test-password-01',
+            'active' => true,
+        ];
+
+        $this->postJson('/api/v1/users', $payload + [
+            'email' => 'papel-inexistente@example.test',
+            'roles' => ['ghost'],
+        ])->assertUnprocessable()->assertJsonValidationErrors('roles.0');
+
+        $this->postJson('/api/v1/users', $payload + [
+            'email' => 'papel-duplicado@example.test',
+            'roles' => [Role::User->value, Role::User->value],
+        ])->assertUnprocessable()->assertJsonValidationErrors('roles.1');
+
+        $this->assertDatabaseMissing('users', ['email' => 'papel-inexistente@example.test']);
+        $this->assertDatabaseMissing('users', ['email' => 'papel-duplicado@example.test']);
+    }
+
+    public function test_create_user_denies_roles_above_the_actor_grant_ceiling(): void
+    {
+        $role = SpatieRole::create(['name' => 'view-users', 'guard_name' => 'web']);
+        $role->givePermissionTo(Permission::UsersView->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo([Permission::UsersManage->value, Permission::UsersAssignRoles->value]);
+        self::actingAsSanctum($actor);
+
+        $this->postJson('/api/v1/users', [
+            'name' => 'Escalação negada',
+            'email' => 'escalacao-negada@example.test',
+            'cpf' => '12345678907',
+            'password' => 'test-password-01',
+            'active' => true,
+            'roles' => [$role->name],
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['email' => 'escalacao-negada@example.test']);
+    }
+
+    public function test_create_user_allows_delegated_roles_within_the_actor_grant_ceiling(): void
+    {
+        $role = SpatieRole::create(['name' => 'reports-viewer', 'guard_name' => 'web']);
+        $role->givePermissionTo(Permission::UsersView->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo([
+            Permission::UsersManage->value,
+            Permission::UsersAssignRoles->value,
+            Permission::UsersView->value,
+        ]);
+        self::actingAsSanctum($actor);
+
+        $this->postJson('/api/v1/users', [
+            'name' => 'Operador delegado',
+            'email' => 'operador-delegado@example.test',
+            'cpf' => '12345678909',
+            'password' => 'test-password-01',
+            'active' => true,
+            'roles' => [$role->name],
+        ])->assertCreated()->assertJsonPath('data.roles', [$role->name]);
+    }
+
+    public function test_create_user_rolls_back_account_and_roles_when_audit_recording_fails(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+        $roleAssignmentCount = DB::table('model_has_roles')->count();
+        Schema::drop('activity_log');
+        self::actingAsSanctum($actor);
+
+        $this->postJson('/api/v1/users', [
+            'name' => 'Falha de auditoria',
+            'email' => 'falha-auditoria@example.test',
+            'cpf' => '12345678908',
+            'password' => 'test-password-01',
+            'active' => true,
+            'roles' => [Role::User->value],
+        ])->assertInternalServerError();
+
+        $this->assertDatabaseMissing('users', ['email' => 'falha-auditoria@example.test']);
+        $this->assertSame($roleAssignmentCount, DB::table('model_has_roles')->count());
+        Notification::assertNothingSent();
     }
 
     public function test_admin_created_user_triggers_onboarding_invitation_with_signed_url_resend_and_expiration(): void
@@ -92,7 +265,7 @@ final class UsersAdminHttpTest extends TestCase
         Notification::fake();
 
         $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo(Permission::UsersManage->value);
+        $actor->givePermissionTo([Permission::UsersManage->value, Permission::UsersAssignRoles->value]);
         self::actingAsSanctum($actor);
 
         $response = $this->postJson('/api/v1/users', [
@@ -101,6 +274,7 @@ final class UsersAdminHttpTest extends TestCase
             'cpf' => '12345678901',
             'password' => 'test-password-01',
             'active' => true,
+            'roles' => [Role::User->value],
         ]);
 
         $response->assertCreated();

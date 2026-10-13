@@ -26,6 +26,8 @@ TOOL_NAME: str = "oasdiff"
 PINNED_VERSION: str = "1.33.0"
 IMMUTABLE_BASE_MAIN: str = "1390009d37f6a3493b21be7d83dbd32ae355d579"
 DEFAULT_CONTRACT_PATH: str = "contracts/openapi.json"
+DEFAULT_ACCEPTED_BREAKING_CHANGES_PATH: str = "contracts/accepted-breaking-changes.json"
+ERROR_LEVEL: int = 3
 
 
 class CompatibilityError(Exception):
@@ -39,6 +41,150 @@ class PinnedChecker:
     name: str
     version: str
     executable_path: str
+
+
+@dataclass(frozen=True)
+class AcceptedBreakingChange:
+    """Uma quebra exata aprovada com justificativa rastreável."""
+
+    id: str
+    endpoint: str
+    change: str
+    justification: str
+    pr: str
+    oasdiff_id: str
+    oasdiff_text: str
+
+    @property
+    def signature(self) -> tuple[str, str, str, str]:
+        """Assinatura exata do endpoint e da regra emitida pelo oasdiff."""
+        method, path = self.endpoint.split(" ", 1)
+        return self.oasdiff_id, method, path, self.oasdiff_text
+
+
+def default_accepted_breaking_changes_path() -> Path:
+    """Localiza a allowlist versionada junto ao código do verificador."""
+    return Path(__file__).resolve().parent.parent / DEFAULT_ACCEPTED_BREAKING_CHANGES_PATH
+
+
+def load_accepted_breaking_changes(path: Path) -> list[AcceptedBreakingChange]:
+    """Lê e valida a allowlist; qualquer formato ambíguo falha fechado."""
+    if not path.is_file():
+        raise CompatibilityError(f"Allowlist de breaking changes ausente: '{path}'.")
+
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise CompatibilityError(f"Allowlist inválida em '{path}': {exc}.") from exc
+
+    if not isinstance(document, dict):
+        raise CompatibilityError("Allowlist inválida: a raiz deve ser um objeto JSON.")
+    if set(document) != {"schema_version", "accepted_breaking_changes"}:
+        raise CompatibilityError("Allowlist inválida: campos raiz inesperados ou ausentes.")
+    if type(document["schema_version"]) is not int or document["schema_version"] != 1:
+        raise CompatibilityError("Allowlist inválida: schema_version deve ser 1.")
+
+    records = document["accepted_breaking_changes"]
+    if not isinstance(records, list):
+        raise CompatibilityError("Allowlist inválida: accepted_breaking_changes deve ser uma lista.")
+
+    expected_fields = {
+        "id",
+        "endpoint",
+        "change",
+        "justification",
+        "pr",
+        "oasdiff_id",
+        "oasdiff_text",
+    }
+    accepted: list[AcceptedBreakingChange] = []
+    identifiers: set[str] = set()
+    signatures: set[tuple[str, str, str, str]] = set()
+
+    for index, record in enumerate(records):
+        if not isinstance(record, dict) or set(record) != expected_fields:
+            raise CompatibilityError(
+                f"Allowlist inválida: entrada {index} requer exatamente {sorted(expected_fields)}."
+            )
+
+        values = [record[field] for field in expected_fields]
+        if any(not isinstance(value, str) or not value.strip() for value in values):
+            raise CompatibilityError(f"Allowlist inválida: entrada {index} contém campo vazio ou não textual.")
+
+        identifier = record["id"]
+        endpoint = record["endpoint"]
+        if not re.fullmatch(r"[A-Z0-9][A-Z0-9._-]*", identifier):
+            raise CompatibilityError(f"Allowlist inválida: id malformado na entrada {index}.")
+        if not re.fullmatch(r"(GET|POST|PUT|PATCH|DELETE) /[A-Za-z0-9._~{}:/-]+", endpoint):
+            raise CompatibilityError(f"Allowlist inválida: endpoint malformado na entrada {index}.")
+
+        item = AcceptedBreakingChange(
+            id=identifier,
+            endpoint=endpoint,
+            change=record["change"],
+            justification=record["justification"],
+            pr=record["pr"],
+            oasdiff_id=record["oasdiff_id"],
+            oasdiff_text=record["oasdiff_text"],
+        )
+        if item.id in identifiers:
+            raise CompatibilityError(f"Allowlist inválida: id duplicado '{item.id}'.")
+        if item.signature in signatures:
+            raise CompatibilityError(f"Allowlist inválida: assinatura duplicada para '{item.endpoint}'.")
+
+        identifiers.add(item.id)
+        signatures.add(item.signature)
+        accepted.append(item)
+
+    return accepted
+
+
+def parse_breaking_findings(output: str) -> list[dict[str, Any]]:
+    """Valida a saída JSON estruturada do oasdiff fixado."""
+    try:
+        findings = json.loads(output)
+    except json.JSONDecodeError as exc:
+        raise CompatibilityError(f"Saída JSON inválida do oasdiff: {exc}.") from exc
+
+    if not isinstance(findings, list):
+        raise CompatibilityError("Saída do oasdiff inválida: era esperada uma lista JSON.")
+
+    required_fields = {"id", "text", "level", "operation", "path"}
+    for index, finding in enumerate(findings):
+        if not isinstance(finding, dict) or not required_fields.issubset(finding):
+            raise CompatibilityError(f"Finding inválido do oasdiff na posição {index}.")
+        if any(not isinstance(finding[field], str) or not finding[field] for field in ("id", "text", "operation", "path")):
+            raise CompatibilityError(f"Finding inválido do oasdiff na posição {index}: campos textuais ausentes.")
+        if type(finding["level"]) is not int or finding["level"] not in {1, 2, ERROR_LEVEL}:
+            raise CompatibilityError(f"Finding inválido do oasdiff na posição {index}: nível desconhecido.")
+
+    return findings
+
+
+def filter_accepted_breaking_findings(
+    findings: list[dict[str, Any]], accepted: list[AcceptedBreakingChange]
+) -> tuple[list[AcceptedBreakingChange], list[dict[str, Any]]]:
+    """Consome cada autorização uma vez e devolve todos os findings sem correspondência exata."""
+    remaining = accepted.copy()
+    matched: list[AcceptedBreakingChange] = []
+    rejected: list[dict[str, Any]] = []
+
+    for finding in findings:
+        signature = (
+            finding["id"],
+            finding["operation"],
+            finding["path"],
+            finding["text"],
+        )
+        entry = next((item for item in remaining if item.signature == signature), None)
+        if entry is None:
+            rejected.append(finding)
+            continue
+
+        remaining.remove(entry)
+        matched.append(entry)
+
+    return matched, rejected
 
 
 def resolve_pinned_checker(
@@ -150,9 +296,11 @@ def run_checker_breaking(
         "--fail-on",
         "ERR",
         "--allow-external-refs=false",
+        "--format",
+        "json",
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    output = (proc.stdout + "\n" + proc.stderr).strip()
+    output = proc.stdout.strip() or proc.stderr.strip()
     return proc.returncode, output
 
 
@@ -279,6 +427,7 @@ def check_compatibility(
     candidate_path: Path,
     checker: PinnedChecker,
     git_cwd: Path | None = None,
+    accepted_breaking_changes_path: Path | None = None,
 ) -> str:
     """Executa a verificação completa de compatibilidade e proveniência."""
     if contract_path != DEFAULT_CONTRACT_PATH:
@@ -290,6 +439,9 @@ def check_compatibility(
         raise CompatibilityError(
             f"Arquivo de contrato candidato '{candidate_path}' não encontrado."
         )
+
+    accepted_path = accepted_breaking_changes_path or default_accepted_breaking_changes_path()
+    accepted_changes = load_accepted_breaking_changes(accepted_path)
 
     verify_commit_exists(base_commit, git_cwd)
     verify_operational_fixtures(checker)
@@ -309,14 +461,34 @@ def check_compatibility(
         code, output = run_checker_breaking(
             base_file, candidate_path, checker
         )
-        if code != 0:
+        if code == 0:
+            return (
+                f"COMPATIBILIDADE APROVADA: Comparação real contra {base_commit}:{contract_path} "
+                f"sem breaking changes via '{checker.name} {checker.version}'."
+            )
+        if code != 1:
             raise CompatibilityError(
-                f"Quebra de compatibilidade detectada contra baseline {base_commit}:\n{output}"
+                f"oasdiff terminou com status inesperado {code} contra baseline {base_commit}:\n{output}"
             )
 
+        findings = parse_breaking_findings(output)
+        blocking_findings = [finding for finding in findings if finding["level"] == ERROR_LEVEL]
+        if not blocking_findings:
+            raise CompatibilityError(
+                f"oasdiff retornou status 1 sem finding ERR contra baseline {base_commit}:\n{output}"
+            )
+
+        matched, rejected = filter_accepted_breaking_findings(blocking_findings, accepted_changes)
+        if rejected:
+            details = json.dumps(rejected, ensure_ascii=False, sort_keys=True)
+            raise CompatibilityError(
+                f"Quebra de compatibilidade não listada contra baseline {base_commit}: {details}"
+            )
+
+    accepted_ids = ", ".join(item.id for item in matched)
     return (
-        f"COMPATIBILIDADE APROVADA: Comparação real contra {base_commit}:{contract_path} "
-        f"sem breaking changes via '{checker.name} {checker.version}'."
+        f"COMPATIBILIDADE APROVADA COM EXCEÇÕES LISTADAS: {accepted_ids}; "
+        f"todas as demais quebras ERR continuam bloqueadas via '{checker.name} {checker.version}'."
     )
 
 
