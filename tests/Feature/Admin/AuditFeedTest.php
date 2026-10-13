@@ -51,6 +51,9 @@ final class AuditFeedTest extends TestCase
             ->assertStatus(403)
             ->assertExactJson(['message' => 'Acesso não autorizado.']);
 
+        $this->getJson('/api/v1/activity-log?search=actor')
+            ->assertStatus(403);
+
         $unverified = User::factory()->unverified()->create();
         $unverified->givePermissionTo(Permission::LogsView->value);
 
@@ -249,6 +252,80 @@ final class AuditFeedTest extends TestCase
             ->assertJsonValidationErrors('per_page');
     }
 
+    public function test_feed_search_matches_actor_name_description_and_action_by_letter_without_exposing_names(): void
+    {
+        $marina = User::factory()->verified()->create([
+            'name' => 'zara',
+            'email' => 'zara.private@example.test',
+        ]);
+        $ana = User::factory()->verified()->create(['name' => 'Ana']);
+        $eva = User::factory()->verified()->create(['name' => 'Eva']);
+
+        foreach ([
+            [$marina, Audit::ACTION_USER_STATUS, 'private@example.test'],
+            [$ana, Audit::ACTION_ROLE_RENAME, 'ordinary description'],
+            [$eva, Audit::ACTION_USER_ASSIGN_ROLES, 'ordinary description'],
+        ] as [$causer, $action, $description]) {
+            Audit::record(
+                Audit::EVENT_PRIVILEGED_CHANGE,
+                'user',
+                $causer->id,
+                (string) Str::uuid(),
+                ['actor_type' => 'user', 'actor_id' => $causer->id, 'action' => $action],
+                $description,
+            );
+        }
+
+        $operator = User::factory()->verified()->create();
+        $operator->givePermissionTo(Permission::LogsView->value);
+
+        self::actingAsSanctum($operator);
+        $byActorName = $this->getJson('/api/v1/activity-log?search=Z')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.properties.action', Audit::ACTION_USER_STATUS);
+        $this->assertStringNotContainsString('zara', (string) $byActorName->getContent());
+        $this->assertStringNotContainsString('zara.private@example.test', (string) $byActorName->getContent());
+        $this->assertStringNotContainsString('private@example.test', (string) $byActorName->getContent());
+
+        self::actingAsSanctum($operator);
+        $this->getJson('/api/v1/activity-log?search=M')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.properties.action', Audit::ACTION_ROLE_RENAME);
+
+        self::actingAsSanctum($operator);
+        $this->getJson('/api/v1/activity-log?search=REN')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.properties.action', Audit::ACTION_ROLE_RENAME);
+
+        self::actingAsSanctum($operator);
+        $this->getJson('/api/v1/activity-log?search=G')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 3);
+
+        self::actingAsSanctum($operator);
+        $this->getJson('/api/v1/activity-log?search=REN&action='.Audit::ACTION_ROLE_RENAME)
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1);
+
+        self::actingAsSanctum($operator);
+        $this->getJson('/api/v1/activity-log?search=REN&action='.Audit::ACTION_USER_STATUS)
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+
+        self::actingAsSanctum($operator);
+        $this->getJson('/api/v1/activity-log?search=private')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+
+        self::actingAsSanctum($operator);
+        $this->getJson('/api/v1/activity-log?search=%25')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+    }
+
     public function test_feed_filters_by_date_range_and_responsible_user(): void
     {
         $actor = User::factory()->verified()->create();
@@ -287,6 +364,10 @@ final class AuditFeedTest extends TestCase
         $this->getJson('/api/v1/activity-log?causer_id=invalid')
             ->assertStatus(422)
             ->assertJsonValidationErrors('causer_id');
+
+        $this->getJson('/api/v1/activity-log?search='.str_repeat('a', 256))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('search');
     }
 
     public function test_activity_log_has_composite_event_id_index(): void
