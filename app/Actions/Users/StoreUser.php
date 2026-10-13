@@ -18,10 +18,11 @@ final class StoreUser
 
     /**
      * @param  array<string, mixed>  $payload
+     * @param  list<string>|null  $roleNames
      */
-    public function run(User $actor, array $payload): User
+    public function run(User $actor, array $payload, ?array $roleNames = null): User
     {
-        $user = PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($payload): User {
+        $user = PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($payload, $roleNames): User {
             if (! app(UserPolicy::class)->manage($actor)) {
                 abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
@@ -36,6 +37,11 @@ final class StoreUser
                 'password' => $payload['password'],
                 'deactivated_at' => $active ? null : now(),
             ]);
+
+            if ($roleNames !== null) {
+                // Reuse the grant policy and audit while the outer transaction keeps creation atomic.
+                app(AssignUserRoles::class)->run($actor, $user, $roleNames);
+            }
 
             $this->auditUserChange($actor, $user, Audit::ACTION_USER_STORE);
 

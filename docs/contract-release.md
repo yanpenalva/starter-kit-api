@@ -25,6 +25,34 @@ compatibilidade. Em mudanças que não alteram o contrato, não é necessário e
 snapshot. Uma exportação local gera o candidato para revisão; ela não substitui o
 artifact oficial de proveniência.
 
+## Registrar uma quebra intencional
+
+O gate continua bloqueando findings `ERR` do oasdiff por padrão. Uma quebra de v1
+aprovada pelo produto só pode passar quando estiver registrada em
+`contracts/accepted-breaking-changes.json`. Cada entrada contém um `id`, o endpoint,
+a mudança em linguagem de domínio, a justificativa e a referência/estado do PR.
+Também registra `oasdiff_id` e `oasdiff_text`, que devem corresponder exatamente ao
+finding produzido para aquela quebra.
+
+`scripts/contract_compat.py` lê o arquivo e compara o JSON do oasdiff pela regra,
+método, caminho e texto exatos. Cada entrada cobre um único finding. Campo ausente,
+arquivo inválido, assinatura duplicada, erro do checker ou qualquer finding `ERR`
+sem correspondência continua falhando fechado. A allowlist não altera a severidade
+de outras mudanças. Use uma referência de PR real quando houver; para uma entrega
+somente por branch, registre explicitamente que o PR não foi aberto e identifique a
+branch. Remova a entrada depois que a quebra passar a fazer parte da baseline da
+main.
+
+Exemplo da assinatura estruturada do checker para tornar obrigatório `roles`:
+
+```json
+{
+  "endpoint": "POST /api/v1/users",
+  "oasdiff_id": "new-required-request-property",
+  "oasdiff_text": "added the new required request property `roles`"
+}
+```
+
 ## Publicar o artifact oficial
 
 Depois que a mudança de contrato for integrada em main, execute OpenAPI Contract em

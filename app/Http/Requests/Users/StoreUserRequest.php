@@ -17,7 +17,9 @@ final class StoreUserRequest extends FormRequest
     {
         $actor = $this->user();
 
-        return $actor instanceof User && $actor->can(Permission::UsersManage->value);
+        return $actor instanceof User
+            && $actor->can(Permission::UsersManage->value)
+            && (! array_key_exists('roles', $this->all()) || $actor->can(Permission::UsersAssignRoles->value));
     }
 
     protected function prepareForValidation(): void
@@ -48,6 +50,27 @@ final class StoreUserRequest extends FormRequest
             'cpf' => ['required', 'string', 'regex:/^\d{11}$/', Rule::unique('users', 'cpf')],
             'password' => ['required', 'string', 'min:12', 'max:255'],
             'active' => ['required', 'boolean'],
-        ];
+            'roles' => ['required', 'array', 'min:1'],
+        ] + RoleNameRules::validationRules();
+    }
+
+    /** @return list<string>|null */
+    public function roleNames(): ?array
+    {
+        $roles = $this->validated('roles');
+
+        if (! is_array($roles)) {
+            return null;
+        }
+
+        $names = [];
+
+        foreach ($roles as $role) {
+            if (is_string($role)) {
+                $names[] = $role;
+            }
+        }
+
+        return $names;
     }
 }

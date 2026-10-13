@@ -190,6 +190,13 @@ Papéis customizáveis podem ser consultados por ID e renomeados com `roles.view
 O papel `admin` é imutável na API: não pode ser renomeado, removido ou ter permissões
 alteradas. Toda mutação de papel segue a mesma transação com auditoria fail-closed.
 
+A criação administrativa (`POST /api/v1/users`) exige ao menos um papel já cadastrado;
+sem a lista ou com ela vazia, a API responde 422 e não cria a conta. O cadastro público
+(`POST /api/v1/register`) ignora papéis enviados pelo cliente e atribui `user`, papel
+aprovado de menor privilégio, sem permissões. A conta pública continua desativada até
+a verificação do e-mail. A substituição de papéis por PUT também exige lista não vazia,
+portanto não há remoção de todos os papéis por essa operação.
+
 Três invariantes sustentam o desenho. Primeiro, elegibilidade: todo ator administrativo
 precisa estar verificado e ativo, independentemente de papéis — permissão sozinha nunca
 basta. Segundo, último administrador em pé: remover a role `admin` ou desativar um

@@ -310,6 +310,71 @@ class CompatibilityCheckerTests(unittest.TestCase):
             check_compatibility(IMMUTABLE_BASE_MAIN, DEFAULT_CONTRACT_PATH, Path('non_existent.json'), checker)
 
 
+class AcceptedBreakingChangesTests(unittest.TestCase):
+    def test_only_exactly_listed_finding_is_accepted(self) -> None:
+        """An exception covers one exact endpoint, rule, and change description."""
+        from scripts.contract_compat import (
+            AcceptedBreakingChange,
+            filter_accepted_breaking_findings,
+        )
+
+        accepted = AcceptedBreakingChange(
+            id='BRK-2026-10-13-001',
+            endpoint='POST /api/v1/users',
+            change='Require roles when creating an administrative user',
+            justification='Product decision: roles are mandatory for user creation.',
+            pr='https://github.com/yanpenalva/starter-kit-api/pull/94',
+            oasdiff_id='new-required-request-property',
+            oasdiff_text='added the new required request property `roles`',
+        )
+        listed = {
+            'id': 'new-required-request-property',
+            'text': 'added the new required request property `roles`',
+            'level': 3,
+            'operation': 'POST',
+            'path': '/api/v1/users',
+        }
+        other_endpoint = {**listed, 'path': '/api/v1/other'}
+        other_change = {**listed, 'text': 'added the new required request property `email`'}
+
+        allowed, rejected = filter_accepted_breaking_findings(
+            [listed, listed, other_endpoint, other_change], [accepted]
+        )
+
+        self.assertEqual([accepted], allowed)
+        self.assertEqual([listed, other_endpoint, other_change], rejected)
+
+    def test_allowlist_loader_rejects_missing_audit_fields(self) -> None:
+        """A malformed exception file fails closed instead of weakening the gate."""
+        import tempfile
+
+        from scripts.contract_compat import CompatibilityError, load_accepted_breaking_changes
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            allowlist_path = Path(temp_dir) / 'accepted-breaking-changes.json'
+            allowlist_path.write_text(
+                json.dumps({'schema_version': 1, 'accepted_breaking_changes': [{'id': 'BRK-1'}]}),
+                encoding='utf-8',
+            )
+
+            with self.assertRaises(CompatibilityError):
+                load_accepted_breaking_changes(allowlist_path)
+
+    def test_oasdiff_parser_rejects_unknown_severity(self) -> None:
+        """A checker output with a new or malformed level cannot be allowlisted."""
+        from scripts.contract_compat import CompatibilityError, parse_breaking_findings
+
+        finding = {
+            'id': 'new-required-request-property',
+            'text': 'added the new required request property `roles`',
+            'level': 4,
+            'operation': 'POST',
+            'path': '/api/v1/users',
+        }
+        with self.assertRaises(CompatibilityError):
+            parse_breaking_findings(json.dumps([finding]))
+
+
 class ToolIntegrityTests(unittest.TestCase):
     def test_verify_asset_digest_passes_on_official_sha(self) -> None:
         """Valid digest passes integrity verification."""
@@ -585,12 +650,104 @@ class RealGitLifecycleCompatibilityTests(unittest.TestCase):
         return self._git('rev-parse', 'HEAD')
 
     def _finding_lines(self, error_message: str) -> list[str]:
-        """oasdiff 'error' finding lines reported inside a CompatibilityError."""
-        return [
-            line
-            for line in error_message.splitlines()
-            if line.strip().startswith('error\t[')
-        ]
+        """Structured oasdiff findings included in an unlisted compatibility error."""
+        marker = 'Quebra de compatibilidade não listada contra baseline '
+        summary = error_message.partition(marker)[2]
+        _, _, payload = summary.partition(': ')
+        return json.loads(payload)
+
+    def test_real_git_lifecycle_accepts_only_listed_breaking_change(self) -> None:
+        """One listed required request field passes; another breaking change remains blocked."""
+        from scripts.contract_compat import (
+            DEFAULT_CONTRACT_PATH,
+            CompatibilityError,
+            check_compatibility,
+            resolve_pinned_checker,
+        )
+
+        base_doc = {
+            'openapi': '3.1.0',
+            'info': {'title': 'API', 'version': '1.0.0'},
+            'paths': {
+                '/api/v1/users': {
+                    'post': {
+                        'operationId': 'users.store',
+                        'requestBody': {
+                            'required': True,
+                            'content': {
+                                'application/json': {
+                                    'schema': {
+                                        'type': 'object',
+                                        'properties': {'name': {'type': 'string'}},
+                                        'required': ['name'],
+                                    }
+                                }
+                            },
+                        },
+                        'responses': {'201': {'description': 'Created'}},
+                    }
+                }
+            },
+        }
+        base_commit = self._commit_file(
+            DEFAULT_CONTRACT_PATH,
+            json.dumps(base_doc).encode('utf-8'),
+            'feat: add users endpoint contract',
+        )
+        allowlist_path = self.repo_dir / 'accepted-breaking-changes.json'
+        allowlist_path.write_text(
+            json.dumps(
+                {
+                    'schema_version': 1,
+                    'accepted_breaking_changes': [
+                        {
+                            'id': 'BRK-2026-10-13-001',
+                            'endpoint': 'POST /api/v1/users',
+                            'change': 'Require roles when creating an administrative user',
+                            'justification': 'Product decision: user creation requires an explicit role.',
+                            'pr': 'https://github.com/yanpenalva/starter-kit-api/pull/94',
+                            'oasdiff_id': 'new-required-request-property',
+                            'oasdiff_text': 'added the new required request property `roles`',
+                        }
+                    ],
+                }
+            ),
+            encoding='utf-8',
+        )
+
+        allowed_doc = json.loads(json.dumps(base_doc))
+        schema = allowed_doc['paths']['/api/v1/users']['post']['requestBody']['content'][
+            'application/json'
+        ]['schema']
+        schema['properties']['roles'] = {'type': 'array', 'items': {'type': 'string'}}
+        schema['required'].append('roles')
+        allowed_candidate = self.repo_dir / 'allowed.json'
+        allowed_candidate.write_text(json.dumps(allowed_doc), encoding='utf-8')
+
+        accepted_message = check_compatibility(
+            base_commit,
+            DEFAULT_CONTRACT_PATH,
+            allowed_candidate,
+            resolve_pinned_checker(),
+            git_cwd=self.repo_dir,
+            accepted_breaking_changes_path=allowlist_path,
+        )
+        self.assertIn('BRK-2026-10-13-001', accepted_message)
+
+        extra_breaking_doc = json.loads(json.dumps(allowed_doc))
+        del extra_breaking_doc['paths']['/api/v1/users']['post']['responses']['201']
+        extra_breaking_candidate = self.repo_dir / 'extra-breaking.json'
+        extra_breaking_candidate.write_text(json.dumps(extra_breaking_doc), encoding='utf-8')
+        with self.assertRaises(CompatibilityError) as ctx:
+            check_compatibility(
+                base_commit,
+                DEFAULT_CONTRACT_PATH,
+                extra_breaking_candidate,
+                resolve_pinned_checker(),
+                git_cwd=self.repo_dir,
+                accepted_breaking_changes_path=allowlist_path,
+            )
+        self.assertIn('removed', str(ctx.exception))
 
     def test_real_git_lifecycle_breaking_pr_and_push_before_exit_1(self) -> None:
         """Real Git lifecycle: breaking PR baseline and push-before baseline fail with exactly 1 finding."""

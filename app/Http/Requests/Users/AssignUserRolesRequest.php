@@ -7,7 +7,6 @@ namespace App\Http\Requests\Users;
 use App\Enums\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Grant ceiling: a non-admin actor may only assign roles whose permissions are
@@ -33,8 +32,7 @@ final class AssignUserRolesRequest extends FormRequest
     {
         return [
             'roles' => ['required', 'array', 'min:1'],
-            'roles.*' => ['string', 'distinct', Rule::exists('roles', 'name')->where('guard_name', 'web')],
-        ];
+        ] + RoleNameRules::validationRules();
     }
 
     /**

@@ -58,8 +58,10 @@ final class UserController
 
         /** @var array<string, mixed> $payload */
         $payload = $request->validated();
+        $roleNames = $request->roleNames();
+        unset($payload['roles']);
 
-        $user = $this->storeUser->run($actor, $payload);
+        $user = $this->storeUser->run($actor, $payload, $roleNames);
 
         return (new UserResource($user))->response()->setStatusCode(Response::HTTP_CREATED);
     }

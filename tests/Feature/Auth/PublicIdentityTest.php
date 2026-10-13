@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Auth;
 
+use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\VerifyEmail;
 use App\Support\ApiMessage;
 use App\Support\BlockedAccount;
+use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -30,6 +32,7 @@ final class PublicIdentityTest extends TestCase
         parent::setUp();
 
         Cache::flush();
+        $this->seed(RbacCatalogueSeeder::class);
     }
 
     private function sessionHeaders(): static
@@ -65,7 +68,8 @@ final class PublicIdentityTest extends TestCase
 
         $registered = User::findOrFail($userId);
         $this->assertNotNull($registered->deactivated_at);
-        $this->assertFalse($registered->hasAnyRole());
+        $this->assertTrue($registered->hasRole(Role::User->value));
+        $this->assertTrue($registered->getAllPermissions()->isEmpty());
         $this->assertDatabaseHas('users', [
             'id' => $userId,
             'email' => 'ada@example.test',
@@ -92,7 +96,9 @@ final class PublicIdentityTest extends TestCase
         $response->assertCreated();
         $user = User::query()->where('email', 'pending-approval@example.test')->firstOrFail();
         $this->assertNotNull($user->deactivated_at);
-        $this->assertFalse($user->hasAnyRole());
+        $this->assertTrue($user->hasRole(Role::User->value));
+        $this->assertFalse($user->hasRole(Role::Admin->value));
+        $this->assertTrue($user->getAllPermissions()->isEmpty());
 
         $this->sessionHeaders()->postJson('/api/v1/login', [
             'email' => $user->email,
@@ -194,7 +200,7 @@ final class PublicIdentityTest extends TestCase
         $this->assertNotNull($user);
         $this->assertNull($user->email_verified_at);
         $this->assertNotNull($user->deactivated_at);
-        $this->assertFalse($user->hasAnyRole());
+        $this->assertTrue($user->hasRole(Role::User->value));
     }
 
     public function test_register_validates_password_length_confirmation_and_cpf(): void
