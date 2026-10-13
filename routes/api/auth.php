@@ -12,6 +12,8 @@ use App\Http\Controllers\Auth\MfaEnrollmentController;
 use App\Http\Controllers\Auth\MyProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\UpdateMyProfileController;
+use App\Http\Controllers\Auth\UpdatePasswordController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Middleware\DisallowHeaderAuthentication;
 use App\Http\Middleware\EnsureAccountNotDeactivated;
@@ -46,6 +48,12 @@ Route::post('/email/verification-notification', EmailVerificationNotificationCon
 
 Route::middleware([DisallowHeaderAuthentication::class, 'auth:sanctum', EnsureMfaChallenge::class])->group(static function (): void {
     Route::get('/auth/my-profile', MyProfileController::class)
+        ->middleware(EnsureAccountNotDeactivated::class);
+
+    Route::patch('/auth/my-profile', UpdateMyProfileController::class)
+        ->middleware(EnsureAccountNotDeactivated::class);
+
+    Route::put('/auth/password', UpdatePasswordController::class)
         ->middleware(EnsureAccountNotDeactivated::class);
 
     Route::middleware(EnsureAccountNotDeactivated::class)->group(static function (): void {
