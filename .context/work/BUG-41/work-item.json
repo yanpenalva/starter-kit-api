@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "BUG-41",
+  "title": "Serializar mapas vazios de nomes de papéis como objeto",
+  "track": "support",
+  "type": "bug",
+  "phase": "verify",
+  "status": "active",
+  "risk": "low",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "low",
+    "impact": "module",
+    "security": "none",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "standard",
+    "effective": "standard"
+  },
+  "context": {
+    "budget": "standard",
+    "required": ["core", "project", "testing"],
+    "deferred": ["architecture", "security", "release", "incident"],
+    "triggers": []
+  },
+  "phase_history": ["triage", "specify", "plan", "preflight", "execute", "verify"],
+  "last_updated": "2026-10-13",
+  "policy_exceptions": []
+}

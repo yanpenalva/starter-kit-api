@@ -119,6 +119,9 @@ final class ContractDocumentTransformer
         $roles = new ArrayType;
         $roles->setItems(new StringType);
         $profile->addProperty('roles', $roles);
+        $roleDisplayNames = new ObjectType;
+        $roleDisplayNames->additionalProperties(new StringType);
+        $profile->addProperty('role_display_names', $roleDisplayNames);
         $permissions = new ArrayType;
         $permissions->setItems(new StringType);
         $profile->addProperty('permissions', $permissions);
@@ -158,6 +161,11 @@ final class ContractDocumentTransformer
 
     private function fixResourceArraySchemas(OpenApi $openApi): void
     {
+        $roleSchema = $openApi->components->schemas['RoleResource'] ?? null;
+        if ($roleSchema instanceof Schema && $roleSchema->type instanceof ObjectType) {
+            $roleSchema->type->setRequired(array_values(array_diff($roleSchema->type->required, ['display_name'])));
+        }
+
         foreach (['RoleResource' => 'permissions'] as $schemaName => $propertyName) {
             $schema = $openApi->components->schemas[$schemaName] ?? null;
             if (! $schema instanceof Schema || ! $schema->type instanceof ObjectType || ! $schema->type->hasProperty($propertyName)) {
@@ -171,14 +179,21 @@ final class ContractDocumentTransformer
         }
 
         $userSchema = $openApi->components->schemas['UserResource'] ?? null;
-        if (! $userSchema instanceof Schema || ! $userSchema->type instanceof ObjectType || ! $userSchema->type->hasProperty('cpf')) {
+        if (! $userSchema instanceof Schema || ! $userSchema->type instanceof ObjectType) {
             return;
         }
 
-        $cpf = $userSchema->type->getProperty('cpf');
-        if ($cpf instanceof StringType) {
-            $cpf->nullable(true);
+        if ($userSchema->type->hasProperty('cpf')) {
+            $cpf = $userSchema->type->getProperty('cpf');
+            if ($cpf instanceof StringType) {
+                $cpf->nullable(true);
+            }
         }
+
+        $roleDisplayNames = new ObjectType;
+        $roleDisplayNames->additionalProperties(new StringType);
+        $userSchema->type->addProperty('role_display_names', $roleDisplayNames);
+        $userSchema->type->setRequired(array_values(array_diff($userSchema->type->required, ['role_display_names'])));
     }
 
     private function fixPaginatedListResponses(OpenApi $openApi): void

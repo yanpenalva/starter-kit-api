@@ -129,7 +129,12 @@ final class UsersAdminHttpTest extends TestCase
             'password' => 'test-password-01',
             'active' => true,
             'roles' => [Role::User->value, Role::Admin->value],
-        ])->assertCreated()->assertJsonPath('data.roles', [Role::Admin->value, Role::User->value]);
+        ])->assertCreated()
+            ->assertJsonPath('data.roles', [Role::Admin->value, Role::User->value])
+            ->assertJsonPath('data.role_display_names', [
+                Role::Admin->value => 'Administrador',
+                Role::User->value => 'Usuário',
+            ]);
 
         $createdId = $created->json('data.id');
         $this->assertIsInt($createdId);

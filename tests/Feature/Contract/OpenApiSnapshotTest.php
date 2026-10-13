@@ -175,6 +175,12 @@ final class OpenApiSnapshotTest extends TestCase
         /** @var array<string, mixed> $roleItems */
         $roleItems = $roles['items'];
         $this->assertSame('string', $roleItems['type']);
+        /** @var array<string, mixed> $roleDisplayNames */
+        $roleDisplayNames = $properties['role_display_names'];
+        /** @var array<string, mixed> $roleDisplayNameValues */
+        $roleDisplayNameValues = $roleDisplayNames['additionalProperties'];
+        $this->assertSame('object', $roleDisplayNames['type']);
+        $this->assertSame('string', $roleDisplayNameValues['type']);
 
         /** @var mixed $loginRoute */
         $loginRoute = $paths['/api/v1/login'];

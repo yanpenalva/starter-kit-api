@@ -70,6 +70,7 @@ final class ProfileTest extends TestCase
                     'email',
                     'email_verified_at',
                     'roles',
+                    'role_display_names',
                     'permissions',
                 ],
             ]);
@@ -86,6 +87,7 @@ final class ProfileTest extends TestCase
         $roles = $data['roles'];
         $this->assertIsArray($roles);
         $this->assertContains(Role::User->value, $roles);
+        $this->assertSame([Role::User->value => 'Usuário'], $data['role_display_names']);
 
         $permissions = $data['permissions'];
         $this->assertIsArray($permissions);
@@ -118,6 +120,15 @@ final class ProfileTest extends TestCase
         $this->assertSame('unverified@example.test', $data['email']);
         $this->assertNull($data['email_verified_at']);
         $this->assertSame([], $data['roles']);
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $decoded = json_decode($content);
+        $this->assertIsObject($decoded);
+        $decodedData = $decoded->data ?? null;
+        $this->assertIsObject($decodedData);
+        $roleDisplayNames = $decodedData->role_display_names ?? null;
+        $this->assertIsObject($roleDisplayNames);
+        $this->assertSame([], (array) $roleDisplayNames);
         $this->assertSame([], $data['permissions']);
     }
 

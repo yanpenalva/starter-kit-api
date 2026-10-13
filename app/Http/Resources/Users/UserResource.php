@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Users;
 
+use App\Enums\Role;
 use App\Models\User;
 use App\Policies\UserPolicy;
 use Illuminate\Http\Request;
@@ -27,6 +28,11 @@ final class UserResource extends JsonResource
 
         /** @var list<string> $roles */
         $roles = $user->getRoleNames()->sort()->values()->all();
+        /** @var \stdClass $roleDisplayNames */
+        $roleDisplayNames = (object) array_combine(
+            $roles,
+            array_map(Role::displayNameFor(...), $roles),
+        );
 
         $verifiedAt = $user->email_verified_at !== null
             ? $user->email_verified_at->clone()->utc()->format('Y-m-d\TH:i:s\Z')
@@ -43,6 +49,7 @@ final class UserResource extends JsonResource
             'email_verified_at' => $verifiedAt,
             'deactivated_at' => $deactivatedAt,
             'roles' => $roles,
+            'role_display_names' => $roleDisplayNames,
             'cpf' => $this->when($canReadCpf, $user->cpf),
         ];
     }
