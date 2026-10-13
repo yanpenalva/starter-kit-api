@@ -32,7 +32,8 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 
 ## Filters and pagination
 
-- A collection may accept `page` (positive integer, default 1) and `per_page` (integer 1–100, default 25). Responses include `meta.current_page`, `meta.per_page`, `meta.total`, and `meta.last_page`.
+- The users, roles, and activity-log collections accept `page` (positive integer, default 1) and `per_page` (integer 1–100, default 15). Each response uses the Laravel resource envelope: `data`, `links` (`first`, `last`, nullable `prev` and `next`), and `meta` (`current_page`, nullable `from`, `last_page`, `links`, `path`, `per_page`, nullable `to`, and `total`). Each `meta.links` item has nullable `url` and `page`, a string `label`, and a boolean `active` flag.
+- User `email_verified_at` and `deactivated_at`, and audit `created_at`, are required nullable UTC date-time strings. The user `cpf` property is optional and nullable because it is omitted unless the actor may read it.
 - Each endpoint declares its own filter and sort allowlist. Unknown fields are rejected with 422; clients never choose SQL columns or operators.
 - Sort uses a documented `sort` field allowlist and `direction=asc|desc`; absent values use the endpoint's stable default order.
 
@@ -47,8 +48,7 @@ This file and [`openapi.yaml`](openapi.yaml) are the canonical API contract. The
 
 - `GET /api/v1` is a minimal availability response. Laravel's `/up` is liveness: it only indicates that the application can answer. No readiness endpoint or database-readiness contract exists yet; do not expose connection, host, or infrastructure details.
 - Adding an endpoint or optional response field is compatible. Removing or renaming a field, making an optional input required, or changing status/authentication semantics is breaking and requires a new major API path or an explicit migration plan.
-- API #11 owns generated-schema comparison in CI before frontend integration; no compatibility gate is configured in this documentation-only delivery.
-- OpenAPI 3.1 is the contract format. Scramble should generate the published document from implemented Controllers, Form Requests, and Resources under API #11; this initial file is a manually reviewed pre-implementation contract, not generated runtime evidence.
+- API #11 owns the generated-schema comparison in CI and the versioned OpenAPI 3.1 contract. Scramble exports the contract from implemented Controllers, Form Requests, and Resources through the producer workflow on `main`; feature branches do not update `contracts/openapi.json` directly.
 
 ## Evidence and decisions
 
