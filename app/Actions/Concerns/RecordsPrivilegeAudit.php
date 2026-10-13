@@ -11,7 +11,7 @@ use Spatie\Permission\Models\Role;
 
 trait RecordsPrivilegeAudit
 {
-    private function auditUserChange(User $actor, User $target): void
+    private function auditUserChange(User $actor, User $target, string $action): void
     {
         $targetKey = $target->getKey();
         assert(is_int($targetKey));
@@ -23,7 +23,7 @@ trait RecordsPrivilegeAudit
             'user',
             $targetKey,
             Correlation::current(),
-            ['actor_type' => 'user', 'actor_id' => $actorKey],
+            ['actor_type' => 'user', 'actor_id' => $actorKey, 'action' => $action],
         );
     }
 

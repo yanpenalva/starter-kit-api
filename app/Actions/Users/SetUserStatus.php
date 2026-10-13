@@ -8,6 +8,7 @@ use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
 use App\Policies\UserPolicy;
 use App\Support\ApiMessage;
+use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,7 +37,7 @@ final class SetUserStatus
                     ->delete();
             }
 
-            $this->auditUserChange($actor, $target);
+            $this->auditUserChange($actor, $target, Audit::ACTION_USER_STATUS);
         });
 
         return $user->refresh();

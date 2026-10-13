@@ -57,7 +57,7 @@ final class BootstrapAdmin
                 'user',
                 $key,
                 Correlation::current(),
-                ['actor_type' => 'cli', 'actor_id' => null],
+                ['actor_type' => 'cli', 'actor_id' => null, 'action' => Audit::ACTION_BOOTSTRAP],
                 'Admin role granted by restricted CLI',
             );
 
