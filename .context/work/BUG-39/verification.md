@@ -50,3 +50,14 @@ The test configuration and bootstrap are temporary files under `/tmp`. No Compos
 - Context validation (strict and examples), Python tooling tests (113), CSD doctor, and `git diff --check`: PASS. The examples validator reports that no example suite is installed.
 - Direct Scramble exports report two warnings while evaluating `RenameRoleRequest::rules()` without a bound route model. Exports are byte-identical and the CI freshness and compatibility checks pass.
 - No Composer installation or local `.env` was created. PostgreSQL Compose tests were not run locally; PR CI remains responsible for PostgreSQL 18 coverage.
+
+## Follow-up verification — PR #84 contract freshness (2026-10-13)
+
+- Merged current `main` at PR #87 merge `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7` as branch merge commit `3b4337782310ae9a6999ffe3f88e4edc104973ba`.
+- `gh` was unavailable. GitHub Actions API run listing identified the latest pre-fix run `38331391758` at `ebb58a61d086bf4e07c8668b75778317429675bd`; authenticated Actions logs showed `Committed snapshot freshness gate` failed at byte 36,653 / line 847, while the two generated files matched.
+- Parsed diff after merging #87 identified the exact stale fields: generated `POST /api/v1/login` response `200` (`requires_mfa: boolean`) was absent; `/api/v1/auth/mfa/status` had `mfa_enabled.type: string` instead of `boolean`.
+- The `vendor` symlink's optimized Composer map resolves `App\\` to `/opt/data/work/starter-kit-api`. A temporary autoload bootstrap in `/tmp` explicitly resolved `App\\` from this checkout before running the CI-style exports. No Composer installation ran and the symlink was not changed.
+- Exported twice with `LC_ALL=C` after migrations to `/tmp/api-fixwork3-openapi-after-main-2.sqlite`; `cmp storage/app/openapi-ci1.json storage/app/openapi-ci2.json`: PASS. Copied the deterministic export to `contracts/openapi.json`; `cmp storage/app/openapi-ci1.json contracts/openapi.json`: PASS. SHA-256: `4bfd37b84fdc0cf2969814639ade82b8cdbf90a6505208bd39b70eefa3346709`.
+- Pint: PASS (`source /opt/data/php/env.sh`; `composer lint`). OpenAPI structural validation, `git diff --check`, `python3 scripts/validate_context.py --strict`, and `python3 scripts/validate_context.py --strict --examples`: PASS; examples mode reports no example suite installed.
+- Pushed contract fix commit `4ece3311a87decb309c41b8dc28e25379ca14c32` to the existing PR #84. CI run `38332932522` for that SHA completed `success`: `application`, `Contract generation and compatibility`, `Coverage gate (pcov, min 85%)`, and `context` all passed. Contract deterministic export, freshness, structural validation and oasdiff compatibility steps all passed.
+- PR #84 remains the only delivery target; no other PR was created and PR #84 was not merged.
