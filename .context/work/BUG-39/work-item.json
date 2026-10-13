@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "id": "BUG-39",
+  "title": "Remediate GitGuardian finding in PR #82 history and finalize profile OpenAPI snapshot",
+  "track": "support",
+  "type": "bug",
+  "phase": "execute",
+  "status": "active",
+  "risk": "high",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "high",
+    "impact": "system",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": [
+      "core",
+      "project",
+      "security",
+      "testing",
+      "release"
+    ],
+    "deferred": [
+      "architecture",
+      "incident"
+    ],
+    "triggers": [
+      "GitGuardian check reports the historical synthetic password in commit 7d34e0373ebbbfe16568acaf96321d569a069875 on PR #82.",
+      "User explicitly authorized a local deterministic OpenAPI snapshot commit and a leased rewrite of only the open PR #82 branch."
+    ]
+  },
+  "phase_history": [
+    "triage",
+    "specify",
+    "plan",
+    "preflight",
+    "execute"
+  ],
+  "last_updated": "2026-10-13",
+  "policy_exceptions": [
+    "EXC-0002"
+  ]
+}
