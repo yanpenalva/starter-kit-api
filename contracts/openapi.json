@@ -947,6 +947,24 @@
                     "204": {
                         "description": "No content"
                     },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "requires_mfa": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "requires_mfa"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "403": {
                         "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
                         "content": {
@@ -1163,6 +1181,417 @@
                         "sessionCookie": []
                     }
                 ]
+            }
+        },
+        "/api/v1/auth/mfa/challenge": {
+            "post": {
+                "operationId": "auth.mfaChallenge",
+                "tags": [
+                    "MfaChallenge"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "C\u00f3digo MFA ou de recupera\u00e7\u00e3o inv\u00e1lido."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "code": {
+                                                            "type": "array",
+                                                            "prefixItems": [
+                                                                {
+                                                                    "type": "string",
+                                                                    "const": "C\u00f3digo MFA ou de recupera\u00e7\u00e3o inv\u00e1lido."
+                                                                }
+                                                            ],
+                                                            "minItems": 1,
+                                                            "maxItems": 1
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "code"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Informe o c\u00f3digo MFA ou um c\u00f3digo de recupera\u00e7\u00e3o."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "code": {
+                                                            "type": "array",
+                                                            "prefixItems": [
+                                                                {
+                                                                    "type": "string",
+                                                                    "const": "C\u00f3digo MFA ou de recupera\u00e7\u00e3o obrigat\u00f3rio."
+                                                                }
+                                                            ],
+                                                            "minItems": 1,
+                                                            "maxItems": 1
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "code"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Esta conta foi desativada."
+                                        },
+                                        "reason": {
+                                            "type": "string",
+                                            "enum": [
+                                                "suspended",
+                                                "pending_approval"
+                                            ]
+                                        },
+                                        "email_verified_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "reason",
+                                        "email_verified_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "An error\n\nAn error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview.",
+                                                    "examples": [
+                                                        "Sess\u00e3o de desafio MFA n\u00e3o encontrada ou expirada."
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview.",
+                                                    "examples": [
+                                                        "Usu\u00e1rio inv\u00e1lido para o desafio MFA."
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/auth/mfa/status": {
+            "get": {
+                "operationId": "mfaEnrollment.status",
+                "tags": [
+                    "MfaEnrollment"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "mfa_enabled": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "mfa_enabled"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/auth/mfa/enroll": {
+            "post": {
+                "operationId": "mfaEnrollment.enroll",
+                "tags": [
+                    "MfaEnrollment"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "secret": {
+                                            "type": "string"
+                                        },
+                                        "provisioning_uri": {
+                                            "type": "string"
+                                        },
+                                        "recovery_codes": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "secret",
+                                        "provisioning_uri",
+                                        "recovery_codes"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/auth/mfa/confirm": {
+            "post": {
+                "operationId": "mfaEnrollment.confirm",
+                "tags": [
+                    "MfaEnrollment"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "minLength": 6,
+                                        "maxLength": 6
+                                    }
+                                },
+                                "required": [
+                                    "code"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "confirmed": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "confirmed"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "400": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "MFA n\u00e3o iniciado para esta conta."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/auth/mfa/disable": {
+            "post": {
+                "operationId": "mfaEnrollment.disable",
+                "tags": [
+                    "MfaEnrollment"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/auth/mfa/recovery-codes": {
+            "post": {
+                "operationId": "mfaEnrollment.regenerateRecoveryCodes",
+                "tags": [
+                    "MfaEnrollment"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "recovery_codes": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "recovery_codes"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "MFA n\u00e3o est\u00e1 ativo nesta conta."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                },
+                "security": []
             }
         },
         "/api/v1/auth/my-profile": {
