@@ -36,10 +36,6 @@ final class RolePolicy
     }
 
     /**
-     * The admin role itself is immutable: its permission set can never be
-     * rewritten through this mutation.
-     */
-    /**
      * @param  list<string>  $permissionNames
      */
     public function updatePermissions(User $actor, SpatieRole $role, array $permissionNames): bool

@@ -11,11 +11,6 @@ use App\Support\Filters\ActivityFilters;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Spatie\Activitylog\Models\Activity;
 
-/**
- * Read-only audit feed. The query is bounded to the privilege
- * trail, filters are allowlisted and validated, and every exposed field
- * comes from the approved minimal envelope.
- */
 final class ActivityLogController
 {
     /**

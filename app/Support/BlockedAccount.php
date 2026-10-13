@@ -8,19 +8,6 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Enriched 403 envelope for blocked (deactivated) accounts.
- *
- * The frontend bootstrap reads my-profile to decide between "awaiting
- * approval" and suspension, so a bare message is not enough: the response
- * carries the machine-readable block reason plus email_verified_at in the
- * same UTC format as MyProfileResource (null when never verified).
- *
- * Reason rule (derived from stored timestamps, no new columns):
- * - pending_approval: never active since registration — blocked at or
- *   before email verification (ties resolve here).
- * - suspended: verified first and blocked afterwards.
- */
 final class BlockedAccount
 {
     public const REASON_PENDING_APPROVAL = 'pending_approval';

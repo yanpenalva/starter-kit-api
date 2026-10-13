@@ -8,11 +8,6 @@ use App\Jobs\InfraFailingJob;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
-/**
- * Dev-only smoke command: queues one synthetic always-failing job to
- * exercise retry/backoff and the failed_jobs record. Failure output is
- * synthetic by construction; no user data is involved.
- */
 final class InfraFailJobCommand extends Command
 {
     protected $signature = 'infra:fail-job';

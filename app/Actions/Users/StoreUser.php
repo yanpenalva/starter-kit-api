@@ -39,7 +39,6 @@ final class StoreUser
             ]);
 
             if ($roleNames !== null) {
-                // Reuse the grant policy and audit while the outer transaction keeps creation atomic.
                 app(AssignUserRoles::class)->run($actor, $user, $roleNames);
             }
 

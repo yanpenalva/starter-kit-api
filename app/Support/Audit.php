@@ -9,12 +9,6 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 
-/**
- * Fail-closed audit writer. Records are inserted synchronously inside the
- * caller's PostgreSQL transaction; the envelope is minimal by approval and
- * every record is asserted to exist, so a skipped insert can never let the
- * enclosing mutation commit silently.
- */
 final class Audit
 {
     public const EVENT_CLI_BOOTSTRAP = 'cli.bootstrap';
@@ -59,9 +53,6 @@ final class Audit
     private const ALLOWED_PROPERTY_KEYS = ['correlation_id', 'actor_type', 'actor_id', 'action'];
 
     /**
-     * The single-sourced event allowlist, also exposed to the read feed so
-     * its filters can never invent an event outside the approved set.
-     *
      * @return list<string>
      */
     public static function allowedEvents(): array
@@ -127,8 +118,6 @@ final class Audit
     }
 
     /**
-     * Deny-by-default envelope: only the approved minimal keys survive.
-     *
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>
      */

@@ -31,11 +31,12 @@ final class LoginController
 
         $query = User::query();
 
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            $query->whereRaw('lower(btrim(email, E\' \\t\\n\\r\\x0B\')) = ?', [$normalizedEmail]);
-        } else {
-            $query->whereRaw("lower(trim(email, ' ' || char(9) || char(10) || char(13) || char(11))) = ?", [$normalizedEmail]);
-        }
+        $emailPredicate = match (DB::connection()->getDriverName()) {
+            'pgsql' => 'lower(btrim(email, E\' \\t\\n\\r\\x0B\')) = ?',
+            default => "lower(trim(email, ' ' || char(9) || char(10) || char(13) || char(11))) = ?",
+        };
+
+        $query->whereRaw($emailPredicate, [$normalizedEmail]);
 
         /** @var User|null $user */
         $user = $query->first();

@@ -10,13 +10,6 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
- * Every privileged mutation runs inside one database transaction. On
- * PostgreSQL a global advisory lock serializes concurrent admin changes so
- * they cannot race past the last-admin and self-elevation checks; other
- * drivers (local sqlite runs) rely on the transaction alone. The permission
- * cache is cleared under the lock before policy checks use current authority.
- */
 final class PrivilegeTransaction
 {
     private const ADVISORY_LOCK_KEY = 727423;

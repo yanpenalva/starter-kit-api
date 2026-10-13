@@ -9,8 +9,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Permission\Models\Role;
 
 /**
- * Collections load the permissions relation eagerly to avoid N+1 on lists.
- *
  * @property-read Role $resource
  */
 final class RoleResource extends JsonResource
