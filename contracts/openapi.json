@@ -3306,6 +3306,12 @@
                             "type": "string"
                         }
                     },
+                    "role_display_names": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
                     "permissions": {
                         "type": "array",
                         "items": {
@@ -3376,6 +3382,9 @@
                         "type": "integer"
                     },
                     "name": {
+                        "type": "string"
+                    },
+                    "display_name": {
                         "type": "string"
                     },
                     "guard_name": {
@@ -3616,6 +3625,12 @@
                             "required": [
                                 "relations"
                             ]
+                        }
+                    },
+                    "role_display_names": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
                         }
                     },
                     "cpf": {

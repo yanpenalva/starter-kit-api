@@ -77,13 +77,18 @@ final class OpenApiResponseShapeTest extends TestCase
         $roleItemProperties = $this->object($roleItems['properties'] ?? null);
         $relations = $this->object($roleItemProperties['relations'] ?? null);
         $cpf = $this->object($userProperties['cpf'] ?? null);
+        $roleDisplayNames = $this->object($userProperties['role_display_names'] ?? null);
         $userRequired = $user['required'] ?? null;
         $this->assertIsArray($userRequired);
 
         $role = $this->object($schemas['RoleResource'] ?? null);
         $roleProperties = $this->object($role['properties'] ?? null);
+        $roleDisplayName = $this->object($roleProperties['display_name'] ?? null);
+        $roleRequired = $role['required'] ?? null;
+        $this->assertIsArray($roleRequired);
         $permissions = $this->object($roleProperties['permissions'] ?? null);
         $permissionItems = $this->object($permissions['items'] ?? null);
+        $roleDisplayNameValues = $this->object($roleDisplayNames['additionalProperties'] ?? null);
 
         $this->assertSame('object', $roleItems['type'] ?? null);
         $this->assertSame(['relations'], $roleItems['required'] ?? null);
@@ -92,6 +97,11 @@ final class OpenApiResponseShapeTest extends TestCase
         $this->assertSame(1, $relations['minItems'] ?? null);
         $this->assertSame(1, $relations['maxItems'] ?? null);
         $this->assertSame('string', $permissionItems['type'] ?? null);
+        $this->assertSame('string', $roleDisplayName['type'] ?? null);
+        $this->assertSame('object', $roleDisplayNames['type'] ?? null);
+        $this->assertSame('string', $roleDisplayNameValues['type'] ?? null);
+        $this->assertNotContains('role_display_names', $userRequired);
+        $this->assertNotContains('display_name', $roleRequired);
         $this->assertSame(['string', 'null'], $cpf['type'] ?? null);
         $this->assertNotContains('cpf', $userRequired);
 

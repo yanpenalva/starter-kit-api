@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Roles;
 
+use App\Enums\Role as RoleEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Permission\Models\Role;
@@ -28,6 +29,7 @@ final class RoleResource extends JsonResource
         return [
             'id' => (int) $role->id,
             'name' => (string) $role->name,
+            'display_name' => RoleEnum::displayNameFor((string) $role->name),
             'guard_name' => (string) $role->guard_name,
             'permissions' => $permissions,
         ];

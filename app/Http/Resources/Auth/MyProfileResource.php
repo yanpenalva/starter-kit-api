@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Auth;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -20,6 +21,7 @@ final class MyProfileResource extends JsonResource
      *     email: string,
      *     email_verified_at: string|null,
      *     roles: list<string>,
+     *     role_display_names: array<string, string>,
      *     permissions: list<string>
      * }
      */
@@ -33,6 +35,11 @@ final class MyProfileResource extends JsonResource
         $roles = $isVerified
             ? $user->getRoleNames()->sort()->values()->all()
             : [];
+        /** @var array<string, string> $roleDisplayNames */
+        $roleDisplayNames = array_combine(
+            $roles,
+            array_map(Role::displayNameFor(...), $roles),
+        );
 
         /** @var list<string> $permissions */
         $permissions = $isVerified
@@ -49,6 +56,7 @@ final class MyProfileResource extends JsonResource
             'email' => (string) $user->email,
             'email_verified_at' => $verifiedAt,
             'roles' => $roles,
+            'role_display_names' => $roleDisplayNames,
             'permissions' => $permissions,
         ];
     }

@@ -108,6 +108,8 @@ final class RolesAdminHttpTest extends TestCase
         $dataPayload = $response->json('data');
         $names = array_column($dataPayload, 'name');
         $this->assertSame([Role::Admin->value, Role::User->value], $names);
+        $this->assertSame('Administrador', $response->json('data.0.display_name'));
+        $this->assertSame('Usuário', $response->json('data.1.display_name'));
 
         $adminPermissions = $response->json('data.0.permissions');
         $this->assertIsArray($adminPermissions);
