@@ -26,7 +26,10 @@ final class ProfileTest extends TestCase
     {
         parent::setUp();
 
-        if (config('database.default') === 'pgsql') {
+        $connection = config('database.default');
+        $this->assertContains($connection, ['pgsql', 'sqlite']);
+
+        if ($connection === 'pgsql') {
             $database = config('database.connections.pgsql.database');
             $this->assertIsString($database);
             $this->assertSame('starter_api_test', $database);
@@ -56,8 +59,8 @@ final class ProfileTest extends TestCase
         $user->assignRole(Role::User->value);
         $user->givePermissionTo(Permission::UsersView->value);
 
-        $response = $this->actingAs($user, 'web')
-            ->getJson('/api/v1/auth/my-profile');
+        self::actingAsSanctum(User::query()->whereKey($user->getKey())->firstOrFail());
+        $response = $this->getJson('/api/v1/auth/my-profile');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -104,8 +107,8 @@ final class ProfileTest extends TestCase
         $user->assignRole(Role::Admin->value);
         $user->givePermissionTo(Permission::UsersAssignRoles->value);
 
-        $response = $this->actingAs($user, 'web')
-            ->getJson('/api/v1/auth/my-profile');
+        self::actingAsSanctum(User::query()->whereKey($user->getKey())->firstOrFail());
+        $response = $this->getJson('/api/v1/auth/my-profile');
 
         $response->assertOk();
 
@@ -127,8 +130,8 @@ final class ProfileTest extends TestCase
             'deactivated_at' => now()->floorSecond(),
         ]);
 
-        $response = $this->actingAs($user, 'web')
-            ->getJson('/api/v1/auth/my-profile');
+        self::actingAsSanctum(User::query()->whereKey($user->getKey())->firstOrFail());
+        $response = $this->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(403)
             ->assertJson([
@@ -147,8 +150,8 @@ final class ProfileTest extends TestCase
             'deactivated_at' => $verifiedAt->clone()->subDay(),
         ]);
 
-        $response = $this->actingAs($user, 'web')
-            ->getJson('/api/v1/auth/my-profile');
+        self::actingAsSanctum(User::query()->whereKey($user->getKey())->firstOrFail());
+        $response = $this->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(403)
             ->assertJson([
@@ -165,8 +168,8 @@ final class ProfileTest extends TestCase
             'deactivated_at' => now(),
         ]);
 
-        $response = $this->actingAs($user, 'web')
-            ->getJson('/api/v1/auth/my-profile');
+        self::actingAsSanctum(User::query()->whereKey($user->getKey())->firstOrFail());
+        $response = $this->getJson('/api/v1/auth/my-profile');
 
         $response->assertOk()
             ->assertJsonPath('data.email', 'pending.profile@example.test')
@@ -178,8 +181,8 @@ final class ProfileTest extends TestCase
         $alice = User::factory()->create(['name' => 'Alice']);
         $bob = User::factory()->create(['name' => 'Bob']);
 
-        $response = $this->actingAs($alice, 'web')
-            ->getJson('/api/v1/auth/my-profile?user_id='.$bob->id);
+        self::actingAsSanctum(User::query()->whereKey($alice->getKey())->firstOrFail());
+        $response = $this->getJson('/api/v1/auth/my-profile?user_id='.$bob->id);
 
         $response->assertOk();
         $this->assertSame($alice->id, $response->json('data.id'));
@@ -207,8 +210,8 @@ final class ProfileTest extends TestCase
         /** @var User $user */
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user, 'web')
-            ->withHeader('Authorization', 'Bearer dummy-token')
+        self::actingAsSanctum(User::query()->whereKey($user->getKey())->firstOrFail());
+        $response = $this->withHeader('Authorization', 'Bearer dummy-token')
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(401)

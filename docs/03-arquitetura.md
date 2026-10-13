@@ -63,6 +63,11 @@ transação de privilégio. O perfil próprio (`GET /auth/my-profile`) ainda pas
 `EnsureAccountNotDeactivated`, que responde 403 para contas desativadas mesmo com
 sessão válida.
 
+O perfil próprio representa exclusivamente o usuário autenticado pela sessão
+Sanctum: parâmetros fornecidos pelo cliente não podem escolher usuário, papel ou
+permissão. O SPA pode usar `roles` e `permissions` para exibição; cada rota protegida
+reavalia a autorização no backend a partir do estado atual do servidor.
+
 ## 2. As camadas e o que mora em cada uma
 
 ```mermaid

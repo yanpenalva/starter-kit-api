@@ -17,8 +17,12 @@ final class EnsureAccountNotDeactivated
     {
         $user = $request->user();
 
-        if ($user instanceof User && $user->deactivated_at !== null && $user->hasVerifiedEmail()) {
-            return BlockedAccount::response($user);
+        if ($user instanceof User) {
+            $user->refresh();
+
+            if ($user->deactivated_at !== null && $user->hasVerifiedEmail()) {
+                return BlockedAccount::response($user);
+            }
         }
 
         $response = $next($request);

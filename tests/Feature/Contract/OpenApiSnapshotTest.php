@@ -70,6 +70,52 @@ final class OpenApiSnapshotTest extends TestCase
         $this->assertArrayHasKey('/api/v1/email/verification-notification', $paths);
         $this->assertArrayHasKey('/sanctum/csrf-cookie', $paths);
 
+        $loginPath = $paths['/api/v1/login'];
+        $this->assertIsArray($loginPath);
+        $loginPost = $loginPath['post'];
+        $this->assertIsArray($loginPost);
+        $loginResponses = $loginPost['responses'];
+        $this->assertIsArray($loginResponses);
+        $loginSuccess = $loginResponses['200'];
+        $this->assertIsArray($loginSuccess);
+        $loginContent = $loginSuccess['content'];
+        $this->assertIsArray($loginContent);
+        $loginJson = $loginContent['application/json'];
+        $this->assertIsArray($loginJson);
+        $loginSchema = $loginJson['schema'];
+        $this->assertIsArray($loginSchema);
+        $loginProperties = $loginSchema['properties'];
+        $this->assertIsArray($loginProperties);
+        $requiresMfa = $loginProperties['requires_mfa'];
+        $this->assertIsArray($requiresMfa);
+        $this->assertSame(
+            'boolean',
+            $requiresMfa['type'],
+        );
+
+        $mfaStatusPath = $paths['/api/v1/auth/mfa/status'];
+        $this->assertIsArray($mfaStatusPath);
+        $mfaStatusGet = $mfaStatusPath['get'];
+        $this->assertIsArray($mfaStatusGet);
+        $mfaStatusResponses = $mfaStatusGet['responses'];
+        $this->assertIsArray($mfaStatusResponses);
+        $mfaStatusSuccess = $mfaStatusResponses['200'];
+        $this->assertIsArray($mfaStatusSuccess);
+        $mfaStatusContent = $mfaStatusSuccess['content'];
+        $this->assertIsArray($mfaStatusContent);
+        $mfaStatusJson = $mfaStatusContent['application/json'];
+        $this->assertIsArray($mfaStatusJson);
+        $mfaStatusSchema = $mfaStatusJson['schema'];
+        $this->assertIsArray($mfaStatusSchema);
+        $mfaStatusProperties = $mfaStatusSchema['properties'];
+        $this->assertIsArray($mfaStatusProperties);
+        $mfaEnabled = $mfaStatusProperties['mfa_enabled'];
+        $this->assertIsArray($mfaEnabled);
+        $this->assertSame(
+            'boolean',
+            $mfaEnabled['type'],
+        );
+
         $registeredUris = array_map(
             fn (\Illuminate\Routing\Route $route): string => '/'.ltrim($route->uri(), '/'),
             Route::getRoutes()->getRoutes(),

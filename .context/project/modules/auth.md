@@ -41,8 +41,10 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
 - **Authentication:** Requires active session (`auth:sanctum` / `auth:web`). Anonymous requests receive HTTP 401. Requests presenting an `Authorization` header receive HTTP 401 fail-closed via `DisallowHeaderAuthentication` before Sanctum token fallback.
 - **Account Eligibility:** An explicitly deactivated account (`deactivated_at !== null`) receives HTTP 403.
 - **Response Format:** HTTP 200 `{ "data": { "id": int, "name": string, "email": string, "email_verified_at": "RFC3339 UTC"|null, "roles": string[], "permissions": string[] } }`.
+- **Authority and Refresh:** The authenticated session identifies the user; the profile route reloads that user and any already-loaded RBAC relations from the database before checking eligibility and serializing. A subsequent profile GET therefore reflects persisted identity, roles, permissions, and deactivation state rather than cached model fields.
 - **Authorization & Invariants:**
   - Returns strictly the authenticated user's own profile. Does not consult privileged `UserPolicy::view` (which governs administrative user management).
+  - The Sanctum session selects the profile subject. Client-supplied IDs, role names, and permission names are not identity or authorization inputs; the SPA may use the response for display, while the API checks current server-side authorization on each protected request.
   - Unverified accounts (`email_verified_at === null`) receive minimal identity with strictly empty `roles: []` and `permissions: []`, even if database records grant them roles.
   - Verified active accounts receive sorted server-owned role names and effective permissions.
   - CPF, password, remember tokens, and sensitive attributes are excluded.
