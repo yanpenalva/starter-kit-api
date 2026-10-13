@@ -25,17 +25,16 @@
 - `composer lint`: passed (Pint).
 - `composer analyse`: passed (PHPStan Level 10, no errors).
 - `python3 scripts/validate_context.py --strict --examples`: passed; no example suite is installed.
-- `git diff --check`: passed. Profile JSON/schema and `contracts/openapi.json` are unchanged.
+- Initial implementation check: `git diff --check` passed; its profile JSON/schema and contract snapshot were unchanged at that point.
 - Delivery: implementation commit `37e1ddf` was pushed to `origin/feat/slice-10-session-profile-authority`; the later user-directed PR #88 is the delivery target.
 - Production deployment, PR merge and issue closure were not performed.
 
 ## Revalidation after `origin/main` advanced
 
-- Integrated the `origin/main` changes containing merges #79, #83 and #86 in merge commit `d81e6a12c8c989d96b23a0a3dfc92c6b1f181612`; resolved the API contract documentation conflict by retaining both the profile-session authority rule and the database-session-driver requirement.
+- Integrated successive `origin/main` updates for merges #79, #83, #86, #89 and #87 in merge commits `d81e6a12c8c989d96b23a0a3dfc92c6b1f181612`, `9910baa3a669a884dd3d70cdc426536410466aa4` and `73c535f47c33d32c26adc4ad458aca2c42fc3a18`; resolved the API contract documentation conflict by retaining both the profile-session authority rule and the database-session-driver requirement.
 - `composer lint`: passed.
-- SQLite Pest for `ProfileTest`, `SessionProfileAuthorityTest`, `SessionProfileRefreshTest`, and `ScaffoldTest`: 23 passed, 1 skipped. The skip is the PostgreSQL database-isolation assertion, which remains active in the PostgreSQL test profile.
-- SQLite Pest `OpenApiSnapshotTest`: 2 passed.
-- The full 314-test SQLite run is not a passing gate in this environment: PostgreSQL-specific, Redis/Mailpit, and environment-guard tests fail or error under the SQLite-only setup. Its PCOV line report was 88.63% (1294/1460); this is not PostgreSQL CI evidence.
-- Deterministic OpenAPI export ran twice with `LC_ALL=C`, compared the outputs byte for byte, and regenerated `contracts/openapi.json` at SHA-256 `bcbbe442c4c9a0976415b57991251d90817e45182e98ea7a323bb3df799ee451` (114763 bytes). The artifact is byte-identical to the current `origin/main` snapshot and has no operation changes.
+- SQLite Pest for `ProfileTest`, `SessionProfileAuthorityTest`, `SessionProfileRefreshTest`, `ScaffoldTest`, `OpenApiSnapshotTest`, and `OpenApiResponseShapeTest`: 26 passed, 1 skipped. The skip is the PostgreSQL database-isolation assertion, which remains active in the PostgreSQL test profile.
+- The full SQLite suite is not a passing gate in this environment because PostgreSQL-specific, Redis/Mailpit, and environment-guard tests need services/configuration that are unavailable here. PCOV reported 89.27% lines (1390/1557) with `--min=85`; the test command still exits nonzero for those environment-dependent failures, so this is not PostgreSQL CI evidence.
+- Deterministic OpenAPI export ran twice with `LC_ALL=C`, compared the outputs byte for byte, and regenerated `contracts/openapi.json` at SHA-256 `88bcccf993dd74915da9db2dd1a4eaaba1f4354b616054fe8b74c70042a3fb66` (133841 bytes). The artifact is byte-identical to the latest `origin/main` snapshot.
 - `scripts/contract_compat.py --base-commit=origin/main --candidate=contracts/openapi.json` could not run because `oasdiff` is not installed locally. PostgreSQL/Compose execution was unavailable because the Docker daemon is not running.
 - The shared `vendor` symlink's generated autoloader points at `/opt/data/work/starter-kit-api`; local Pest checks used a temporary worktree-first autoloader so they exercised this branch's source without changing the shared vendor tree.
