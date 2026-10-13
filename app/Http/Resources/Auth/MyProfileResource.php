@@ -21,7 +21,7 @@ final class MyProfileResource extends JsonResource
      *     email: string,
      *     email_verified_at: string|null,
      *     roles: list<string>,
-     *     role_display_names: array<string, string>,
+     *     role_display_names: \stdClass,
      *     permissions: list<string>
      * }
      */
@@ -35,8 +35,8 @@ final class MyProfileResource extends JsonResource
         $roles = $isVerified
             ? $user->getRoleNames()->sort()->values()->all()
             : [];
-        /** @var array<string, string> $roleDisplayNames */
-        $roleDisplayNames = array_combine(
+        /** @var \stdClass $roleDisplayNames */
+        $roleDisplayNames = (object) array_combine(
             $roles,
             array_map(Role::displayNameFor(...), $roles),
         );

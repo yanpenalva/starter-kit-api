@@ -120,7 +120,15 @@ final class ProfileTest extends TestCase
         $this->assertSame('unverified@example.test', $data['email']);
         $this->assertNull($data['email_verified_at']);
         $this->assertSame([], $data['roles']);
-        $this->assertSame([], $data['role_display_names']);
+        $content = $response->getContent();
+        $this->assertNotFalse($content);
+        $decoded = json_decode($content);
+        $this->assertIsObject($decoded);
+        $decodedData = $decoded->data ?? null;
+        $this->assertIsObject($decodedData);
+        $roleDisplayNames = $decodedData->role_display_names ?? null;
+        $this->assertIsObject($roleDisplayNames);
+        $this->assertSame([], (array) $roleDisplayNames);
         $this->assertSame([], $data['permissions']);
     }
 

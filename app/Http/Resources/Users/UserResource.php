@@ -31,8 +31,8 @@ final class UserResource extends JsonResource
 
         /** @var list<string> $roles */
         $roles = $user->getRoleNames()->sort()->values()->all();
-        /** @var array<string, string> $roleDisplayNames */
-        $roleDisplayNames = array_combine(
+        /** @var \stdClass $roleDisplayNames */
+        $roleDisplayNames = (object) array_combine(
             $roles,
             array_map(Role::displayNameFor(...), $roles),
         );

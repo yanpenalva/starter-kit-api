@@ -276,6 +276,8 @@ final class AdminContractTest extends TestCase
         $this->assertIsString($payload['email_verified_at']);
         $this->assertNull($payload['deactivated_at']);
         $this->assertSame([], $payload['roles']);
+        $this->assertIsObject($payload['role_display_names']);
+        $this->assertSame([], (array) $payload['role_display_names']);
 
         $reader = User::factory()->verified()->create();
         $reader->givePermissionTo(Permission::UsersReadCpf->value);
