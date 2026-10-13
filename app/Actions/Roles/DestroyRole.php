@@ -21,7 +21,7 @@ final class DestroyRole
 
     public function run(User $actor, Role $role): void
     {
-        PrivilegeTransaction::run(function () use ($actor, $role): void {
+        PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($role): void {
             $target = Role::query()->lockForUpdate()->whereKey($role->getKey())->firstOrFail();
 
             if (! app(RolePolicy::class)->delete($actor, $target)) {

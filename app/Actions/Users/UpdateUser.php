@@ -7,7 +7,9 @@ namespace App\Actions\Users;
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
 use App\Policies\UserPolicy;
+use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
+use Symfony\Component\HttpFoundation\Response;
 
 final class UpdateUser
 {
@@ -27,12 +29,16 @@ final class UpdateUser
             abort(403);
         }
 
-        PrivilegeTransaction::run(function () use ($actor, $user, $payload, $changesCredentials, $policy): void {
+        PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($user, $payload, $changesCredentials, $policy): void {
             /** @var User $target */
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
+            if (! $policy->update($actor, $target)) {
+                abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
+            }
+
             if ($changesCredentials && ! $policy->updateCredentials($actor, $target)) {
-                abort(403);
+                abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
 
             if (isset($payload['email']) && $payload['email'] !== $target->email) {

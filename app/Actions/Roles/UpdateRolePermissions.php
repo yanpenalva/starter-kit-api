@@ -24,7 +24,7 @@ final class UpdateRolePermissions
      */
     public function run(User $actor, Role $role, array $permissionNames): Role
     {
-        PrivilegeTransaction::run(function () use ($actor, $role, $permissionNames): void {
+        PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($role, $permissionNames): void {
             /** @var Role $target */
             $target = Role::query()->lockForUpdate()->findOrFail($role->getKey());
 

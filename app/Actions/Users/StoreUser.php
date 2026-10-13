@@ -6,7 +6,10 @@ namespace App\Actions\Users;
 
 use App\Actions\Concerns\RecordsPrivilegeAudit;
 use App\Models\User;
+use App\Policies\UserPolicy;
+use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
+use Symfony\Component\HttpFoundation\Response;
 
 final class StoreUser
 {
@@ -17,7 +20,11 @@ final class StoreUser
      */
     public function run(User $actor, array $payload): User
     {
-        $user = PrivilegeTransaction::run(function () use ($actor, $payload): User {
+        $user = PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($payload): User {
+            if (! app(UserPolicy::class)->manage($actor)) {
+                abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
+            }
+
             $active = $payload['active'] ?? null;
             assert(is_bool($active));
 
