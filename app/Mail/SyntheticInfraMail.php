@@ -12,12 +12,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-/**
- * Dev-only synthetic probe mail for async infrastructure smoke tests.
- * Always delivered to the reserved `.test` recipient from config; the
- * token is a random UUID and the body is generic on purpose — no real
- * recipient, no credentials, no PII.
- */
 final class SyntheticInfraMail extends Mailable implements ShouldQueue
 {
     use Queueable;

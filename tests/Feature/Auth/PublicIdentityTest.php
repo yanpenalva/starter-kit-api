@@ -139,11 +139,11 @@ final class PublicIdentityTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors('email')
             ->assertJsonPath('errors.email.0', 'Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.');
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            $this->assertSame(1, User::query()->where('email', $email)->count());
-        } else {
-            $this->assertSame(0, User::query()->where('email', $email)->count());
-        }
+        $expectedEmailCount = match (DB::connection()->getDriverName()) {
+            'pgsql' => 1,
+            default => 0,
+        };
+        $this->assertSame($expectedEmailCount, User::query()->where('email', $email)->count());
     }
 
     public function test_register_returns_422_when_cpf_is_inserted_concurrently(): void
@@ -170,11 +170,11 @@ final class PublicIdentityTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors('cpf')
             ->assertJsonPath('errors.cpf.0', 'Este CPF já está cadastrado.');
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            $this->assertSame(1, User::query()->where('cpf', $cpf)->count());
-        } else {
-            $this->assertSame(0, User::query()->where('cpf', $cpf)->count());
-        }
+        $expectedCpfCount = match (DB::connection()->getDriverName()) {
+            'pgsql' => 1,
+            default => 0,
+        };
+        $this->assertSame($expectedCpfCount, User::query()->where('cpf', $cpf)->count());
     }
 
     public function test_register_keeps_account_deactivated_when_verification_dispatch_fails(): void
