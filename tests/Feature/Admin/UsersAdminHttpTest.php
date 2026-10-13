@@ -7,13 +7,17 @@ namespace Tests\Feature\Admin;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
+use App\Notifications\VerifyEmail;
 use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Role as SpatieRole;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
@@ -87,6 +91,109 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertIsInt($createdId);
         $this->assertDatabaseMissing('model_has_roles', ['model_id' => $createdId]);
         $this->assertAuthenticatedAs($actor);
+    }
+
+    public function test_admin_created_user_triggers_onboarding_invitation_with_signed_url_resend_and_expiration(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersManage->value);
+        self::actingAsSanctum($actor);
+
+        $response = $this->postJson('/api/v1/users', [
+            'name' => 'Onboarding User',
+            'email' => 'onboard@example.test',
+            'cpf' => '12345678901',
+            'password' => 'test-password-01',
+            'active' => true,
+        ]);
+
+        $response->assertCreated();
+        $createdId = $response->json('data.id');
+        $this->assertIsInt($createdId);
+
+        $createdUser = User::findOrFail($createdId);
+        $this->assertNull($createdUser->email_verified_at);
+
+        // 1. StoreUser dispatched verification/invitation email with signed URL
+        Notification::assertSentTo($createdUser, VerifyEmail::class, static function (VerifyEmail $notification) use ($createdUser): bool {
+            $mail = $notification->toMail($createdUser);
+
+            return str_contains((string) $mail->actionUrl, 'verify-email')
+                && str_contains((string) $mail->actionUrl, 'signature=');
+        });
+
+        // 2. Resend verification email
+        Notification::fake();
+        self::actingAsSanctum($createdUser);
+        $this->postJson('/api/v1/email/verification-notification')
+            ->assertStatus(202);
+        Notification::assertSentTo($createdUser, VerifyEmail::class);
+
+        // 3. Expired verification link is rejected with 403
+        $expiredUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->subMinute(),
+            ['id' => $createdUser->id, 'hash' => hash('sha256', $createdUser->email)]
+        );
+        $this->get($expiredUrl)->assertForbidden();
+        $this->assertNull($createdUser->fresh()?->email_verified_at);
+
+        // 4. Valid signed URL verifies email
+        $validUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addHours(24),
+            ['id' => $createdUser->id, 'hash' => hash('sha256', $createdUser->email)]
+        );
+        $this->get($validUrl)->assertRedirect();
+        $this->assertNotNull($createdUser->fresh()?->email_verified_at);
+    }
+
+    public function test_admin_created_user_resend_is_throttled_with_429(): void
+    {
+        Notification::fake();
+
+        $invited = User::factory()->unverified()->create(['email' => 'throttled@example.test']);
+
+        for ($attempt = 1; $attempt <= 4; $attempt++) {
+            self::actingAsSanctum($invited);
+            $response = $this->postJson('/api/v1/email/verification-notification');
+
+            if ($attempt < 4) {
+                $response->assertStatus(202);
+
+                continue;
+            }
+
+            $response->assertStatus(429)->assertHeader('Retry-After');
+        }
+
+        Notification::assertSentToTimes($invited, VerifyEmail::class, 3);
+    }
+
+    public function test_admin_created_user_invitation_link_expires_after_24_hours(): void
+    {
+        config(['app.frontend_url' => 'http://frontend.test']);
+
+        $invited = User::factory()->unverified()->create(['email' => 'expiring@example.test']);
+
+        $mail = (new VerifyEmail)->toMail($invited);
+        $linkParts = parse_url((string) $mail->actionUrl);
+        $this->assertIsArray($linkParts);
+        parse_str((string) ($linkParts['query'] ?? ''), $query);
+        $this->assertIsString($query['expires'] ?? null);
+        $this->assertIsString($query['signature'] ?? null);
+
+        $apiUrl = "/api/v1/email/verify/{$invited->id}/".hash('sha256', $invited->email).'?'
+            .http_build_query(['expires' => $query['expires'], 'signature' => $query['signature']]);
+
+        $this->travel(25)->hours();
+
+        self::actingAsSanctum($invited);
+        $this->getJson($apiUrl)->assertForbidden();
+
+        $this->assertNull($invited->fresh()?->email_verified_at);
     }
 
     public function test_create_user_requires_manage_permission_and_eligible_actor(): void
@@ -476,6 +583,7 @@ final class UsersAdminHttpTest extends TestCase
         $target->assignRole(Role::User->value);
 
         $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
         $actor->givePermissionTo(Permission::UsersAssignRoles->value);
 
         self::actingAsSanctum($actor);
@@ -488,6 +596,133 @@ final class UsersAdminHttpTest extends TestCase
         $this->assertFalse($target->hasRole(Role::User->value));
 
         $this->assertPrivilegedAudit($target, $actor);
+    }
+
+    public function test_assign_roles_denies_delegated_operator_escalating_to_admin(): void
+    {
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => [Role::Admin->value]])
+            ->assertStatus(403);
+
+        $this->assertFalse($target->refresh()->hasRole(Role::Admin->value));
+    }
+
+    public function test_assign_roles_denies_delegated_operator_assigning_unheld_permissions(): void
+    {
+        $customRole = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $customRole->givePermissionTo(Permission::UsersManage->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['manager']])
+            ->assertStatus(403);
+
+        $this->assertFalse($target->refresh()->hasRole('manager'));
+    }
+
+    public function test_assign_roles_allows_delegated_operator_within_grant_ceiling(): void
+    {
+        $customRole = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $customRole->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['viewer']])
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['viewer']);
+
+        $this->assertTrue($target->refresh()->hasRole('viewer'));
+    }
+
+    public function test_assign_roles_denies_whole_list_when_one_role_exceeds_ceiling(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->givePermissionTo(Permission::UsersAssignRoles->value);
+        $actor->givePermissionTo(Permission::UsersView->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['viewer', 'manager']])
+            ->assertStatus(403);
+
+        $fresh = $target->refresh();
+        $this->assertFalse($fresh->hasRole('viewer'));
+        $this->assertFalse($fresh->hasRole('manager'));
+        $this->assertTrue($fresh->hasRole(Role::User->value));
+    }
+
+    public function test_assign_roles_applies_ceiling_to_permissions_inherited_via_role(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $operator = SpatieRole::create(['name' => 'operator', 'guard_name' => 'web']);
+        $operator->givePermissionTo([Permission::UsersAssignRoles->value, Permission::UsersView->value]);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole('operator');
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['viewer']])
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['viewer']);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['manager']])
+            ->assertStatus(403);
+
+        $this->assertFalse($target->refresh()->hasRole('manager'));
+    }
+
+    public function test_assign_roles_allows_admin_to_grant_custom_role(): void
+    {
+        $manager = SpatieRole::create(['name' => 'manager', 'guard_name' => 'web']);
+        $manager->givePermissionTo(Permission::UsersManage->value);
+        $viewer = SpatieRole::create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo(Permission::UsersView->value);
+
+        $target = User::factory()->verified()->create();
+        $target->assignRole(Role::User->value);
+
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+
+        self::actingAsSanctum($actor);
+        $this->putJson("/api/v1/users/{$target->id}/roles", ['roles' => ['manager']])
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['manager']);
+
+        $this->assertTrue($target->refresh()->hasRole('manager'));
     }
 
     public function test_assign_roles_rejects_non_catalogue_roles_with_422(): void

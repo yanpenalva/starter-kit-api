@@ -6,9 +6,12 @@ namespace App\Http\Controllers\Roles;
 
 use App\Actions\Roles\DestroyRole;
 use App\Actions\Roles\IndexRoles;
+use App\Actions\Roles\RenameRole;
+use App\Actions\Roles\ShowRole;
 use App\Actions\Roles\StoreRole;
 use App\Actions\Roles\UpdateRolePermissions;
 use App\Http\Requests\Roles\IndexRolesRequest;
+use App\Http\Requests\Roles\RenameRoleRequest;
 use App\Http\Requests\Roles\StoreRoleRequest;
 use App\Http\Requests\Roles\UpdateRolePermissionsRequest;
 use App\Http\Resources\Roles\RoleResource;
@@ -29,6 +32,8 @@ final class RoleController
         private StoreRole $storeRole,
         private DestroyRole $destroyRole,
         private UpdateRolePermissions $updateRolePermissions,
+        private ShowRole $showRole,
+        private RenameRole $renameRole,
     ) {}
 
     /**
@@ -55,6 +60,28 @@ final class RoleController
         $role = $this->storeRole->run($actor, $name);
 
         return (new RoleResource($role))->response()->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    public function show(Request $request, Role $role): RoleResource
+    {
+        $actor = $request->user();
+        assert($actor instanceof User);
+
+        $this->authorize('view', Role::class);
+
+        return new RoleResource($this->showRole->run($role));
+    }
+
+    public function rename(RenameRoleRequest $request, Role $role): RoleResource
+    {
+        $actor = $request->user();
+        assert($actor instanceof User);
+
+        $name = $request->validated('name');
+        assert(is_string($name));
+        $this->authorize('rename', $role);
+
+        return new RoleResource($this->renameRole->run($actor, $role, $name));
     }
 
     public function destroy(Request $request, Role $role): JsonResponse

@@ -11,6 +11,9 @@ use Dedoc\Scramble\Support\Generator\Parameter;
 use Dedoc\Scramble\Support\Generator\Response;
 use Dedoc\Scramble\Support\Generator\Schema;
 use Dedoc\Scramble\Support\Generator\SecurityRequirement;
+use Dedoc\Scramble\Support\Generator\Types\ArrayType;
+use Dedoc\Scramble\Support\Generator\Types\BooleanType;
+use Dedoc\Scramble\Support\Generator\Types\ObjectType;
 use Dedoc\Scramble\Support\Generator\Types\StringType;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
@@ -51,6 +54,12 @@ final class ContractOperationOverlay
 
         if ($this->isProfile($normalizedPath, $method)) {
             $this->applyProfile($operation);
+
+            return;
+        }
+
+        if ($this->isActiveSessions($normalizedPath, $method)) {
+            $this->applyActiveSessions($operation, $normalizedPath, $method);
 
             return;
         }
@@ -113,6 +122,50 @@ final class ContractOperationOverlay
         $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
         $this->ensureResponse($operation, $this->responses->blockedResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
         $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+    }
+
+    private function applyActiveSessions(Operation $operation, string $path, string $method): void
+    {
+        $operation->security = [new SecurityRequirement(['sessionCookie' => []])];
+        if ($method === 'get') {
+            $this->ensureCurrentSessionFlagSchema($operation);
+        }
+
+        if ($method === 'delete') {
+            $this->ensureXsrfHeaderParam($operation);
+            $this->ensureResponse($operation, $this->responses->messageResponse(ApiMessage::PAGE_EXPIRED, ApiMessage::CSRF));
+        }
+
+        $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_UNAUTHORIZED, ApiMessage::UNAUTHENTICATED));
+        $this->ensureResponse($operation, $this->responses->blockedResponse(HttpResponse::HTTP_FORBIDDEN, ApiMessage::DEACTIVATED));
+        $this->ensureResponse($operation, $this->responses->rateLimitedResponse());
+
+        if ($method === 'delete' && $path === 'api/v1/auth/sessions/{id}') {
+            $this->ensureResponse($operation, $this->responses->messageResponse(HttpResponse::HTTP_NOT_FOUND, ApiMessage::SESSION_NOT_FOUND));
+        }
+    }
+
+    private function ensureCurrentSessionFlagSchema(Operation $operation): void
+    {
+        foreach ($operation->responses ?? [] as $response) {
+            if (! $response instanceof Response || (string) $response->code !== '200') {
+                continue;
+            }
+
+            $schema = $response->content['application/json'] ?? null;
+            if (! $schema instanceof Schema || ! $schema->type instanceof ObjectType || ! $schema->type->hasProperty('data')) {
+                continue;
+            }
+
+            $sessions = $schema->type->getProperty('data');
+            if (! $sessions instanceof ArrayType || ! $sessions->items instanceof ObjectType || ! $sessions->items->hasProperty('is_current')) {
+                continue;
+            }
+
+            $sessions->items->addProperty('is_current', new BooleanType);
+
+            return;
+        }
     }
 
     private function applyRegister(Operation $operation): void
@@ -221,6 +274,12 @@ final class ContractOperationOverlay
     private function isProfile(string $path, string $method): bool
     {
         return $method === 'get' && str_ends_with($path, 'auth/my-profile');
+    }
+
+    private function isActiveSessions(string $path, string $method): bool
+    {
+        return ($path === 'api/v1/auth/sessions' && in_array($method, ['get', 'delete'], true))
+            || ($path === 'api/v1/auth/sessions/{id}' && $method === 'delete');
     }
 
     private function isRegister(string $path, string $method): bool

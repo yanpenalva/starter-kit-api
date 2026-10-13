@@ -14,6 +14,13 @@ use Illuminate\Validation\Rule;
  * wave owning the route enforces UserPolicy::assignRoles (no self-assignment,
  * last active admin preserved) for the resolved target inside a
  * PrivilegeTransaction.
+ *
+ * Grant ceiling: a non-admin actor may only assign roles whose permissions are
+ * all held by the actor (directly or through the actor's roles). The role list
+ * is evaluated as a whole — if any requested role exceeds the ceiling (or is
+ * the admin role), nothing is assigned. Policy denials, including the ceiling,
+ * respond 403 Forbidden with the unauthorized message; unknown role names are
+ * rejected earlier by validation with 422.
  */
 final class AssignUserRolesRequest extends FormRequest
 {
