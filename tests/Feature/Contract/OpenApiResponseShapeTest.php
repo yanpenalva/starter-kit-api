@@ -56,6 +56,18 @@ final class OpenApiResponseShapeTest extends TestCase
             );
         }
 
+        $auditGet = $this->object($this->object($paths['/api/v1/activity-log'] ?? null)['get'] ?? null);
+        $auditParameters = $this->object($auditGet['parameters'] ?? null);
+        $searchParameters = array_values(array_filter(
+            $auditParameters,
+            static fn (mixed $parameter): bool => is_array($parameter) && ($parameter['name'] ?? null) === 'search',
+        ));
+        $searchParameter = $this->object($searchParameters[0] ?? null);
+        $searchSchema = $this->object($searchParameter['schema'] ?? null);
+        $this->assertSame('query', $searchParameter['in'] ?? null);
+        $this->assertSame(['string', 'null'], $searchSchema['type'] ?? null);
+        $this->assertSame(255, $searchSchema['maxLength'] ?? null);
+
         $components = $this->object($document['components'] ?? null);
         $schemas = $this->object($components['schemas'] ?? null);
         $user = $this->object($schemas['UserResource'] ?? null);
