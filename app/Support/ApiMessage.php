@@ -21,6 +21,8 @@ final class ApiMessage
 
     public const NOT_FOUND = 'Recurso não encontrado.';
 
+    public const SESSION_NOT_FOUND = 'Sessão não encontrada.';
+
     public const METHOD_NOT_ALLOWED = 'Método não permitido.';
 
     public const CSRF = 'Token CSRF inválido ou expirado.';
@@ -37,6 +39,7 @@ final class ApiMessage
         self::UNAUTHORIZED,
         self::DEACTIVATED,
         self::NOT_FOUND,
+        self::SESSION_NOT_FOUND,
         self::METHOD_NOT_ALLOWED,
         self::CSRF,
         self::THROTTLED,

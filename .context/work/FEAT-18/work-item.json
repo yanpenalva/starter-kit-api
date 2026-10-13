@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-18",
+  "title": "Implementar CRUD de perfis, matriz de permissões e integridade — slice de detalhes e rename",
+  "track": "product",
+  "type": "feature",
+  "phase": "release",
+  "status": "active",
+  "risk": "medium",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "medium",
+    "impact": "cross-module",
+    "security": "relevant",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": ["core", "project", "architecture", "security", "testing"],
+    "deferred": ["release", "incident"],
+    "triggers": ["API issue #18; role detail and rename endpoints; built-in role protection and privilege audit"]
+  },
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify", "release"],
+  "last_updated": "2026-10-12",
+  "policy_exceptions": ["EXC-0001"]
+}

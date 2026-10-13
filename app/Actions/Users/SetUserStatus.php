@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Policies\UserPolicy;
 use App\Support\ApiMessage;
 use App\Support\PrivilegeTransaction;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 final class SetUserStatus
@@ -17,7 +18,7 @@ final class SetUserStatus
 
     public function run(User $actor, User $user, string $status): User
     {
-        PrivilegeTransaction::run(function () use ($actor, $user, $status): void {
+        PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($user, $status): void {
             /** @var User $target */
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
@@ -28,6 +29,12 @@ final class SetUserStatus
             $target->update([
                 'deactivated_at' => $status === 'deactivated' ? now() : null,
             ]);
+
+            if ($status === 'deactivated') {
+                DB::table('sessions')
+                    ->where('user_id', $target->getKey())
+                    ->delete();
+            }
 
             $this->auditUserChange($actor, $target);
         });

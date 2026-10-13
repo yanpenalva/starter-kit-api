@@ -221,6 +221,9 @@ final class ScaffoldTest extends TestCase
             'api/v1/auth/my-profile',
             'api/v1/auth/my-profile',
             'api/v1/auth/password',
+            'api/v1/auth/sessions',
+            'api/v1/auth/sessions',
+            'api/v1/auth/sessions/{id}',
             'api/v1/email/verification-notification',
             'api/v1/email/verify/{id}/{hash}',
             'api/v1/forgot-password',
@@ -231,6 +234,8 @@ final class ScaffoldTest extends TestCase
             'api/v1/reset-password',
             'api/v1/roles',
             'api/v1/roles',
+            'api/v1/roles/{role}',
+            'api/v1/roles/{role}',
             'api/v1/roles/{role}',
             'api/v1/roles/{role}/permissions',
             'api/v1/users',
@@ -250,5 +255,22 @@ final class ScaffoldTest extends TestCase
         $passwordUpdate = Route::getRoutes()->match(Request::create('/api/v1/auth/password', 'PUT'));
         $this->assertSame(['PATCH'], $profileUpdate->methods());
         $this->assertSame(['PUT'], $passwordUpdate->methods());
+
+        $sessionOperations = [];
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            if (! str_starts_with($route->uri(), 'api/v1/auth/sessions')) {
+                continue;
+            }
+
+            $methods = array_values(array_filter($route->methods(), 'is_string'));
+            $sessionOperations[] = implode('|', $methods).' '.$route->uri();
+        }
+        sort($sessionOperations);
+
+        $this->assertSame([
+            'DELETE api/v1/auth/sessions',
+            'DELETE api/v1/auth/sessions/{id}',
+            'GET|HEAD api/v1/auth/sessions',
+        ], $sessionOperations);
     }
 }

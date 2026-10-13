@@ -37,6 +37,472 @@
                 "security": []
             }
         },
+        "/api/v1/auth/sessions": {
+            "get": {
+                "operationId": "activeSession.index",
+                "tags": [
+                    "ActiveSession"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "ip_address": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "user_agent": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "last_activity": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "is_current": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "ip_address",
+                                                    "user_agent",
+                                                    "last_activity",
+                                                    "is_current"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "N\u00e3o autenticado."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Esta conta foi desativada."
+                                            ]
+                                        },
+                                        "reason": {
+                                            "type": "string",
+                                            "enum": [
+                                                "pending_approval",
+                                                "suspended"
+                                            ],
+                                            "examples": [
+                                                "suspended"
+                                            ]
+                                        },
+                                        "email_verified_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "reason",
+                                        "email_verified_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Limite de requisi\u00e7\u00f5es excedido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Muitas tentativas. Por favor, tente novamente mais tarde."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "description": "Segundos at\u00e9 que o cliente possa tentar novamente.",
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ]
+            },
+            "delete": {
+                "operationId": "activeSession.destroyOthers",
+                "tags": [
+                    "ActiveSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": true,
+                        "description": "Token XSRF espelhando o cookie XSRF-TOKEN; obrigat\u00f3rio em requisi\u00e7\u00f5es que alteram estado.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "N\u00e3o autenticado."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "419": {
+                        "description": "Token CSRF ausente ou inv\u00e1lido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Token CSRF inv\u00e1lido ou expirado."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Esta conta foi desativada."
+                                            ]
+                                        },
+                                        "reason": {
+                                            "type": "string",
+                                            "enum": [
+                                                "pending_approval",
+                                                "suspended"
+                                            ],
+                                            "examples": [
+                                                "suspended"
+                                            ]
+                                        },
+                                        "email_verified_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "reason",
+                                        "email_verified_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Limite de requisi\u00e7\u00f5es excedido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Muitas tentativas. Por favor, tente novamente mais tarde."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "description": "Segundos at\u00e9 que o cliente possa tentar novamente.",
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/sessions/{id}": {
+            "delete": {
+                "operationId": "activeSession.destroy",
+                "tags": [
+                    "ActiveSession"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": true,
+                        "description": "Token XSRF espelhando o cookie XSRF-TOKEN; obrigat\u00f3rio em requisi\u00e7\u00f5es que alteram estado.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "description": "Erro na requisi\u00e7\u00e3o.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Sess\u00e3o n\u00e3o encontrada."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "N\u00e3o autenticado ou credenciais inv\u00e1lidas; nunca revela se uma conta existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "N\u00e3o autenticado."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "419": {
+                        "description": "Token CSRF ausente ou inv\u00e1lido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Token CSRF inv\u00e1lido ou expirado."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Esta conta foi desativada."
+                                            ]
+                                        },
+                                        "reason": {
+                                            "type": "string",
+                                            "enum": [
+                                                "pending_approval",
+                                                "suspended"
+                                            ],
+                                            "examples": [
+                                                "suspended"
+                                            ]
+                                        },
+                                        "email_verified_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "reason",
+                                        "email_verified_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Limite de requisi\u00e7\u00f5es excedido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "examples": [
+                                                "Muitas tentativas. Por favor, tente novamente mais tarde."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "description": "Segundos at\u00e9 que o cliente possa tentar novamente.",
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ]
+            }
+        },
         "/api/v1/activity-log": {
             "get": {
                 "operationId": "activity-log.index",
@@ -1113,6 +1579,113 @@
             }
         },
         "/api/v1/roles/{role}": {
+            "get": {
+                "operationId": "role.show",
+                "tags": [
+                    "Role"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/RoleResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                },
+                "security": []
+            },
+            "patch": {
+                "operationId": "role.rename",
+                "tags": [
+                    "Role"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RenameRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/RoleResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            },
             "delete": {
                 "operationId": "role.destroy",
                 "tags": [
@@ -1901,7 +2474,7 @@
             },
             "AssignUserRolesRequest": {
                 "type": "object",
-                "description": "Wave B contract: replace the target's role set with catalogue roles. The\nwave owning the route enforces UserPolicy::assignRoles (no self-assignment,\nlast active admin preserved) for the resolved target inside a\nPrivilegeTransaction.",
+                "description": "Wave B contract: replace the target's role set with catalogue roles. The\nwave owning the route enforces UserPolicy::assignRoles (no self-assignment,\nlast active admin preserved) for the resolved target inside a\nPrivilegeTransaction.\n\nGrant ceiling: a non-admin actor may only assign roles whose permissions are\nall held by the actor (directly or through the actor's roles). The role list\nis evaluated as a whole \u2014 if any requested role exceeds the ceiling (or is\nthe admin role), nothing is assigned. Policy denials, including the ceiling,\nrespond 403 Forbidden with the unauthorized message; unknown role names are\nrejected earlier by validation with 422.",
                 "properties": {
                     "roles": {
                         "type": "array",
@@ -2009,6 +2582,19 @@
                     "password_confirmation"
                 ],
                 "title": "RegisterRequest"
+            },
+            "RenameRoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "RenameRoleRequest"
             },
             "RoleResource": {
                 "type": "object",

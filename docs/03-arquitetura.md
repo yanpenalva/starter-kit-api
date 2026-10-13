@@ -111,9 +111,10 @@ A regra de separação é simples de aplicar na prática:
 - **Policies** decidem sobre objetos específicos: um ator pode editar *este* usuário?
   Pode desativar *esta* conta? É aqui que vivem as proteções de último administrador,
   anti-autoaplicação e imutabilidade do papel `admin`.
-- **Actions** executam mutações privilegiadas dentro de `PrivilegeTransaction`: a
-  operação e o evento de auditoria são confirmados no mesmo commit, e qualquer falha
-  reverte tudo.
+- **Actions** executam mutações privilegiadas dentro de `PrivilegeTransaction`:
+  depois de adquirir a trava, limpam o cache de permissões, resolvem o ator e,
+  quando houver, o alvo do estado persistido, reaplicam a policy e confirmam a
+  operação com a auditoria no mesmo commit; qualquer falha reverte tudo.
 - **Resources** controlam o JSON de saída. O `UserResource` expõe o CPF somente quando
   o ator tem a permissão de leitura para aquele alvo; nos demais casos o campo nem
   aparece. Datas saem em UTC no formato `Y-m-d\TH:i:s\Z`.
@@ -168,8 +169,13 @@ As dez permissões e o que cada uma autoriza:
 | `users.read-cpf` | Ler o CPF do alvo | O titular lê o próprio; gestão só com a permissão |
 | `roles.view` | Listar e ver papéis | Nenhuma (gate) |
 | `roles.update-permissions` | Reescrever permissões de um papel | O papel `admin` é imutável |
-| `roles.manage` | Criar e remover papéis | Remoção negada com o papel atribuído a alguém |
+| `roles.manage` | Criar, renomear e remover papéis | Nomes internos são reservados; `admin` é imutável; remoção negada se atribuído |
 | `logs.view` | Listar a trilha de auditoria | Nenhuma (gate) |
+
+Papéis customizáveis podem ser consultados por ID e renomeados com `roles.view` e
+`roles.manage`, respectivamente; a alteração de nome preserva as permissões atribuídas.
+O papel `admin` é imutável na API: não pode ser renomeado, removido ou ter permissões
+alteradas. Toda mutação de papel segue a mesma transação com auditoria fail-closed.
 
 Três invariantes sustentam o desenho. Primeiro, elegibilidade: todo ator administrativo
 precisa estar verificado e ativo, independentemente de papéis — permissão sozinha nunca
@@ -190,7 +196,7 @@ flowchart TD
     M[Mutação privilegiada] --> TX[PrivilegeTransaction<br/>transação + trava consultiva]
     TX --> OP[aplica a mudança]
     OP --> AU[Audit.record<br/>só eventos allowlist:<br/>privileged.change,<br/>cli.bootstrap]
-    AU --> ENV[envelope mínimo:<br/>correlation_id,<br/>actor_type, actor_id]
+    AU --> ENV[envelope mínimo:<br/>correlation_id,<br/>actor_type, actor_id, action]
     ENV --> AS[afirma que o registro<br/>existe na mesma transação]
     AS -->|existe| CM[commit]
     AS -->|falhou| RB[rollback da mutação]
@@ -204,7 +210,8 @@ O que o desenho garante, ponto a ponto:
   é verificada antes do commit. Se a gravação falha, a mutação é revertida: nunca
   existe privilégio concedido sem registro correspondente.
 - **Envelope mínimo por negação padrão.** Só sobrevivem as chaves aprovadas
-  (`correlation_id`, `actor_type`, `actor_id`); todo o resto é descartado. Senhas,
+  (`correlation_id`, `actor_type`, `actor_id` e ações fechadas como `role.rename`);
+  todo o resto é descartado. Senhas,
   hashes, tokens, cookies, CSRF, CPF, e-mail e payload integral são proibidos, e IP
   não é coletado por padrão.
 - **Leitura controlada.** A trilha não pode ser editada nem removida pela API, e a

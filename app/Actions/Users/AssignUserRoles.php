@@ -22,11 +22,11 @@ final class AssignUserRoles
      */
     public function run(User $actor, User $user, array $roleNames): User
     {
-        PrivilegeTransaction::run(function () use ($actor, $user, $roleNames): void {
+        PrivilegeTransaction::runWithActor($actor, function (User $actor) use ($user, $roleNames): void {
             /** @var User $target */
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
-            if (! app(UserPolicy::class)->assignRoles($actor, $target)) {
+            if (! app(UserPolicy::class)->assignRoles($actor, $target, $roleNames)) {
                 abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
 
