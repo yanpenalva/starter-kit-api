@@ -7,7 +7,7 @@
 
 ## Objective
 
-Generate `contracts/openapi.json` with two deterministic local exports and commit it. Rewrite historical commit `7d34e0373ebbbfe16568acaf96321d569a069875` so the flagged test value is the documented synthetic fixture, then force-push only the existing PR #82 branch with a lease.
+Generate `contracts/openapi.json` with two deterministic local exports and commit it. Rewrite the flagged test value in commits `7d34e0373ebbbfe16568acaf96321d569a069875` and `db5c8c1261f88078f4d48a492d97b900205e3354`, the two commits where it occurs in PR history, to the documented synthetic fixture. Then force-push only the existing PR #82 branch with a lease.
 
 ## Scope and exclusions
 
