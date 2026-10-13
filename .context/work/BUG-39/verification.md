@@ -1,0 +1,27 @@
+# Verification — BUG-39
+
+Date: 2026-10-13. Branch: `feat/slice-4-self-service-profile` → `main`, remote `origin`, existing PR #82 only.
+
+## Rewritten history and snapshot
+
+- Original commit `db5c8c1261f88078f4d48a492d97b900205e3354` was rewritten as `f0ab37d`.
+- Original flagged commit `7d34e0373ebbbfe16568acaf96321d569a069875` was rewritten as `b1759e9`.
+- Rebase used `-i --rebase-merges`; merge topology is preserved. The feature code/test tree matches the prior PR head (`git diff --quiet origin/feat/slice-4-self-service-profile HEAD -- app tests` exited 0).
+- Snapshot commit: `e2dadd0` (`docs(api): refresh self-service profile snapshot`). Exported file: 93,444 bytes, SHA-256 `0bb27eec2cf1634161856e8df7f47d6f4b445f02a00f2fa4305070bb89bf446f`; Scramble 0.13.47.
+- A dynamic `git grep -F` search extracted the original fixture from the pre-rewrite commit and checked all 200 commits reachable from the rewritten branch. Result: no match; both original commit IDs are absent from the branch history.
+
+## Gates
+
+| Gate | Command/environment | Result |
+| --- | --- | --- |
+| Deterministic export | `source /opt/data/php/env.sh`; isolated validation copy; `python3 scripts/contract_export.py --output=...`; `cmp` both export passes and compare the result to the committed snapshot | PASS, exit 0; identical bytes and matching SHA-256 above |
+| Lint | `source /opt/data/php/env.sh && composer lint` | PASS, Pint passed, exit 0 |
+| ScaffoldTest | Isolated copy with a temporary local-path SQLite config; `php vendor/bin/pest --configuration phpunit.validation.xml tests/Feature/ScaffoldTest.php --filter='^(?!.*test_postgresql_connection_uses_an_isolated_test_database)' --compact` | PASS, 12 passed / 261 assertions, exit 0 |
+| Context | `python3 scripts/validate_context.py --strict --examples` | PASS, exit 0; validator warns that no example suite is installed |
+| Diff/history | `git diff --check`; dynamic `git grep -F` over `git rev-list HEAD` | PASS; no whitespace errors and no original fixture in reachable history |
+
+The existing `vendor` symlink was preserved and no `composer install` ran. Dependencies were copied from that symlink into the temporary validation copy, where `composer dump-autoload --no-scripts` generated an isolated autoloader. The checked-in `phpunit.sqlite.xml` points to a different checkout, so only its absolute bootstrap/test paths were changed in a temporary config. Docker exists but `docker compose` is unavailable here; the PostgreSQL-only ScaffoldTest was excluded from the SQLite run. A full SQLite run fails only that PostgreSQL connection assertion (`sqlite` versus expected `pgsql`).
+
+## Delivery state
+
+Push is pending this verification record. PR #82 was verified open and unmerged at its original head before rewriting. The next action is one `--force-with-lease` push to `origin/feat/slice-4-self-service-profile`, tied to expected SHA `4544d4f3f44d72d47dc49474af1e01e9d9c1142c`; no merge or other PR is authorized.

@@ -4,7 +4,7 @@
   "title": "Remediate GitGuardian finding in PR #82 history and finalize profile OpenAPI snapshot",
   "track": "support",
   "type": "bug",
-  "phase": "execute",
+  "phase": "release",
   "status": "active",
   "risk": "high",
   "owner": "yanpenalva",
@@ -43,7 +43,9 @@
     "specify",
     "plan",
     "preflight",
-    "execute"
+    "execute",
+    "verify",
+    "release"
   ],
   "last_updated": "2026-10-13",
   "policy_exceptions": [
