@@ -54,7 +54,15 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
 - **Action:** Logs out of `web` guard, invalidates the server session, and regenerates the CSRF token. Returns HTTP 204.
 - **Subsequent Requests:** Requests reusing the previous session cookie receive HTTP 401.
 
-### 4. Active sessions
+### 4. Administrative MFA
+- **Enrollment:** `POST /api/v1/auth/mfa/enroll` is restricted to admins and requires the current password. It returns the TOTP secret, provisioning URI and recovery codes; recovery codes are shown as plaintext only in this response.
+- **Confirmation:** `POST /api/v1/auth/mfa/confirm` verifies a TOTP code and returns `{ "confirmed": true }`. Recovery codes are not returned again.
+- **Login:** A confirmed-MFA admin with valid credentials receives HTTP 200 `{ "requires_mfa": true }`. Any existing web authentication is logged out and the session is invalidated before the challenge-only session is created.
+- **Challenge:** `POST /api/v1/auth/mfa/challenge` accepts a TOTP or an unused recovery code. A successful challenge authenticates the web session and marks it as MFA-verified. Recovery codes are stored as one-way password hashes and consumed under a database transaction with a row lock, so concurrent attempts cannot both use one code.
+- **Protected routes:** Every `auth:sanctum` route requires a completed MFA challenge when the authenticated user is an admin with confirmed MFA. This also rejects sessions created before MFA was enabled.
+- **Recovery code regeneration:** `POST /api/v1/auth/mfa/recovery-codes` returns newly generated plaintext codes once and stores only their hashes. `POST /api/v1/auth/mfa/disable` clears the TOTP secret and recovery hashes.
+
+### 5. Active sessions
 - **Driver:** `SESSION_DRIVER=database` is required so the API can enumerate and revoke the session rows used by Laravel's database handler. The migration keeps Laravel's opaque string session ID as the `sessions.id` primary key; `sessions.user_id` is a nullable bigint matching `users.id`.
 - **`GET /api/v1/auth/sessions`:** Returns `{ "data": [{ "id": string, "ip_address": string|null, "user_agent": string|null, "last_activity": RFC3339 UTC|null, "is_current": boolean }] }` for the authenticated user's sessions only.
 - **`DELETE /api/v1/auth/sessions/{id}`:** Deletes only a session owned by the authenticated user and returns HTTP 204. Missing and other users' IDs return the same HTTP 404 message. Deleting the current session invalidates it; its next request receives HTTP 401.

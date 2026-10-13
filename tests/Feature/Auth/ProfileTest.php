@@ -7,10 +7,13 @@ namespace Tests\Feature\Auth;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
+use App\Notifications\VerifyEmail;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\Concern\ActsAsSanctumUser;
 use Tests\TestCase;
 
@@ -212,6 +215,204 @@ final class ProfileTest extends TestCase
             ->getJson('/api/v1/auth/my-profile');
 
         $response->assertStatus(401)
+            ->assertExactJson(['message' => 'Não autenticado.']);
+    }
+
+    public function test_owner_edits_name_without_admin_permissions(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Original Name',
+            'email' => 'selfservice@example.test',
+        ]);
+        $user->assignRole(Role::User->value);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->patchJson('/api/v1/auth/my-profile', ['name' => 'Updated Name'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Updated Name');
+
+        $this->assertSame('Updated Name', $user->fresh()?->name);
+    }
+
+    public function test_owner_changes_email_resets_verification_and_dispatches_notification(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->verified()->create(['email' => 'old-email@example.test']);
+        $user->assignRole(Role::User->value);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->patchJson('/api/v1/auth/my-profile', ['email' => 'new-email@example.test'])
+            ->assertOk()
+            ->assertJsonPath('data.email', 'new-email@example.test')
+            ->assertJsonPath('data.email_verified_at', null);
+
+        $fresh = $user->fresh();
+        $this->assertInstanceOf(User::class, $fresh);
+        $this->assertSame('new-email@example.test', $fresh->email);
+        $this->assertNull($fresh->email_verified_at);
+
+        Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    public function test_owner_updating_same_email_does_not_reset_verification(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->verified()->create(['email' => 'keep-email@example.test']);
+        $user->assignRole(Role::User->value);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->patchJson('/api/v1/auth/my-profile', [
+            'email' => 'keep-email@example.test',
+            'name' => 'Renamed Only',
+        ])->assertOk();
+
+        $this->assertNotNull($user->fresh()?->email_verified_at);
+        Notification::assertNothingSent();
+    }
+
+    public function test_owner_cannot_change_email_to_another_users_email(): void
+    {
+        Notification::fake();
+
+        User::factory()->create(['email' => 'taken@example.test']);
+        $user = User::factory()->verified()->create(['email' => 'mine@example.test']);
+        $user->assignRole(Role::User->value);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->patchJson('/api/v1/auth/my-profile', ['email' => 'Taken@Example.test'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('email');
+
+        $fresh = $user->fresh();
+        $this->assertInstanceOf(User::class, $fresh);
+        $this->assertSame('mine@example.test', $fresh->email);
+        $this->assertNotNull($fresh->email_verified_at);
+        Notification::assertNothingSent();
+    }
+
+    public function test_owner_cannot_set_email_verified_at_via_payload(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'email' => 'unverified@example.test',
+            'email_verified_at' => null,
+        ]);
+        $user->assignRole(Role::User->value);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->patchJson('/api/v1/auth/my-profile', [
+            'name' => 'Still Unverified',
+            'email_verified_at' => now()->toIso8601String(),
+        ])->assertOk();
+
+        $this->assertNull($user->fresh()?->email_verified_at);
+
+        $this->patchJson('/api/v1/auth/my-profile', [
+            'email' => 'changed@example.test',
+            'email_verified_at' => now()->toIso8601String(),
+        ])->assertOk()
+            ->assertJsonPath('data.email_verified_at', null);
+
+        $this->assertNull($user->fresh()?->email_verified_at);
+    }
+
+    public function test_owner_changes_password_requires_current_password(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('old-password-123')]);
+        $user->assignRole(Role::User->value);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->putJson('/api/v1/auth/password', [
+            'current_password' => 'wrong-password-123',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('current_password');
+
+        $afterFailure = $user->fresh();
+        $this->assertInstanceOf(User::class, $afterFailure);
+        $this->assertTrue(Hash::check('old-password-123', $afterFailure->password));
+        $this->assertFalse(Hash::check('new-password-123', $afterFailure->password));
+
+        $this->putJson('/api/v1/auth/password', [
+            'current_password' => 'old-password-123',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertOk();
+
+        $this->assertTrue(Hash::check('new-password-123', (string) $user->fresh()?->password));
+    }
+
+    public function test_owner_can_change_password_via_profile_patch_requiring_current_password(): void
+    {
+        // Synthetic test-only password; never used by a real account or service.
+        $newPassword = 'fake-profile-password-123';
+        $user = User::factory()->create(['password' => Hash::make('old-password-123')]);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->patchJson('/api/v1/auth/my-profile', [
+            'current_password' => 'wrong-pass',
+            'password' => $newPassword,
+            'password_confirmation' => $newPassword,
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('current_password');
+
+        $afterFailure = $user->fresh();
+        $this->assertInstanceOf(User::class, $afterFailure);
+        $this->assertTrue(Hash::check('old-password-123', $afterFailure->password));
+
+        $this->patchJson('/api/v1/auth/my-profile', [
+            'current_password' => 'old-password-123',
+            'password' => $newPassword,
+            'password_confirmation' => $newPassword,
+        ])->assertOk();
+
+        $this->assertTrue(Hash::check($newPassword, (string) $user->fresh()?->password));
+    }
+
+    public function test_owner_cannot_modify_privileged_fields_via_self_service(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole(Role::User->value);
+
+        self::actingAsSanctum($user->fresh() ?? $user);
+
+        $this->patchJson('/api/v1/auth/my-profile', [
+            'name' => 'Valid Name',
+            'roles' => [Role::Admin->value],
+            'active' => false,
+        ])->assertOk();
+
+        $fresh = $user->fresh();
+        $this->assertInstanceOf(User::class, $fresh);
+        $this->assertFalse($fresh->hasRole(Role::Admin->value));
+        $this->assertNull($fresh->deactivated_at);
+    }
+
+    public function test_unauthenticated_profile_update_is_rejected(): void
+    {
+        $this->patchJson('/api/v1/auth/my-profile', ['name' => 'Anonymous'])
+            ->assertStatus(401)
+            ->assertExactJson(['message' => 'Não autenticado.']);
+    }
+
+    public function test_unauthenticated_password_update_is_rejected(): void
+    {
+        $this->putJson('/api/v1/auth/password', [
+            'current_password' => 'whatever-password-123',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertStatus(401)
             ->assertExactJson(['message' => 'Não autenticado.']);
     }
 }
