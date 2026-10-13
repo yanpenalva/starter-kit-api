@@ -12,7 +12,7 @@ Fazer merge de `origin/main` na branch já associada à PR #85 antes de editar; 
 
 ## Execution order
 
-1. Fazer merge de `origin/main` na branch alvo antes da validação; a primeira integração trouxe #87 (`9f3ee25`) e a sincronização final inclui #84 (`0955e1e`), que avançou durante o trabalho.
+1. Fazer merge de `origin/main` na branch alvo antes da validação; a primeira integração trouxe #87 (`9f3ee25`, merge `f1c36b7`) e a sincronização final inclui #84 (`0955e1e`, merge `6ba1a69`), que avançou durante o trabalho.
 2. Conferir o snapshot versionado na `main` atual e a evidência determinística dos gates upstream.
 3. Acrescentar `Audit::ACTION_ROLE_RENAME` à expectativa da allowlist e rodar Pest focado.
 4. Rodar `composer lint`, inspecionar diff e validar contexto atualizado.

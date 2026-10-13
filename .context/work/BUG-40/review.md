@@ -13,7 +13,7 @@
 ## Correct
 
 - The added expected value matches the already allowlisted `role.rename` action.
-- The snapshot from the current `main` tip was integrated byte-for-byte after PR #84 advanced the branch during this work.
+- The snapshot from current `main` (`0955e1e`) was integrated byte-for-byte after PR #84 advanced the branch during this work; main Quality #209 passed all jobs.
 - Merge conflict resolutions retained both explicit audit action codes from this branch and actor-policy revalidation from upstream.
 
 ## Problems and risks
@@ -21,7 +21,7 @@
 - Priority: follow-up gate
 - Location: PR #85 remote checks
 - Evidence: no run exists yet for the corrected local SHA.
-- Impact: application, coverage and contract acceptance are not confirmed until GitHub Actions completes.
+- Impact: application, coverage and contract acceptance on the final PR #85 SHA are not confirmed until GitHub Actions completes.
 - Recommendation: push only the existing branch, then observe its CI run before declaring the gates green.
 
 ## Baseline checklist
