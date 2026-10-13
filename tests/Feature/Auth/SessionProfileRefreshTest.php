@@ -80,4 +80,30 @@ final class SessionProfileRefreshTest extends TestCase
         self::actingAsSanctum($user);
         $this->getJson('/api/v1/auth/my-profile')->assertForbidden();
     }
+
+    public function test_profile_returns_permission_union_without_duplicates_for_multiple_roles(): void
+    {
+        $viewer = PermissionRole::query()->create(['name' => 'viewer', 'guard_name' => 'web']);
+        $viewer->givePermissionTo([Permission::UsersView->value, Permission::LogsView->value]);
+
+        $auditor = PermissionRole::query()->create(['name' => 'auditor', 'guard_name' => 'web']);
+        $auditor->givePermissionTo([Permission::LogsView->value, Permission::RolesView->value]);
+
+        $user = User::factory()->verified()->create();
+        $user->assignRole([$viewer->name, $auditor->name]);
+        $user = User::query()->whereKey($user->getKey())->firstOrFail();
+
+        $expectedPermissions = [
+            Permission::UsersView->value,
+            Permission::LogsView->value,
+            Permission::RolesView->value,
+        ];
+        sort($expectedPermissions);
+
+        self::actingAsSanctum($user);
+        $this->getJson('/api/v1/auth/my-profile')
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['auditor', 'viewer'])
+            ->assertJsonPath('data.permissions', $expectedPermissions);
+    }
 }
