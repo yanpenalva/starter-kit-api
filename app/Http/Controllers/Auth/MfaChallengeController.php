@@ -63,7 +63,7 @@ final class MfaChallengeController
         $passed = false;
 
         if (is_string($code) && ! empty($user->mfa_secret)) {
-            $passed = $totp->verify($user->mfa_secret, trim($code));
+            $passed = $totp->verifyOnce($user->mfa_secret, trim($code), 'mfa:'.$user->id);
         }
 
         if (! $passed && is_string($recoveryCodeInput)) {
