@@ -25,3 +25,13 @@ The existing `vendor` symlink was preserved and no `composer install` ran. Depen
 ## Delivery state
 
 `git push --force-with-lease=refs/heads/feat/slice-4-self-service-profile:4544d4f3f44d72d47dc49474af1e01e9d9c1142c origin HEAD:refs/heads/feat/slice-4-self-service-profile` succeeded. At the post-force check, the branch ref and `refs/pull/82/head` both pointed to `c143715d9096853bb8e70799e5d7478bdc596a9c`; a fresh GitHub API read confirmed PR #82 open, unmerged, and targeting `main`. This delivery record is carried in a documentation-only commit sent by normal fast-forward to the same branch. No merge or other PR was performed.
+
+## PR #89 main synchronization
+
+- User instruction: merge the fetched `origin/main` into this branch with a normal merge; do not rewrite history, create another PR or merge PR #82.
+- Preflight: PR #82 was open and unmerged, based on `main`, with branch and PR refs at `ac8b82fee8d08e9567af2548e61a4d5609fa1808`. `origin/main` was `20a14f01bc70e4b9c84116d1de7dabdc6a8d29b0`.
+- Merge commit: `21a9ed1f007ae46f55ae4faf9756bdd6dac6e165` (`merge: sync origin/main into self-service profile`). Resolved `routes/api/auth.php` and `tests/Feature/ScaffoldTest.php` by retaining both profile/password routes and active-session routes, with inventory and method assertions for both.
+- Snapshot: the merge's `contracts/openapi.json` matched a two-pass `dedoc/scramble 0.13.47` export byte for byte; no regeneration or snapshot edit was needed. Export SHA-256 `1a68e9286b960cc906cbc05557aa139eb7c7772f2ec7dfdd06b466c72900ff4e`, 120,269 bytes.
+- Lint: `source /opt/data/php/env.sh`, with the local PHP wrapper directories added to `PATH`, then `composer lint` — PASS, Pint passed.
+- Secret and merge checks: `git grep` credential-pattern scan of tracked files and merge additions found no matches; conflict markers absent; `git diff --check` passed.
+- `vendor` remains the original symlink to `/opt/data/work/starter-kit-api/vendor`; no `composer install` ran. The API test and analysis gates will be reported from CI on the pushed PR head.
