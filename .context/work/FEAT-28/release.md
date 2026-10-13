@@ -13,10 +13,11 @@ artifact publication, database migration, or frontend delivery.
 
 ## Readiness
 
-Strict context validation and the exact push/remote-head evidence are recorded in
-`verification.md` after the integration checks. The earlier branch delivery on
-2026-10-12 pushed the documentation commits to the same PR branch; the current
-update preserves that history and adds the latest `main` changes.
+Strict context validation, Pint, and the exact push/remote-head evidence are
+recorded in `verification.md`. The merge commit was pushed by fast-forward to PR
+#90; the GitHub API confirmed the PR remains open against `main` and unmerged. The
+earlier branch delivery on 2026-10-12 pushed to the same PR branch; this update
+preserves that history and adds the latest `main` changes.
 
 No production smoke check or observation window applies because no application
 behavior or contract artifact is released. Rollback trigger: verified documentation

@@ -53,3 +53,8 @@ No application behavior, workflow YAML, frontend, dependency manifest, or contra
 - Final run after the API/architecture/security/ADR/work-item reconciliation: `python3 scripts/validate_context.py --strict` — exit 0 (`Context validation passed.`).
 - Scope: context, ADR, release-guide, and work-item documentation. No application behavior, workflow YAML, or OpenAPI snapshot was edited as part of conflict resolution.
 - Independent reader review and remote CI are not claimed.
+- `git diff --check HEAD` — exit 0.
+- Merge commit `f5afe61cb115945240772cbbcd560c41e8919d84` — exit 0; the active pre-commit hook ran `composer lint` (Pint passed) and `python3 scripts/validate_context.py --strict` (passed).
+- `git push origin feat/slice-12-contract-release-docs` — exit 0; fast-forwarded remote head from `11143c940d10d7ffb523e69a4fafc80ab03c92b0` to `f5afe61cb115945240772cbbcd560c41e8919d84`.
+- `git ls-remote origin refs/heads/feat/slice-12-contract-release-docs` — exit 0; confirmed remote head `f5afe61cb115945240772cbbcd560c41e8919d84`.
+- `curl -fsSL https://api.github.com/repos/yanpenalva/starter-kit-api/pulls/90` — exit 0; PR #90 is open, targets `main`, points to that head, and is not merged.
