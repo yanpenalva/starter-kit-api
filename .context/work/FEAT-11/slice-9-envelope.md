@@ -62,5 +62,7 @@ The local export is the candidate snapshot for this branch, following the proced
 - Full Pest on the documented local PostgreSQL 17 profile: 313 passed / 2,917 assertions. The configured Docker/PostgreSQL 18 CI gate remains authoritative.
 - `composer lint`: passed. PHPStan Level 10 direct invocation with the worktree autoload bootstrap: passed, no errors.
 - `python3 scripts/validate_context.py --strict --examples`: passed (the repository has no example suite); CSD doctor 1.2.1 passed.
-- `python3 -m unittest discover -s tests -v`: 113 tests ran but 7 failed because the pinned `oasdiff` executable is absent on this ARM64 host. GitHub CI installs the pinned Linux AMD64 executable; the post-push CI compatibility result is still required before handoff.
+- `python3 -m unittest discover -s tests -v`: 113 tests ran locally; 7 checker tests could not pass because the pinned `oasdiff` executable is unavailable on this ARM64 host. GitHub Quality run #198 installed the pinned Linux AMD64 executable and the context job passed.
+- GitHub Quality run #198 passed the contract generation/compatibility job: deterministic export, snapshot freshness, and `oasdiff 1.33.0` found no breaking changes against `4a8531661b73d22c3dfac932e65faa4c0b936f58`. The application and 85% coverage jobs also passed.
+- Existing PR #87 remains open and unmerged.
 - The vendor symlink was retained; a temporary autoload bootstrap pointed local verification at this worktree without running Composer install.
