@@ -46,6 +46,7 @@ final class AuditDistinctActionsTest extends TestCase
             Audit::ACTION_ROLE_STORE,
             Audit::ACTION_ROLE_UPDATE_PERMISSIONS,
             Audit::ACTION_ROLE_DESTROY,
+            Audit::ACTION_ROLE_RENAME,
             Audit::ACTION_BOOTSTRAP,
         ], Audit::allowedActions());
     }
