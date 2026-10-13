@@ -219,6 +219,9 @@ final class ScaffoldTest extends TestCase
             'api/v1',
             'api/v1/activity-log',
             'api/v1/auth/my-profile',
+            'api/v1/auth/sessions',
+            'api/v1/auth/sessions',
+            'api/v1/auth/sessions/{id}',
             'api/v1/email/verification-notification',
             'api/v1/email/verify/{id}/{hash}',
             'api/v1/forgot-password',
@@ -243,5 +246,22 @@ final class ScaffoldTest extends TestCase
             'sanctum/csrf-cookie',
             'up',
         ], $uris);
+
+        $sessionOperations = [];
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            if (! str_starts_with($route->uri(), 'api/v1/auth/sessions')) {
+                continue;
+            }
+
+            $methods = array_values(array_filter($route->methods(), 'is_string'));
+            $sessionOperations[] = implode('|', $methods).' '.$route->uri();
+        }
+        sort($sessionOperations);
+
+        $this->assertSame([
+            'DELETE api/v1/auth/sessions',
+            'DELETE api/v1/auth/sessions/{id}',
+            'GET|HEAD api/v1/auth/sessions',
+        ], $sessionOperations);
     }
 }

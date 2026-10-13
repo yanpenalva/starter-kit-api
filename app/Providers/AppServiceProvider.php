@@ -62,6 +62,13 @@ final class AppServiceProvider extends ServiceProvider
                 is_int($identifier) || is_string($identifier) ? (string) $identifier : (string) $request->ip(),
             );
         });
+        RateLimiter::for('sessions', static function (Request $request): Limit {
+            $identifier = $request->user()?->getAuthIdentifier();
+
+            return Limit::perMinute(10)->by(
+                is_int($identifier) || is_string($identifier) ? (string) $identifier : (string) $request->ip(),
+            );
+        });
         RateLimiter::for('forgot', static function (Request $request): Limit {
             return Limit::perMinute(3)->by((string) $request->ip());
         });
