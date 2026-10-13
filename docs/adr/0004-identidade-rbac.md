@@ -1,6 +1,6 @@
 # ADR 0004 — Identidade, ativação e menor privilégio
 
-- Estado: aceito; decisão arquitetural aprovada, ainda não implementada.
+- Estado: aceito; parcialmente substituído pelo [ADR 0009](0009-ativacao-por-verificacao-email.md) quanto à ativação após verificação de e-mail e à distinção entre conta pendente e suspensa. Demais decisões permanecem vigentes.
 - Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em [FEAT-1](../../.context/work/FEAT-1/approval.md).
 
 ## Contexto e evidência

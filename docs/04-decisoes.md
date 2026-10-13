@@ -219,3 +219,34 @@ pinado dão ao frontend um alvo estável para gerar tipos.
 **Alternativa rejeitada.** API sem versão (qualquer mudança arrisca todos os clientes)
 e versionamento por cabeçalho ou parâmetro (invisível em logs, difícil de rotear no
 edge e fácil de esquecer no cliente).
+
+## 15. Onboarding de usuário criado pelo administrador
+
+**Onde vive:** `app/Actions/Users/StoreUser.php`, `app/Notifications/VerifyEmail.php`,
+comando `auth:prune-expired-tokens` em `routes/console.php`.
+
+**Motivo.** O convite é o mesmo e-mail de verificação do cadastro público: link assinado
+com validade de 24 horas, reenvio em `POST /api/v1/email/verification-notification`
+(limitado a 3 por minuto por usuário; a 4ª tentativa devolve 429).
+
+**Falha de envio.** `StoreUser` grava o usuário e a auditoria dentro da transação e só
+depois dispara a notificação, fora dela. A notificação é enfileirada (fila `database`,
+3 tentativas com espera de 5, 15 e 60 segundos). Assim, uma falha de envio de e-mail
+não desfaz a criação da conta nem a auditoria: o usuário existe e o convite pode ser
+reenviado. Se o próprio enfileiramento falhar, a resposta é de erro, mas o usuário já
+foi persistido; repetir a criação devolverá e-mail duplicado e o caminho de recuperação
+é o reenvio do link.
+
+**Prune de 24 horas e contas administrativas.** `auth:prune-expired-tokens` remove,
+diariamente, toda conta com `email_verified_at` nulo e `created_at` anterior a 24 horas.
+Isso inclui contas criadas pelo administrador (ativas ou desativadas) cujo convidado não
+verificou o e-mail dentro do prazo: a conta é excluída definitivamente, sem aviso, e o
+administrador precisa criá-la de novo. O prune não distingue contas por origem.
+
+**Login antes da verificação.** O convidado entra com a senha definida pelo administrador
+antes de verificar o e-mail; a sessão é limitada (perfil mínimo e fluxo de verificação,
+conforme ADR 0004). A verificação não é pré-requisito para autenticar, e sim para os
+recursos de negócio.
+
+**Alternativa rejeitada.** Enviar o e-mail dentro da transação: acoplaria a criação da
+conta à disponibilidade da fila e do provedor de e-mail.
