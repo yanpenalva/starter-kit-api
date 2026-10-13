@@ -1,6 +1,6 @@
 # ADR 0002 — Sessão Sanctum para a SPA
 
-- Estado: aceito; decisão arquitetural aprovada, ainda não implementada.
+- Estado: aceito como registro histórico; a permissão para tokens Bearer está parcialmente substituída pelo [ADR 0010](0010-autenticacao-http-somente-sessao.md).
 - Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em [FEAT-1](../../.context/work/FEAT-1/approval.md).
 
 ## Contexto e evidência
@@ -9,7 +9,11 @@ A [issue #1](https://github.com/yanpenalva/starter-kit-api/issues/1) prevê cook
 
 ## Decisão
 
-Usar Sanctum stateful na SPA própria. Fluxo previsto: obter `/sanctum/csrf-cookie`, enviar login com credenciais e cabeçalho CSRF e consumir rotas protegidas por `auth:sanctum`. O cliente envia cookies e `X-XSRF-TOKEN`. Tokens Bearer ficam restritos a integrações específicas aprovadas.
+Decisão histórica: integrações aprovadas poderiam usar tokens Bearer. Essa permissão
+foi substituída; o fluxo HTTP atual é somente Sanctum por sessão/cookie e CSRF,
+conforme o ADR 0010.
+
+Usar Sanctum stateful na SPA própria. Fluxo previsto: obter `/sanctum/csrf-cookie`, enviar login com credenciais e cabeçalho CSRF e consumir rotas protegidas por `auth:sanctum`. O cliente envia cookies e `X-XSRF-TOKEN`. Na decisão original, tokens Bearer ficavam restritos a integrações específicas aprovadas.
 
 Usar HTTPS em produção, cookie de sessão Secure/HttpOnly e configuração explícita de SameSite e domínio. A cookie CSRF legível pelo cliente não é a cookie de sessão HttpOnly. Autorizar somente origens conhecidas com credenciais; não usar origem wildcard. Configurar hosts stateful com portas de desenvolvimento quando aplicável. Login regenera sessão; logout invalida sessão e renova CSRF. Rate limits precisam ser definidos no item de autenticação.
 
