@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 final class TotpService
@@ -72,6 +73,31 @@ final class TotpService
             if (hash_equals($calculated, $code)) {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    public function verifyOnce(string $secret, string $code, string $scope, int $window = 1): bool
+    {
+        if (strlen($code) !== 6 || ! ctype_digit($code)) {
+            return false;
+        }
+
+        $currentTimeSlice = (int) floor(time() / 30);
+
+        for ($i = -$window; $i <= $window; $i++) {
+            $slice = $currentTimeSlice + $i;
+
+            if (! hash_equals($this->calculateCode($secret, $slice), $code)) {
+                continue;
+            }
+
+            return Cache::add(
+                "totp:used:{$scope}:{$slice}",
+                true,
+                ($window + 1) * 30 + 30
+            );
         }
 
         return false;

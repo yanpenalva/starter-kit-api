@@ -73,7 +73,7 @@ final class MfaEnrollmentController
             abort(SymfonyResponse::HTTP_BAD_REQUEST, 'MFA não iniciado para esta conta.');
         }
 
-        if (! $totp->verify($user->mfa_secret, $code)) {
+        if (! $totp->verifyOnce($user->mfa_secret, $code, 'mfa:'.$user->id)) {
             return response()->json([
                 'message' => 'Código MFA inválido.',
                 'errors' => ['code' => ['Código MFA inválido.']],
