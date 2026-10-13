@@ -947,6 +947,24 @@
                     "204": {
                         "description": "No content"
                     },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "requires_mfa": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "requires_mfa"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "403": {
                         "description": "Autenticado, mas explicitamente bloqueado (conta desativada).",
                         "content": {
@@ -1344,7 +1362,7 @@
                                     "type": "object",
                                     "properties": {
                                         "mfa_enabled": {
-                                            "type": "string"
+                                            "type": "boolean"
                                         }
                                     },
                                     "required": [

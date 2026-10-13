@@ -29,3 +29,13 @@ All subtasks are sequential because they touch the same authentication contract.
 - Existing PR: [#84](https://github.com/yanpenalva/starter-kit-api/pull/84), targeting `main`.
 - After the user-requested gates pass: commit and push only `feat/slice-6-admin-mfa-optional` to `origin`, updating PR #84. Do not create another PR or merge PR #84.
 - Exception record: `EXC-0001`.
+
+## Follow-up plan — PR #84 contract freshness
+
+1. Record and inspect the latest branch run and failed Contract job. Observed run `38331391758`; generated exports were deterministic, but freshness failed at byte 36,653 / line 847.
+2. Merge current `main` (`9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7`, including PR #87) into the delivery branch first. Completed as merge commit `3b4337782310ae9a6999ffe3f88e4edc104973ba`.
+3. Re-export twice from the merged checkout under the same locale/timezone and compare bytes. The parsed diff is exactly two nodes: add the `POST /api/v1/login` 200 response with `requires_mfa: boolean`, and change `/api/v1/auth/mfa/status` → `mfa_enabled.type` from `string` to `boolean`. The older run's first mismatch at byte 36,653 / line 847 is the missing login response. The shared `vendor` Composer map points `App\` at `/opt/data/work/starter-kit-api`; use a temporary autoload override so export resolves this checkout's app code.
+4. Refresh only the snapshot from the deterministic export, then verify both export comparisons and run `composer lint` without installing Composer dependencies.
+5. Review the diff, then commit and push only `feat/slice-6-admin-mfa-optional` to update PR #84.
+
+Acceptance evidence: deterministic export and snapshot `cmp` pass; Pint passes; diff contains the intended contract snapshot and CSD evidence only; PR #84 remains open and is the only PR updated.
