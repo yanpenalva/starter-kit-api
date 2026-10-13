@@ -168,8 +168,13 @@ As dez permissões e o que cada uma autoriza:
 | `users.read-cpf` | Ler o CPF do alvo | O titular lê o próprio; gestão só com a permissão |
 | `roles.view` | Listar e ver papéis | Nenhuma (gate) |
 | `roles.update-permissions` | Reescrever permissões de um papel | O papel `admin` é imutável |
-| `roles.manage` | Criar e remover papéis | Remoção negada com o papel atribuído a alguém |
+| `roles.manage` | Criar, renomear e remover papéis | Nomes internos são reservados; `admin` é imutável; remoção negada se atribuído |
 | `logs.view` | Listar a trilha de auditoria | Nenhuma (gate) |
+
+Papéis customizáveis podem ser consultados por ID e renomeados com `roles.view` e
+`roles.manage`, respectivamente; a alteração de nome preserva as permissões atribuídas.
+O papel `admin` é imutável na API: não pode ser renomeado, removido ou ter permissões
+alteradas. Toda mutação de papel segue a mesma transação com auditoria fail-closed.
 
 Três invariantes sustentam o desenho. Primeiro, elegibilidade: todo ator administrativo
 precisa estar verificado e ativo, independentemente de papéis — permissão sozinha nunca
@@ -204,12 +209,14 @@ O que o desenho garante, ponto a ponto:
   é verificada antes do commit. Se a gravação falha, a mutação é revertida: nunca
   existe privilégio concedido sem registro correspondente.
 - **Envelope mínimo por negação padrão.** Só sobrevivem as chaves aprovadas
-  (`correlation_id`, `actor_type`, `actor_id`, `action`); todo o resto é descartado. Senhas,
+  (`correlation_id`, `actor_type`, `actor_id` e `action`, com códigos aprovados como
+  `role.rename`); todo o resto é descartado. Senhas,
   hashes, tokens, cookies, CSRF, CPF, e-mail e payload integral são proibidos, e IP
   não é coletado por padrão.
 - **Ação específica e validada.** `event` agrupa mudanças privilegiadas e bootstrap;
   `properties.action` identifica a operação com um código da allowlist, como
-  `user.store`, `user.status`, `role.update_permissions` ou `admin.bootstrap`. O feed
+  `user.store`, `user.status`, `role.update_permissions`, `role.rename` ou
+  `admin.bootstrap`. O feed
   aceita `?action=<código aprovado>` e rejeita códigos fora da lista.
 - **Leitura controlada.** A trilha não pode ser editada nem removida pela API, e a
   leitura exige a permissão `logs.view`. A limpeza após 90 dias é restrita ao processo

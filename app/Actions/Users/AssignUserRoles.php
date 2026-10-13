@@ -27,7 +27,7 @@ final class AssignUserRoles
             /** @var User $target */
             $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
-            if (! app(UserPolicy::class)->assignRoles($actor, $target)) {
+            if (! app(UserPolicy::class)->assignRoles($actor, $target, $roleNames)) {
                 abort(Response::HTTP_FORBIDDEN, ApiMessage::UNAUTHORIZED);
             }
 

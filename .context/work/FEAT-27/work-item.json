@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "id": "FEAT-27",
+  "title": "Complete active-session lifecycle and revocation",
+  "track": "product",
+  "type": "feature",
+  "phase": "verify",
+  "status": "active",
+  "risk": "high",
+  "owner": "yanpenalva",
+  "conversation_profile": "senior-software-engineer",
+  "git_finalization_mode": "automatic",
+  "classification": {
+    "complexity": "high",
+    "impact": "cross-module",
+    "security": "sensitive",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "extended",
+    "effective": "extended"
+  },
+  "context": {
+    "budget": "extended",
+    "required": ["core", "project", "testing", "security", "architecture", "release"],
+    "deferred": ["incident"],
+    "triggers": ["session revocation and password-reset/suspension invalidation", "database session driver and branch delivery"]
+  },
+  "reclassification": [],
+  "phase_history": ["discover", "specify", "plan", "preflight", "execute", "verify"],
+  "last_updated": "2026-10-13",
+  "policy_exceptions": ["EXC-0001"]
+}

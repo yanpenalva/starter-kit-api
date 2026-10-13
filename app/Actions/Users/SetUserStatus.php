@@ -10,6 +10,7 @@ use App\Policies\UserPolicy;
 use App\Support\ApiMessage;
 use App\Support\Audit;
 use App\Support\PrivilegeTransaction;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 final class SetUserStatus
@@ -29,6 +30,12 @@ final class SetUserStatus
             $target->update([
                 'deactivated_at' => $status === 'deactivated' ? now() : null,
             ]);
+
+            if ($status === 'deactivated') {
+                DB::table('sessions')
+                    ->where('user_id', $target->getKey())
+                    ->delete();
+            }
 
             $this->auditUserChange($actor, $target, Audit::ACTION_USER_STATUS);
         });

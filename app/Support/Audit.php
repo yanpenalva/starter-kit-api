@@ -37,6 +37,8 @@ final class Audit
 
     public const ACTION_ROLE_DESTROY = 'role.destroy';
 
+    public const ACTION_ROLE_RENAME = 'role.rename';
+
     public const ACTION_BOOTSTRAP = 'admin.bootstrap';
 
     private const ALLOWED_EVENTS = [self::EVENT_CLI_BOOTSTRAP, self::EVENT_PRIVILEGED_CHANGE];
@@ -50,6 +52,7 @@ final class Audit
         self::ACTION_ROLE_STORE,
         self::ACTION_ROLE_UPDATE_PERMISSIONS,
         self::ACTION_ROLE_DESTROY,
+        self::ACTION_ROLE_RENAME,
         self::ACTION_BOOTSTRAP,
     ];
 

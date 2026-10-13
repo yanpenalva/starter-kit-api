@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Auth;
 
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Session\DatabaseSessionHandler;
 use Illuminate\Session\SessionManager;
 use Illuminate\Session\Store;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use SessionHandlerInterface;
 use Tests\TestCase;
@@ -25,22 +23,6 @@ final class SessionExpirationTest extends TestCase
         parent::setUp();
 
         config()->set('session.driver', 'database');
-
-        Schema::create('sessions', function (Blueprint $table): void {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
-        });
-    }
-
-    protected function tearDown(): void
-    {
-        Schema::dropIfExists('sessions');
-
-        parent::tearDown();
     }
 
     public function test_idle_session_beyond_lifetime_is_rejected(): void
