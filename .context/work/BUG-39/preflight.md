@@ -23,3 +23,9 @@
 
 Reviewer: Codex (producer preflight; independent reviewer NOT FOUND)
 Date: 2026-10-12
+
+## Follow-up delivery check (2026-10-13)
+
+- The merge conflict in `app/Models/User.php` was resolved by keeping both sides' behavior and committed as `d55d03bb6c041d7cd5fb4f7bd7f348c2df2b99eb0`.
+- GitHub PR #84 was confirmed open, targeting `main`, with head branch `feat/slice-6-admin-mfa-optional`. `gh` is unavailable; a read-only GitHub REST lookup confirmed the PR identity.
+- The user directs pushing only this branch to existing PR #84. No new PR or PR merge is authorized.

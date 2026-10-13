@@ -24,3 +24,17 @@ Pest emits warnings because this checkout has no `.env` file. The PostgreSQL-onl
 ## Runtime limits
 
 The test configuration and bootstrap are temporary files under `/tmp`. No Composer installation was run, no local `.env` was added, and no PostgreSQL or Redis service was used. The PostgreSQL concurrency assertion remains for CI execution.
+
+## Follow-up verification — merge and MFA surface coverage (2026-10-13)
+
+- Merge resolution commit: `d55d03bb6c041d7cd5fb4f7bd7f348c2df2b99eb0`. `User` retains the MFA fields, casts and `hasMfaEnabled()` from the feature branch, plus `markEmailAsVerified()` from `main`.
+- Scaffold route inventory: PASS — one assertion after adding all six registered MFA routes.
+- OpenAPI contract tests: PASS — 562 assertions, including all six MFA paths. A new test exports twice under `LC_ALL=C` and compares bytes; `contracts/openapi.json` is unchanged.
+- Focused MFA Pest: PASS — 103 assertions on SQLite. The PostgreSQL row-lock concurrency behavior remains for CI.
+- Merged identity/action/admin Pest tests: PASS — 335 assertions across `UsersActionsTest`, `UsersAdminHttpTest` and `PublicIdentityTest`.
+- Pint: PASS — `composer lint`.
+- PHPStan/Larastan level 10: PASS — configured paths, with the temporary bootstrap for this checkout and `APP_ENV=testing`, `MAIL_MAILER=array`.
+- Context validation: PASS — strict plus examples mode; expected warning that no example suite is installed.
+- Python tooling suite: PASS — 113 tests with the pinned `oasdiff` 1.33.0 ARM64 binary available from `/tmp`.
+- CSD doctor: PASS — `npx @owlcodium/context-spec-develop@1.2.1 doctor --scope project`.
+- Pest emits environment warnings because this worktree has no `.env`; no local `.env` was created. Tests use the temporary SQLite configuration. The full PostgreSQL Compose profile was not run locally.
