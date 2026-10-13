@@ -29,3 +29,4 @@ Post-force-push `git ls-remote` confirmed both `refs/heads/feat/slice-4-self-ser
 - `origin/main` was `20a14f01bc70e4b9c84116d1de7dabdc6a8d29b0` (merge of PR #89). The normal merge commit is recorded in [verification.md](verification.md).
 - Local lint, deterministic snapshot comparison, credential-pattern grep and merge conflict checks passed. No Composer installation ran, and the existing `vendor` symlink was preserved.
 - The normal push succeeded at `61a54db7db0b53beef8e8adc318412f1c3c1be5a`; the branch and `refs/pull/82/head` match. PR #82 remains open and unmerged. All five GitHub checks passed on that pushed SHA.
+- `origin/main` then advanced fast-forward to `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7` (PR #87). A second normal merge into this same branch is ready for the authorized PR #82 push; no history was rewritten.

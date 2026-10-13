@@ -36,3 +36,10 @@ The existing `vendor` symlink was preserved and no `composer install` ran. Depen
 - Secret and merge checks: `git grep` credential-pattern scan of tracked files and merge additions found no matches; conflict markers absent; `git diff --check` passed.
 - `vendor` remains the original symlink to `/opt/data/work/starter-kit-api/vendor`; no `composer install` ran.
 - Push and remote gates: normal push to the existing branch succeeded at `61a54db7db0b53beef8e8adc318412f1c3c1be5a`; the branch ref and `refs/pull/82/head` matched. GitHub run `38332269294` reported `application`, coverage, contract generation/compatibility, context, and GitGuardian as successful. The PR page showed PR #82 `OPEN`.
+
+## Latest `origin/main` synchronization
+
+- `origin/main` advanced from `20a14f01bc70e4b9c84116d1de7dabdc6a8d29b0` to descendant `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7` (PR #87). The normal merge commit is `d810b70cc92eacbe511bb346f2bbe321a0459da2`; it had no conflicts and did not rewrite branch history.
+- The merged `contracts/openapi.json` matched two deterministic exports from Scramble 0.13.47, 139,347 bytes, SHA-256 `d61ccd557c67f38fcbeac1dae9e2c9bf13f214f455d9967e1501de4662ca03ee`; no snapshot edit was needed.
+- `source /opt/data/php/env.sh` plus local PHP wrapper `PATH`, then `composer lint`: PASS (Pint). `python3 scripts/validate_context.py --strict`: PASS. Credential-pattern grep, conflict-marker scan and `git diff --check`: clean.
+- At this record, the latest merge was ready for a normal push to the existing PR #82 branch. No Composer installation ran; the `vendor` symlink remained unchanged.
