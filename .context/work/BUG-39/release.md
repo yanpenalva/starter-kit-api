@@ -10,11 +10,11 @@
 
 - OpenAPI export, lint, ScaffoldTest (SQLite scope), strict context validation, and history grep evidence are recorded in [verification.md](verification.md).
 - The original fixture is absent from every commit reachable from the rewritten local branch.
-- The push has not yet been attempted. Expected remote branch SHA for the lease: `4544d4f3f44d72d47dc49474af1e01e9d9c1142c`.
+- The force push succeeded with `--force-with-lease` tied to the expected remote SHA `4544d4f3f44d72d47dc49474af1e01e9d9c1142c`.
 
 ## Post-push check
 
-After the leased push, verify through `git ls-remote` and PR #82 metadata that the branch points to the pushed HEAD, the PR remains open and unmerged, and the base remains `main`. No deployment smoke check applies before merge.
+Post-force-push `git ls-remote` confirmed both `refs/heads/feat/slice-4-self-service-profile` and `refs/pull/82/head` at `c143715d9096853bb8e70799e5d7478bdc596a9c`. A fresh GitHub API read confirmed PR #82 open and unmerged, with base `main`. This release record is delivered afterward as a documentation-only normal fast-forward commit to the same branch; it does not change application code or the snapshot. No deployment smoke check applies before merge.
 
 ## Observation and rollback
 

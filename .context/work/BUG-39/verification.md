@@ -24,4 +24,4 @@ The existing `vendor` symlink was preserved and no `composer install` ran. Depen
 
 ## Delivery state
 
-Push is pending this verification record. PR #82 was verified open and unmerged at its original head before rewriting. The next action is one `--force-with-lease` push to `origin/feat/slice-4-self-service-profile`, tied to expected SHA `4544d4f3f44d72d47dc49474af1e01e9d9c1142c`; no merge or other PR is authorized.
+`git push --force-with-lease=refs/heads/feat/slice-4-self-service-profile:4544d4f3f44d72d47dc49474af1e01e9d9c1142c origin HEAD:refs/heads/feat/slice-4-self-service-profile` succeeded. At the post-force check, the branch ref and `refs/pull/82/head` both pointed to `c143715d9096853bb8e70799e5d7478bdc596a9c`; a fresh GitHub API read confirmed PR #82 open, unmerged, and targeting `main`. This delivery record is carried in a documentation-only commit sent by normal fast-forward to the same branch. No merge or other PR was performed.
