@@ -7,11 +7,6 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Redis;
 
-/**
- * Dev-only async infrastructure probe: verifies the Redis connection and
- * stores a short-lived marker key. Used by the scheduler fixture and the
- * local smoke script; never scheduled in production.
- */
 final class InfraProbeCommand extends Command
 {
     protected $signature = 'infra:probe {--key=infra:probe:last : Chave do marcador no Redis}';

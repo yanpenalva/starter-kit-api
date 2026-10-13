@@ -8,11 +8,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use RuntimeException;
 
-/**
- * Dev-only synthetic job that always fails, used to prove retry/backoff
- * and the failed_jobs record path. The exception message is synthetic
- * only — no user data, no secrets.
- */
 final class InfraFailingJob implements ShouldQueue
 {
     use Queueable;

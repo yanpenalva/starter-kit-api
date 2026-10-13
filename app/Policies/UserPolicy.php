@@ -9,13 +9,6 @@ use App\Enums\Role;
 use App\Models\User;
 use Spatie\Permission\Models\Role as SpatieRole;
 
-/**
- * Policy foundation for the approved privilege mutations consumed by the
- * admin user/role endpoints in routes/api.php. Every actor must be verified
- * and active before any ability is considered — a granted permission alone
- * never satisfies an eligibility gate. Basic-profile public endpoints are
- * unaffected: these policies cover privileged admin operations only.
- */
 final class UserPolicy
 {
     public function manage(User $actor): bool
@@ -63,12 +56,6 @@ final class UserPolicy
             && $actor->hasPermissionTo(Permission::UsersReadCpf->value);
     }
 
-    /**
-     * The requested transition: 'active' or 'deactivated'. An admin can never
-     * administratively deactivate themselves, and deactivating an admin must
-     * always leave at least one active admin standing. Reactivation only
-     * requires an eligible actor.
-     */
     public function setStatus(User $actor, User $target, string $status): bool
     {
         if (! $this->canOperate($actor)) {
@@ -97,11 +84,6 @@ final class UserPolicy
     }
 
     /**
-     * Assigning (or changing) roles denies every self-assignment, preserves
-     * the last standing admin and requires an eligible verified actor.
-     * When target roles are specified, non-admin actors cannot assign roles
-     * whose permissions exceed the actor's own permissions (grant ceiling).
-     *
      * @param  list<string>  $roleNames
      */
     public function assignRoles(User $actor, User $target, array $roleNames = []): bool
@@ -161,10 +143,6 @@ final class UserPolicy
         return true;
     }
 
-    /**
-     * A privileged actor must be verified and not deactivated, whatever
-     * permissions or roles its account carries.
-     */
     private function canOperate(User $actor): bool
     {
         return $actor->email_verified_at !== null && $actor->deactivated_at === null;

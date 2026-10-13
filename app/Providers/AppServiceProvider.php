@@ -88,13 +88,6 @@ final class AppServiceProvider extends ServiceProvider
         $this->registerCatalogueGates();
     }
 
-    /**
-     * Executable ability matrix: every catalogue permission maps to a gate
-     * that requires a verified, active actor carrying that permission. Gates
-     * decide objectless abilities (lists); object-level protections (self,
-     * last admin, immutable admin role) stay in the policies, which the
-     * mutation layer must always consult in addition to the gate.
-     */
     private function registerCatalogueGates(): void
     {
         foreach (Permission::cases() as $permission) {

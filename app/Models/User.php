@@ -38,9 +38,6 @@ final class User extends Authenticatable implements MustVerifyEmailContract
     use HasRoles;
     use Notifiable;
 
-    /**
-     * The single guard used by the catalogue and every permission check.
-     */
     protected string $guard_name = 'web';
 
     protected $fillable = [
@@ -103,10 +100,6 @@ final class User extends Authenticatable implements MustVerifyEmailContract
         $this->notify(new ResetPasswordNotification($token));
     }
 
-    /**
-     * Excluding a target keeps at least one active admin standing. A
-     * deactivated account never counts as standing, whatever roles it holds.
-     */
     public static function otherAdminsRemain(int $targetId): bool
     {
         return self::query()

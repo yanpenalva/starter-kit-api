@@ -17,9 +17,6 @@ use Spatie\Permission\PermissionRegistrar;
 final class BootstrapAdmin
 {
     /**
-     * Idempotent, transactional, audit-fail-closed promotion of an explicitly
-     * chosen verified active account (by ID) into the admin role.
-     *
      * @return array{user: User, already_admin: bool, target_id: int}
      */
     public function run(int $userId, bool $confirmedForProduction): array

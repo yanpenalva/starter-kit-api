@@ -9,11 +9,6 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
-/**
- * Dev-only smoke command: queues one synthetic mailable through the real
- * queue connection. It never touches real recipients — the envelope is
- * pinned to the reserved `.test` address from config/mail.php.
- */
 final class InfraSmokeMailCommand extends Command
 {
     protected $signature = 'infra:smoke-mail';

@@ -7,11 +7,6 @@ namespace App\Support;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-/**
- * Correlation ids come from the X-Correlation-Id header only when they are
- * valid UUIDs; anything else (log forgery, raw PII, garbage) is replaced by a
- * freshly generated UUID. No trust widening and no raw values are logged.
- */
 final class Correlation
 {
     public const HEADER = 'X-Correlation-Id';

@@ -10,9 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * The CPF is exposed only to actors authorized by UserPolicy::readCpf
- * for this target; every other field follows the basic profile conventions.
- *
  * @property-read User $resource
  */
 final class UserResource extends JsonResource
