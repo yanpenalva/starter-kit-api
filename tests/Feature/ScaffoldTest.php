@@ -193,6 +193,10 @@ final class ScaffoldTest extends TestCase
 
     public function test_postgresql_connection_uses_an_isolated_test_database(): void
     {
+        if (config('database.default') !== 'pgsql') {
+            $this->markTestSkipped('PostgreSQL connection isolation is covered by the PostgreSQL test profile.');
+        }
+
         $this->assertSame('pgsql', config('database.default'));
 
         $identity = (array) DB::selectOne('select current_database() as database, current_user as username');
