@@ -1,24 +1,16 @@
 # Reproduction — BUG-39
 
-## Observed behavior
+## Observed behaviors before the fix
 
-GitGuardian reports incident `38141019` (Generic Password) in `tests/Feature/Auth/ProfileTest.php:372` at commit `7d34e0373ebbbfe16568acaf96321d569a069875`. The current branch already uses the documented test-only value `fake-profile-password-123`, but the flagged value is also present in its ancestor `db5c8c1261f88078f4d48a492d97b900205e3354`, so both commits remain in the PR history until rewritten.
+- `POST /api/v1/auth/mfa/enroll` accepted an authenticated administrator without rechecking the current password.
+- A confirmed-MFA admin login created a pending MFA marker but left any prior `web` guard authentication in the session. Protected Sanctum routes had no shared check for a completed challenge, so an already authenticated session could continue using them.
+- Recovery codes were stored through Laravel's reversible `encrypted:array` cast, making plaintext recoverable from the database dump.
+- The challenge controller compared a recovery code and then saved the remaining list without a transaction or row lock, allowing two concurrent requests to accept the same code.
 
-## Expected behavior
+## Focused reproduction coverage
 
-- The edited historical commit and the final PR branch history contain only the documented synthetic fixture for the password-change test.
-- The regenerated OpenAPI snapshot matches two byte-identical local exports.
-- PR #82 remains open, unmerged, and pointed at `feat/slice-4-self-service-profile` after the leased push.
+`tests/Feature/Auth/AdminMfaTest.php` covers missing/wrong enrollment password, encrypted-at-rest dump contents, an authenticated prior session during MFA login, a session predating MFA activation, and a successful challenge opening protected routes.
 
-## Steps and evidence
+`tests/Feature/Auth/MfaRecoveryCodeConcurrencyTest.php` starts two PostgreSQL workers against one persisted recovery-code hash and asserts exactly one consumer succeeds. It skips on local SQLite because that driver does not provide PostgreSQL row-lock semantics; CI runs this case with PostgreSQL 18.
 
-1. Inspect the two reachable commits containing the flagged fixture and identify it without printing it into logs.
-2. Edit both commits during interactive rebase; preserve merge topology and use `fake-profile-password-123` as documented in FEAT-13 slice 4.
-3. Search all commits reachable from the rewritten branch for the original value and require no matches.
-4. Verify PR #82 is still open and unmerged before pushing.
-
-## Scope
-
-- Affected files: `tests/Feature/Auth/ProfileTest.php`, `contracts/openapi.json`, and this work item's evidence.
-- No API behavior or database schema change.
-- No other branch, PR, merge, or GitGuardian dashboard action is in scope.
+The focused feature suite was first run against these tests before implementation and failed on the four reported behaviors. After implementation the focused MFA tests pass on SQLite; the PostgreSQL race case is skipped locally and remains part of the CI database gate.

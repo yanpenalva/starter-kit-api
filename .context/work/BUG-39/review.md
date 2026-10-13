@@ -1,27 +1,18 @@
 # Review — BUG-39
 
-## Scope reviewed
+Reviewer: Codex (implementation review); independent reviewer: NOT FOUND.
 
-- Request: deterministic local OpenAPI snapshot commit and history cleanup on existing PR #82.
-- Diff: snapshot plus CSD authorization/evidence, and two historical fixture rewrites. No final-tree application or test changes relative to the prior PR head.
-- History: merge topology preserved; dynamic `git grep -F` found no original fixture in 200 commits reachable from the rewritten branch.
-- Contract: exported snapshot matches both deterministic passes, 93,444 bytes, SHA-256 `0bb27eec2cf1634161856e8df7f47d6f4b445f02a00f2fa4305070bb89bf446f`.
+## Findings
 
-## Verification reviewed
+No remaining blocking findings in the changed scope.
 
-- `composer lint`: PASS.
-- ScaffoldTest: 12 PASS / 261 assertions on SQLite; PostgreSQL-only connection isolation test excluded because Docker Compose is unavailable.
-- Context validator: PASS; the examples mode reports that no example suite is installed.
-- No code, API behavior, or database schema changes were introduced by this remediation.
+- Enrollment validates and rechecks the current password before generating or storing an MFA secret.
+- MFA-required login logs out the web guard and invalidates the prior session before creating a challenge-only session.
+- Every API route currently using `auth:sanctum` passes through `EnsureMfaChallenge`; the middleware requires a matching verified-user marker for admins with enabled MFA.
+- Recovery codes use Laravel's one-way hasher, and the dump test checks that every returned code is absent from persisted JSON while each stored hash verifies its code.
+- Recovery-code consumption reads and removes under a transaction while locking the user's row. The PostgreSQL race test asserts one successful consumer.
+- The changed controller, middleware, service, route groups, tests and auth docs were checked together; no generated OpenAPI snapshot or external interface was changed.
 
-## Security and delivery
+## Limits
 
-- The fixture remains documented as test-only and synthetic.
-- EXC-0002 records the one-time local export and exact branch rewrite/force-push scope.
-- PR #82 was confirmed open and unmerged at its original head before rewriting. No other PR or merge is in scope.
-
-Reviewer: implementation owner self-review. An independent reviewer was not assigned; no GitHub approving review is claimed.
-
-## Verdict
-
-`READY FOR THE AUTHORIZED LEASED PUSH`, subject to the final pre-push PR state and expected-SHA lease check.
+The full local Pest suite cannot pass under the SQLite-only setup because repository and infrastructure tests require PostgreSQL and CI services. The targeted MFA suite passes locally; the concurrent row-lock test will run against PostgreSQL in CI. No PR or merge is part of this delivery.
