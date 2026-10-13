@@ -11,6 +11,7 @@
 ## Git finalization
 
 - Requested delivery branch: `feat/be-user-create-with-roles`; remote: `origin` (`https://github.com/yanpenalva/starter-kit-api.git`).
-- The user explicitly requested the Conventional Commit and branch push. Push evidence and SHA will be added after delivery.
+- Commit: `ab0736c554b905b39d41b802831c6a36d30c5e12` — `fix(users): require profiles on account creation`.
+- Push succeeded without force. `git ls-remote` confirmed the remote branch points to the same SHA.
 - No PR, merge, or deploy is in scope.
 - Rollback: revert the new Conventional Commit. No migration or data backfill is involved.
