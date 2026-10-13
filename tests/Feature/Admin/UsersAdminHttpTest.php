@@ -56,11 +56,11 @@ final class UsersAdminHttpTest extends TestCase
     public function test_create_user_validates_and_persists_without_authenticating(): void
     {
         $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo('users.manage');
+        $actor->givePermissionTo([Permission::UsersManage->value, Permission::UsersAssignRoles->value]);
         self::actingAsSanctum($actor);
 
         $this->postJson('/api/v1/users', [])->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'cpf', 'password', 'active']);
+            ->assertJsonValidationErrors(['name', 'email', 'cpf', 'password', 'active', 'roles']);
 
         User::factory()->create(['email' => 'duplicate@example.test']);
         $this->postJson('/api/v1/users', [
@@ -77,17 +77,46 @@ final class UsersAdminHttpTest extends TestCase
             'cpf' => '12345678901',
             'password' => 'test-password-01',
             'active' => true,
+            'roles' => [Role::User->value],
         ]);
 
-        $response->assertCreated()->assertJsonPath('data.name', 'Novo Usuário');
+        $response->assertCreated()
+            ->assertJsonPath('data.name', 'Novo Usuário')
+            ->assertJsonPath('data.roles', [Role::User->value]);
         $this->assertDatabaseHas('users', ['email' => 'novo@example.test', 'cpf' => '12345678901']);
         $createdId = $response->json('data.id');
         $this->assertIsInt($createdId);
-        $this->assertDatabaseMissing('model_has_roles', ['model_id' => $createdId]);
+        $this->assertDatabaseHas('model_has_roles', ['model_id' => $createdId]);
         $this->assertAuthenticatedAs($actor);
     }
 
-    public function test_create_user_assigns_multiple_roles_and_allows_an_empty_role_list(): void
+    public function test_create_user_requires_non_empty_roles_and_does_not_create_an_account(): void
+    {
+        $actor = User::factory()->verified()->create();
+        $actor->assignRole(Role::Admin->value);
+        self::actingAsSanctum($actor);
+
+        $payload = [
+            'name' => 'Sem Perfil',
+            'cpf' => '12345678904',
+            'password' => 'test-password-01',
+            'active' => true,
+        ];
+
+        $this->postJson('/api/v1/users', array_replace($payload, ['email' => 'sem-perfil@example.test']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('roles');
+        $this->assertDatabaseMissing('users', ['email' => 'sem-perfil@example.test']);
+
+        $this->postJson('/api/v1/users', array_replace($payload, [
+            'email' => 'lista-vazia@example.test',
+            'cpf' => '12345678914',
+            'roles' => [],
+        ]))->assertUnprocessable()->assertJsonValidationErrors('roles');
+        $this->assertDatabaseMissing('users', ['email' => 'lista-vazia@example.test']);
+    }
+
+    public function test_create_user_assigns_multiple_roles(): void
     {
         $actor = User::factory()->verified()->create();
         $actor->assignRole(Role::Admin->value);
@@ -116,14 +145,6 @@ final class UsersAdminHttpTest extends TestCase
             ->all();
         $this->assertSame([Audit::ACTION_USER_ASSIGN_ROLES, Audit::ACTION_USER_STORE], $actions);
 
-        $this->postJson('/api/v1/users', [
-            'name' => 'Sem Perfil',
-            'email' => 'sem-perfil@example.test',
-            'cpf' => '12345678904',
-            'password' => 'test-password-01',
-            'active' => true,
-            'roles' => [],
-        ])->assertCreated()->assertJsonPath('data.roles', []);
     }
 
     public function test_create_user_with_roles_requires_assign_roles_permission(): void
@@ -138,7 +159,7 @@ final class UsersAdminHttpTest extends TestCase
             'cpf' => '12345678905',
             'password' => 'test-password-01',
             'active' => true,
-            'roles' => [],
+            'roles' => [Role::User->value],
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('users', ['email' => 'sem-atribuicao@example.test']);
@@ -244,7 +265,7 @@ final class UsersAdminHttpTest extends TestCase
         Notification::fake();
 
         $actor = User::factory()->verified()->create();
-        $actor->givePermissionTo(Permission::UsersManage->value);
+        $actor->givePermissionTo([Permission::UsersManage->value, Permission::UsersAssignRoles->value]);
         self::actingAsSanctum($actor);
 
         $response = $this->postJson('/api/v1/users', [
@@ -253,6 +274,7 @@ final class UsersAdminHttpTest extends TestCase
             'cpf' => '12345678901',
             'password' => 'test-password-01',
             'active' => true,
+            'roles' => [Role::User->value],
         ]);
 
         $response->assertCreated();

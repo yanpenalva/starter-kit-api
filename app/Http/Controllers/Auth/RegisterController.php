@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\Role;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -21,14 +22,19 @@ final class RegisterController
         $validated = $request->validated();
 
         try {
-            $user = DB::transaction(static fn (): User => User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-                'cpf' => $validated['cpf'] ?? null,
-                'email_verified_at' => null,
-                'deactivated_at' => now(),
-            ]));
+            $user = DB::transaction(static function () use ($validated): User {
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => $validated['password'],
+                    'cpf' => $validated['cpf'] ?? null,
+                    'email_verified_at' => null,
+                    'deactivated_at' => now(),
+                ]);
+                $user->assignRole(Role::User->value);
+
+                return $user;
+            });
         } catch (QueryException $exception) {
             if (! $this->isUniqueConstraintViolation($exception)) {
                 throw $exception;
