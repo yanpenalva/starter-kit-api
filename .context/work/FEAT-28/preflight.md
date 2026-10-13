@@ -19,7 +19,7 @@
 
 - The producer workflow already performs a main-only deterministic export and artifact upload; changing YAML would add no needed behavior.
 - The current API context contains contradictory historical status claims. Successors must preserve the original records and state their scope.
-- Main now includes PRs #79, #83, and #86. The ADRs must separate those integrated behaviors from branch-only work in slices 6, 7, 9, 10, and 11; no document may imply production release.
+- At the earlier review point main included PRs #79, #83, and #86. The ADRs separate those integrated behaviors from branch-only work in slices 6, 7, 9, 10, and 11; no document may imply production release.
 
 ## Evidence record
 
@@ -42,3 +42,10 @@ Date: 2026-10-12
 - The local branch was one commit behind that remote head. It was fast-forwarded before integration.
 - Delivery policy prohibits force-push, so integration uses a normal merge of `origin/main` into this feature branch. This does not merge PR #90.
 - The merge exposed reuse of `.context/work/FEAT-27`, already owned by PR #83's active-session work item. Preserve that record and relocate the Slice 12 work item to `FEAT-28` while keeping its API Issue #27 reference.
+
+## Latest main sync preflight — 2026-10-13
+
+- `git fetch origin main` exited 0; `origin/main` is `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7`, including PRs #89 and #87 after the prior base.
+- GitHub API inspection confirms PR #90 remains open, targets `main`, and uses `feat/slice-12-contract-release-docs` at the starting head `6f9c21b2d1af492999161d9fa2798c3c13df7711`.
+- The clean branch integrates `origin/main` with a normal merge. The preview identified conflicts only in `.context/project/api.md` and `docs/onboarding.md`; keep the release-guide links, incorporate the current API envelope, and update ADR/work-item integration evidence.
+- Main's snapshot update from PR #87 is part of the merge. Regenerate deterministically and require byte equality; no separate snapshot change is planned for this documentation slice.

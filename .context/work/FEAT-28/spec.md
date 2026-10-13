@@ -21,7 +21,7 @@ Keep current API decisions and the OpenAPI release procedure discoverable and ac
 ## Out of scope
 
 - Frontend changes, API behavior changes, workflow configuration changes, creating a second PR, merging PR #90, deployment, or production release.
-- Editing or generating `contracts/openapi.json` as part of this documentation-only slice. For later API contract changes, the candidate snapshot belongs in the same PR because Quality compares it with the generated contract; the official producer remains main-only and does not commit the snapshot.
+- Changing the API contract as part of this documentation-only slice. The later main sync brings the snapshot update already reviewed in PR #87; deterministically regenerate and compare it during that sync, without introducing an independent contract change. The official producer remains main-only and does not commit the snapshot.
 - Introducing new architecture decisions beyond documenting the decisions and behavior already authorized in this roadmap.
 
 ## Evidence and context
@@ -34,7 +34,7 @@ Keep current API decisions and the OpenAPI release procedure discoverable and ac
 
 - Authentication remains Sanctum session/cookie and CSRF only; no bearer, personal access, JWT, or API tokens.
 - Official contract publication is dispatched on main; producer validates deterministic output and publishes a commit-SHA artifact, while Quality validates the committed snapshot and compatibility.
-- Slice branches are isolated from one another and based on main. Successor ADRs must distinguish design decisions from integration/deployment state and reflect PRs #79, #83, and #86 now present on main.
+- Slice branches are isolated from one another and based on main. Successor ADRs must distinguish design decisions from integration/deployment state and reflect PRs #79, #83, #86, #89, and #87 now present on main.
 - Use repository context routing, TDD, SQLite-safe local Pest where relevant, Pint, PHPStan, and strict context validation.
 
 ## Tests and acceptance criteria

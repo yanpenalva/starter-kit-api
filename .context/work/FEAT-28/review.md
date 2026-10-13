@@ -43,3 +43,17 @@ Addressed the three high findings:
 The conflict resolutions and follow-up changes do not alter application behavior,
 workflows, tests, or the OpenAPI snapshot. The merge commit also brings in the
 already integrated main changes from PRs #79, #83, and #86.
+
+## Latest main sync review — 2026-10-13
+
+- `origin/main` now includes PR #89's privilege-mutation work and PR #87's OpenAPI
+  envelope snapshot. The API context and successor ADRs distinguish the covered
+  actor-refresh Actions from `RenameRole`, which still uses the supplied actor, and
+  distinguish integrated user event logging from the Slice 7 action codes that
+  remain branch-only.
+- The current API context records the collection envelope and nullable fields from
+  PR #87. Onboarding keeps one link to the canonical release/provenance guides and
+  the vertical-slice recipe.
+- The merge changes runtime and snapshot files only through the already integrated
+  `origin/main` parent. The documentation branch introduces no API behavior change;
+  its regenerated snapshot must match main byte for byte.

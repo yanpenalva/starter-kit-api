@@ -2,7 +2,7 @@
 
 ## Approved approach
 
-Describe the already implemented workflow in a canonical release guide and detailed provenance recipe, document current decisions in successor ADRs, and remove contradictory status text from canonical API context. Keep the existing workflow and snapshot untouched.
+Describe the already implemented workflow in a canonical release guide and detailed provenance recipe, document current decisions in successor ADRs, and remove contradictory status text from canonical API context. Do not change the workflow or API behavior. When syncing newer main, retain its snapshot update and verify deterministic regeneration without introducing an independent contract change.
 
 ## Confirmed touchpoints
 
@@ -41,7 +41,7 @@ Implementation and integration owner: Codex for this slice. Independent reader r
 
 ## Delivery
 
-- Branch: `feat/slice-12-contract-release-docs`; updated against `origin/main` at `4a8531661b73d22c3dfac932e65faa4c0b936f58`.
+- Branch: `feat/slice-12-contract-release-docs`; updated against `origin/main` at `9f3ee254a651dbd8cf61eb0fc7d0b65e928a0fa7` (PRs #89 and #87).
 - Target: `main`; remote: `origin`; existing PR: #90; authorization: EXC-0001.
 - Push the validated branch to PR #90. Do not create another PR, merge PR #90, deploy, or change the frontend.
 
