@@ -1,6 +1,6 @@
 # Starter Kit API — Insomnia
 
-Importe `starter-kit-api-insomnia.json` em **Import → File** no Insomnia com suporte a v5. São **37 requests em 5 pastas**: Auth (20), Users (7), Roles (6), Audit (1) e Health (3). Os exemplos de resposta (status e corpo) ficam na descrição de cada request; são sintéticos, não respostas capturadas nem testes automáticos.
+Importe `starter-kit-api-insomnia.json` em **Import → File** no Insomnia com suporte a v5. São **37 requests em 5 pastas**: Auth (20), Users (7), Roles (6), Audit (1) e Health (3). Os exemplos de resposta (status e corpo) ficam na descrição de cada request. Exemplos corrigidos usam capturas HTTP sanitizadas; os demais exemplos sintéticos e erros ilustrativos estão identificados. A validação live e seus limites estão em [VALIDATION.md](VALIDATION.md), com [capturas reais](live-responses.json).
 
 O arquivo usa a estrutura nativa `type: collection.insomnia.rest/5.0` e inclui `_type: export`, `__export_format: 5` e `resources` conforme solicitado. A árvore `collection` é a representação usada pelo importador v5; `resources` espelha os mesmos IDs/requests, sem criar outra collection. Ao editar manualmente, mantenha ambas alinhadas. Referências: [importação oficial](https://developer.konghq.com/insomnia/import-export/) e [schema oficial](https://raw.githubusercontent.com/Kong/insomnia/develop/schemas/insomnia.schema.5.1.json).
 
@@ -29,10 +29,10 @@ Fonte: `routes/api.php`, `routes/api/*.php`, controllers, FormRequests, Resource
 | `/docs/api`, `/docs/api.json` | 2 | 0 |
 | Total registrado | 39 | 37 |
 
-Cobertura da API: **35/35**; total registrado: **37/39**. GET e HEAD automáticos contam como uma rota/request GET. As duas rotas omitidas servem documentação, não operações da API. Não existe fallback registrado. O fixture condicional `/testing/csrf-echo` não estava habilitado e não é endpoint de produto. `/up` retorna HTML; health pode retornar 503 quando database/redis/queue não estão prontos.
+Cobertura da API: **35/35**; total registrado: **37/39**. GET e HEAD automáticos contam como uma rota/request GET. As duas rotas omitidas servem documentação, não operações da API. Não existe fallback registrado. O fixture condicional `/testing/csrf-echo` não estava habilitado e não é endpoint de produto. `/up` retorna JSON com o header `Accept: application/json` da collection (HTML sem negociação JSON); health pode retornar 503 quando database/redis/queue não estão prontos.
 
 Há divergências no snapshot: `UserResource.roles` é descrito como objetos, mas o Resource implementado retorna strings; os exemplos seguem o código. `/health` também pode responder 503, embora o snapshot liste apenas 200. Mensagens traduzidas e valores dinâmicos variam; exemplos não garantem sucesso sem dados, e-mail, permissões e infraestrutura configurados.
 
-Validações locais: schema oficial Insomnia v5.1 validado com AJV (draft 2020-12); JSON com `python3 -m json.tool`, comparação de método/path com `route:list`, integridade de IDs/parents, alinhamento das duas representações, corpos JSON e ausência de Authorization; `python3 scripts/validate_context.py --strict`. A importação pela interface gráfica e chamadas HTTP reais não foram executadas. Não houve alteração na aplicação nem commit/push.
+Validações locais: schema oficial Insomnia v5.1 validado com AJV (draft 2020-12); JSON com `python3 -m json.tool`, comparação de método/path com `route:list`, integridade de IDs/parents, alinhamento das duas representações, corpos JSON e ausência de Authorization; `python3 scripts/validate_context.py --strict`. A validação HTTP real isolada passou em **35/35 operações `/api/v1`**, mais CSRF e `/up`; reprodução e limites em [VALIDATION.md](VALIDATION.md). A importação pela interface gráfica não foi executada. Não houve alteração na aplicação nem commit/push.
 
 Registro de escopo: product/feature documental, owner solicitante, risco baixo, impacto local, perfil senior-software-engineer. Plano autorizado: mapear → gerar → validar cobertura/estrutura → entregar arquivos locais; sem entrega Git ou produção.

@@ -1,0 +1,1167 @@
+[
+  {
+    "method": "GET",
+    "route": "/api/v1",
+    "path": "/api/v1",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "status": "ok"
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/health",
+    "path": "/api/v1/health",
+    "status": 503,
+    "content_type": "application/json",
+    "body": {
+      "status": "error",
+      "checks": {
+        "database": true,
+        "redis": false,
+        "queue": true
+      }
+    },
+    "label": "Redis intentionally absent; no real service"
+  },
+  {
+    "method": "GET",
+    "route": "/up",
+    "path": "/up",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "status": "up"
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 419,
+    "content_type": "application/json",
+    "body": {
+      "message": "Token CSRF inválido ou expirado."
+    },
+    "label": "negative: CSRF header absent"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/register",
+    "path": "/api/v1/register",
+    "status": 201,
+    "content_type": "application/json",
+    "body": {
+      "id": 2,
+      "name": "Dev Exemplo",
+      "email": "dev@example.test",
+      "email_verified_at": null
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/auth/my-profile",
+    "path": "/api/v1/auth/my-profile",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 2,
+        "name": "Dev Exemplo",
+        "email": "dev@example.test",
+        "email_verified_at": null,
+        "roles": [],
+        "role_display_names": {},
+        "permissions": []
+      }
+    },
+    "label": "unverified profile"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/email/verification-notification",
+    "path": "/api/v1/email/verification-notification",
+    "status": 202,
+    "content_type": "application/json",
+    "body": {
+      "message": "Se o email ainda não foi verificado, reenviamos o link."
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/email/verify/{id}/{hash}",
+    "path": "/api/v1/email/verify/2/[redacted]",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "message": "Email verificado com sucesso."
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/auth/my-profile",
+    "path": "/api/v1/auth/my-profile",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 2,
+        "name": "Dev Exemplo",
+        "email": "dev@example.test",
+        "email_verified_at": "2026-10-13T22:48:54Z",
+        "roles": [
+          "user"
+        ],
+        "role_display_names": {
+          "user": "Usuário"
+        },
+        "permissions": []
+      }
+    },
+    "label": "verified profile"
+  },
+  {
+    "method": "PATCH",
+    "route": "/api/v1/auth/my-profile",
+    "path": "/api/v1/auth/my-profile",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 2,
+        "name": "Dev Atualizado",
+        "email": "dev@example.test",
+        "email_verified_at": "2026-10-13T22:48:54Z",
+        "roles": [
+          "user"
+        ],
+        "role_display_names": {
+          "user": "Usuário"
+        },
+        "permissions": []
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "PUT",
+    "route": "/api/v1/auth/password",
+    "path": "/api/v1/auth/password",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "message": "Senha alterada com sucesso."
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/auth/sessions",
+    "path": "/api/v1/auth/sessions",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": [
+        {
+          "id": "[session-id-redacted]",
+          "ip_address": "127.0.0.1",
+          "user_agent": "Insomnia-live-validation",
+          "last_activity": "2026-10-13T22:48:55.000000Z",
+          "is_current": false
+        },
+        {
+          "id": "[session-id-redacted]",
+          "ip_address": "127.0.0.1",
+          "user_agent": "Insomnia-live-validation",
+          "last_activity": "2026-10-13T22:48:54.000000Z",
+          "is_current": true
+        }
+      ]
+    },
+    "label": ""
+  },
+  {
+    "method": "DELETE",
+    "route": "/api/v1/auth/sessions/{id}",
+    "path": "/api/v1/auth/sessions/[session-id-redacted]",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/auth/my-profile",
+    "path": "/api/v1/auth/my-profile",
+    "status": 401,
+    "content_type": "application/json",
+    "body": {
+      "message": "Não autenticado."
+    },
+    "label": "negative: revoked session"
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "DELETE",
+    "route": "/api/v1/auth/sessions",
+    "path": "/api/v1/auth/sessions",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/auth/my-profile",
+    "path": "/api/v1/auth/my-profile",
+    "status": 401,
+    "content_type": "application/json",
+    "body": {
+      "message": "Não autenticado."
+    },
+    "label": "negative: destroyOthers revoked session"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/forgot-password",
+    "path": "/api/v1/forgot-password",
+    "status": 202,
+    "content_type": "application/json",
+    "body": {
+      "message": "Se o email existir, enviamos o link."
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/reset-password",
+    "path": "/api/v1/reset-password",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "message": "Sua senha foi redefinida."
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/auth/my-profile",
+    "path": "/api/v1/auth/my-profile",
+    "status": 401,
+    "content_type": "application/json",
+    "body": {
+      "message": "Não autenticado."
+    },
+    "label": "negative: reset invalidated session"
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/auth/mfa/status",
+    "path": "/api/v1/auth/mfa/status",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "mfa_enabled": false
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/enroll",
+    "path": "/api/v1/auth/mfa/enroll",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "secret": "[redacted]",
+      "provisioning_uri": "[redacted]",
+      "recovery_codes": [
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]"
+      ]
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/confirm",
+    "path": "/api/v1/auth/mfa/confirm",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "confirmed": true
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "requires_mfa": true
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/challenge",
+    "path": "/api/v1/auth/mfa/challenge",
+    "status": 422,
+    "content_type": "application/json",
+    "body": {
+      "message": "Código MFA ou de recuperação inválido.",
+      "errors": {
+        "code": [
+          "Código MFA ou de recuperação inválido."
+        ]
+      }
+    },
+    "label": "negative: confirmation TOTP replay"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/challenge",
+    "path": "/api/v1/auth/mfa/challenge",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": "real independent TOTP; next window accepted by ±1 tolerance"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/recovery-codes",
+    "path": "/api/v1/auth/mfa/recovery-codes",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "recovery_codes": [
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]",
+        "[redacted]"
+      ]
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/logout",
+    "path": "/api/v1/logout",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "requires_mfa": true
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/challenge",
+    "path": "/api/v1/auth/mfa/challenge",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": "recovery code"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/logout",
+    "path": "/api/v1/logout",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/sanctum/csrf-cookie",
+    "path": "/sanctum/csrf-cookie",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/login",
+    "path": "/api/v1/login",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "requires_mfa": true
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/challenge",
+    "path": "/api/v1/auth/mfa/challenge",
+    "status": 422,
+    "content_type": "application/json",
+    "body": {
+      "message": "Código MFA ou de recuperação inválido.",
+      "errors": {
+        "code": [
+          "Código MFA ou de recuperação inválido."
+        ]
+      }
+    },
+    "label": "negative: recovery replay"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/challenge",
+    "path": "/api/v1/auth/mfa/challenge",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": "unused recovery code"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/auth/mfa/disable",
+    "path": "/api/v1/auth/mfa/disable",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/users",
+    "path": "/api/v1/users",
+    "status": 201,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "Usuário Manual",
+        "email": "manual.user@example.test",
+        "email_verified_at": null,
+        "deactivated_at": null,
+        "roles": [
+          "user"
+        ],
+        "role_display_names": {
+          "user": "Usuário"
+        },
+        "cpf": "[redacted]"
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/users",
+    "path": "/api/v1/users",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": [
+        {
+          "id": 1,
+          "name": "Live Admin",
+          "email": "admin@example.test",
+          "email_verified_at": "2026-10-13T22:48:52Z",
+          "deactivated_at": null,
+          "roles": [
+            "admin"
+          ],
+          "role_display_names": {
+            "admin": "Administrador"
+          },
+          "cpf": "[redacted]"
+        },
+        {
+          "id": 2,
+          "name": "Dev Atualizado",
+          "email": "dev@example.test",
+          "email_verified_at": "2026-10-13T22:48:54Z",
+          "deactivated_at": null,
+          "roles": [
+            "user"
+          ],
+          "role_display_names": {
+            "user": "Usuário"
+          },
+          "cpf": "[redacted]"
+        },
+        {
+          "id": 3,
+          "name": "Usuário Manual",
+          "email": "manual.user@example.test",
+          "email_verified_at": null,
+          "deactivated_at": null,
+          "roles": [
+            "user"
+          ],
+          "role_display_names": {
+            "user": "Usuário"
+          },
+          "cpf": "[redacted]"
+        }
+      ],
+      "links": {
+        "first": "http://127.0.0.1:33755/api/v1/users?page=1",
+        "last": "http://127.0.0.1:33755/api/v1/users?page=1",
+        "prev": null,
+        "next": null
+      },
+      "meta": {
+        "current_page": 1,
+        "from": 1,
+        "last_page": 1,
+        "links": [
+          {
+            "url": null,
+            "label": "&laquo; Anterior",
+            "page": null,
+            "active": false
+          },
+          {
+            "url": "http://127.0.0.1:33755/api/v1/users?page=1",
+            "label": "1",
+            "page": 1,
+            "active": true
+          },
+          {
+            "url": null,
+            "label": "Próxima &raquo;",
+            "page": null,
+            "active": false
+          }
+        ],
+        "path": "http://127.0.0.1:33755/api/v1/users",
+        "per_page": 15,
+        "to": 3,
+        "total": 3
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/users/{user}",
+    "path": "/api/v1/users/3",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "Usuário Manual",
+        "email": "manual.user@example.test",
+        "email_verified_at": null,
+        "deactivated_at": null,
+        "roles": [
+          "user"
+        ],
+        "role_display_names": {
+          "user": "Usuário"
+        },
+        "cpf": "[redacted]"
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "PATCH",
+    "route": "/api/v1/users/{user}",
+    "path": "/api/v1/users/3",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "Usuário Atualizado",
+        "email": "manual.updated@example.test",
+        "email_verified_at": null,
+        "deactivated_at": null,
+        "roles": [
+          "user"
+        ],
+        "role_display_names": {
+          "user": "Usuário"
+        },
+        "cpf": "[redacted]"
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/roles",
+    "path": "/api/v1/roles",
+    "status": 201,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "manual-reviewer",
+        "display_name": "manual-reviewer",
+        "guard_name": "web",
+        "permissions": []
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/roles",
+    "path": "/api/v1/roles",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": [
+        {
+          "id": 1,
+          "name": "admin",
+          "display_name": "Administrador",
+          "guard_name": "web",
+          "permissions": [
+            "logs.view",
+            "roles.manage",
+            "roles.update-permissions",
+            "roles.view",
+            "users.assign-roles",
+            "users.manage",
+            "users.read-cpf",
+            "users.set-status",
+            "users.update",
+            "users.view"
+          ]
+        },
+        {
+          "id": 2,
+          "name": "user",
+          "display_name": "Usuário",
+          "guard_name": "web",
+          "permissions": []
+        },
+        {
+          "id": 3,
+          "name": "manual-reviewer",
+          "display_name": "manual-reviewer",
+          "guard_name": "web",
+          "permissions": []
+        }
+      ],
+      "links": {
+        "first": "http://127.0.0.1:33755/api/v1/roles?page=1",
+        "last": "http://127.0.0.1:33755/api/v1/roles?page=1",
+        "prev": null,
+        "next": null
+      },
+      "meta": {
+        "current_page": 1,
+        "from": 1,
+        "last_page": 1,
+        "links": [
+          {
+            "url": null,
+            "label": "&laquo; Anterior",
+            "page": null,
+            "active": false
+          },
+          {
+            "url": "http://127.0.0.1:33755/api/v1/roles?page=1",
+            "label": "1",
+            "page": 1,
+            "active": true
+          },
+          {
+            "url": null,
+            "label": "Próxima &raquo;",
+            "page": null,
+            "active": false
+          }
+        ],
+        "path": "http://127.0.0.1:33755/api/v1/roles",
+        "per_page": 15,
+        "to": 3,
+        "total": 3
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/roles/{role}",
+    "path": "/api/v1/roles/3",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "manual-reviewer",
+        "display_name": "manual-reviewer",
+        "guard_name": "web",
+        "permissions": []
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "PATCH",
+    "route": "/api/v1/roles/{role}",
+    "path": "/api/v1/roles/3",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "manual-reviewer-renamed",
+        "display_name": "manual-reviewer-renamed",
+        "guard_name": "web",
+        "permissions": []
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "PUT",
+    "route": "/api/v1/roles/{role}/permissions",
+    "path": "/api/v1/roles/3/permissions",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "manual-reviewer-renamed",
+        "display_name": "manual-reviewer-renamed",
+        "guard_name": "web",
+        "permissions": [
+          "users.view"
+        ]
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "PUT",
+    "route": "/api/v1/users/{user}/roles",
+    "path": "/api/v1/users/3/roles",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "Usuário Atualizado",
+        "email": "manual.updated@example.test",
+        "email_verified_at": null,
+        "deactivated_at": null,
+        "roles": [
+          "user"
+        ],
+        "role_display_names": {
+          "user": "Usuário"
+        },
+        "cpf": "[redacted]"
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "PUT",
+    "route": "/api/v1/users/{user}/roles",
+    "path": "/api/v1/users/3/roles",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "Usuário Atualizado",
+        "email": "manual.updated@example.test",
+        "email_verified_at": null,
+        "deactivated_at": null,
+        "roles": [
+          "manual-reviewer-renamed",
+          "user"
+        ],
+        "role_display_names": {
+          "manual-reviewer-renamed": "manual-reviewer-renamed",
+          "user": "Usuário"
+        },
+        "cpf": "[redacted]"
+      }
+    },
+    "label": "additional: attach created role"
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/users/{user}/status",
+    "path": "/api/v1/users/3/status",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": {
+        "id": 3,
+        "name": "Usuário Atualizado",
+        "email": "manual.updated@example.test",
+        "email_verified_at": null,
+        "deactivated_at": "2026-10-13T22:49:08Z",
+        "roles": [
+          "manual-reviewer-renamed",
+          "user"
+        ],
+        "role_display_names": {
+          "manual-reviewer-renamed": "manual-reviewer-renamed",
+          "user": "Usuário"
+        },
+        "cpf": "[redacted]"
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "DELETE",
+    "route": "/api/v1/users/{user}",
+    "path": "/api/v1/users/3",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "DELETE",
+    "route": "/api/v1/roles/{role}",
+    "path": "/api/v1/roles/3",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  },
+  {
+    "method": "GET",
+    "route": "/api/v1/activity-log",
+    "path": "/api/v1/activity-log",
+    "status": 200,
+    "content_type": "application/json",
+    "body": {
+      "data": [
+        {
+          "id": 11,
+          "event": "privileged.change",
+          "subject_type": "role",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "role.destroy",
+            "correlation_id": "4b7764ac-4ea8-44dc-807a-3c111f7eec42"
+          },
+          "created_at": "2026-10-13T22:49:08Z"
+        },
+        {
+          "id": 10,
+          "event": "privileged.change",
+          "subject_type": "user",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "user.destroy",
+            "correlation_id": "270bd6d2-1d16-430d-b799-57b4f29be3a3"
+          },
+          "created_at": "2026-10-13T22:49:08Z"
+        },
+        {
+          "id": 9,
+          "event": "privileged.change",
+          "subject_type": "user",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "user.status",
+            "correlation_id": "9f5606e9-b85a-4c83-9214-e753206e2679"
+          },
+          "created_at": "2026-10-13T22:49:08Z"
+        },
+        {
+          "id": 8,
+          "event": "privileged.change",
+          "subject_type": "user",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "user.assign_roles",
+            "correlation_id": "de811642-575e-46d7-834f-1a6a318b89da"
+          },
+          "created_at": "2026-10-13T22:49:08Z"
+        },
+        {
+          "id": 7,
+          "event": "privileged.change",
+          "subject_type": "user",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "user.assign_roles",
+            "correlation_id": "46d94e90-2c16-4fcf-a1cf-78eb7eb870a1"
+          },
+          "created_at": "2026-10-13T22:49:08Z"
+        },
+        {
+          "id": 6,
+          "event": "privileged.change",
+          "subject_type": "role",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "role.update_permissions",
+            "correlation_id": "d2d4065b-52e0-4323-8c37-77eb724f59e2"
+          },
+          "created_at": "2026-10-13T22:49:08Z"
+        },
+        {
+          "id": 5,
+          "event": "privileged.change",
+          "subject_type": "role",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "role.rename",
+            "correlation_id": "f4b1fe1d-ea1a-4c34-963b-c66b59729279"
+          },
+          "created_at": "2026-10-13T22:49:08Z"
+        },
+        {
+          "id": 4,
+          "event": "privileged.change",
+          "subject_type": "role",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "role.store",
+            "correlation_id": "7b7dcc82-f954-4d8e-9ff3-9afd7883d786"
+          },
+          "created_at": "2026-10-13T22:49:07Z"
+        },
+        {
+          "id": 3,
+          "event": "privileged.change",
+          "subject_type": "user",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "user.update",
+            "correlation_id": "cd96ef1e-a300-42ba-9dc1-fce8e9538db8"
+          },
+          "created_at": "2026-10-13T22:49:07Z"
+        },
+        {
+          "id": 2,
+          "event": "privileged.change",
+          "subject_type": "user",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "user.store",
+            "correlation_id": "9cbb0024-4edc-4cb1-b384-32e92d5d5ccc"
+          },
+          "created_at": "2026-10-13T22:49:07Z"
+        },
+        {
+          "id": 1,
+          "event": "privileged.change",
+          "subject_type": "user",
+          "subject_id": 3,
+          "description": "privileged.change",
+          "properties": {
+            "actor_type": "user",
+            "actor_id": "1",
+            "action": "user.assign_roles",
+            "correlation_id": "9cbb0024-4edc-4cb1-b384-32e92d5d5ccc"
+          },
+          "created_at": "2026-10-13T22:49:07Z"
+        }
+      ],
+      "links": {
+        "first": "http://127.0.0.1:33755/api/v1/activity-log?page=1",
+        "last": "http://127.0.0.1:33755/api/v1/activity-log?page=1",
+        "prev": null,
+        "next": null
+      },
+      "meta": {
+        "current_page": 1,
+        "from": 1,
+        "last_page": 1,
+        "links": [
+          {
+            "url": null,
+            "label": "&laquo; Anterior",
+            "page": null,
+            "active": false
+          },
+          {
+            "url": "http://127.0.0.1:33755/api/v1/activity-log?page=1",
+            "label": "1",
+            "page": 1,
+            "active": true
+          },
+          {
+            "url": null,
+            "label": "Próxima &raquo;",
+            "page": null,
+            "active": false
+          }
+        ],
+        "path": "http://127.0.0.1:33755/api/v1/activity-log",
+        "per_page": 15,
+        "to": 11,
+        "total": 11
+      }
+    },
+    "label": ""
+  },
+  {
+    "method": "POST",
+    "route": "/api/v1/logout",
+    "path": "/api/v1/logout",
+    "status": 204,
+    "content_type": null,
+    "body": null,
+    "label": ""
+  }
+]
