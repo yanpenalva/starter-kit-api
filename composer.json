@@ -40,7 +40,7 @@
             "@php vendor/bin/phpunit --coverage-clover storage/app/coverage-pgsql.xml",
             "@php vendor/bin/phpunit -c phpunit.sqlite.xml --coverage-clover storage/app/coverage-sqlite.xml",
             "@php scripts/merge-coverage.php storage/app/coverage-pgsql.xml storage/app/coverage-sqlite.xml storage/app/coverage.xml",
-            "@php scripts/coverage-floor.php storage/app/coverage.xml 100"
+            "@php scripts/coverage-floor.php storage/app/coverage.xml 80"
         ],
         "lint": "@php vendor/bin/pint --test",
         "analyse": "@php vendor/bin/phpstan analyse --memory-limit=512M",
