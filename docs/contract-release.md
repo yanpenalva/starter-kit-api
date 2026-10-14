@@ -1,4 +1,4 @@
-# Release do contrato OpenAPI
+# 📜 Release do contrato OpenAPI
 
 Este guia descreve o fluxo oficial da API. A configuração executável é
 .github/workflows/openapi.yml e o gate de contrato está em

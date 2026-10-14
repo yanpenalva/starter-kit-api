@@ -1,11 +1,24 @@
-# 02 — Comandos: Composer, Artisan e perfis do Compose
+# 🧰 Comandos: Composer, Artisan e perfis do Compose
 
 Este guia explica o que **cada comando faz e quando usar**. São três famílias:
 scripts do Composer (qualidade e testes), comandos Artisan (operação da aplicação)
 e perfis do Compose (quais serviços sobem em cada cenário). Comandos destrutivos
 estão sinalizados.
 
-## 1. Scripts do Composer
+---
+
+## 📑 Índice
+
+1. [Scripts do Composer](#️-scripts-do-composer)
+2. [Artisan de banco de dados](#️-artisan-de-banco-de-dados)
+3. [Artisan de operação e administração](#️-artisan-de-operação-e-administração)
+4. [Artisan de diagnóstico](#️-artisan-de-diagnóstico)
+5. [Perfis do Compose](#️-perfis-do-compose)
+6. [Pipeline de release e rollback](#️-pipeline-de-release-e-rollback)
+
+---
+
+## 🎼 Scripts do Composer
 
 Estão declarados em `composer.json`, na chave `scripts`. Todos rodam dentro do
 container com `docker compose run --rm --no-deps api composer <script>`, ou no host
@@ -18,7 +31,7 @@ com `composer <script>` se o PHP local estiver correto.
 | `composer lint` | `php vendor/bin/pint --test` | Verifica a formatação no preset `laravel` **sem alterar arquivos** | Antes de abrir um pull request; se falhar, rode o Pint sem `--test` localmente para aplicar |
 | `composer analyse` | `php vendor/bin/phpstan analyse --memory-limit=512M` | Roda PHPStan com Larastan no nível 10 sobre aplicação, rotas e testes, sem linha de base de supressão | Antes de abrir um pull request; qualquer erro precisa ser corrigido, não suprimido |
 
-### Por que `test:coverage` executa a suíte duas vezes
+### 1️⃣ Por que `test:coverage` executa a suíte duas vezes
 
 Os caminhos de código mudam por driver: `app/Support/Filters/*` usa `ilike` no
 PostgreSQL e `like` + `json_extract` no SQLite, `EmailLookup` e `LoginController`
@@ -76,7 +89,9 @@ flowchart TD
     F --> L
 ```
 
-## 2. Artisan de banco de dados
+---
+
+## 🗄️ Artisan de banco de dados
 
 | Comando | O que faz | Quando usar |
 | --- | --- | --- |
@@ -88,10 +103,12 @@ flowchart TD
 | `php artisan db:seed` | Roda os seeders sem mexer no esquema | Para repopular dados de exemplo após limpar tabelas manualmente |
 | `php artisan db:show` | Mostra informações do banco conectado | Para confirmar a qual banco você está apontado antes de um comando sensível |
 
-Regra de ouro: antes de qualquer comando de escrita no banco, confirme o alvo com
-`db:show`. O banco de desenvolvimento é persistente em volume; o de teste é efêmero.
+> Regra de ouro: antes de qualquer comando de escrita no banco, confirme o alvo com
+> `db:show`. O banco de desenvolvimento é persistente em volume; o de teste é efêmero.
 
-## 3. Artisan de operação e administração
+---
+
+## ⚙️ Artisan de operação e administração
 
 | Comando | O que faz | Quando usar |
 | --- | --- | --- |
@@ -110,7 +127,9 @@ administrativo. Não existem credenciais fixas, promoção do primeiro cadastro 
 de admin em produção. Se a conta já for administradora, nada é alterado. Se a gravação
 da auditoria falhar, a promoção é revertida junto.
 
-## 4. Artisan de diagnóstico e infraestrutura de desenvolvimento
+---
+
+## 🩺 Artisan de diagnóstico
 
 | Comando | O que faz | Quando usar |
 | --- | --- | --- |
@@ -120,9 +139,11 @@ da auditoria falhar, a promoção é revertida junto.
 | `php artisan cache:clear` | Limpa o cache da aplicação | Quando comportamento estranho sugere cache obsoleto |
 | `php artisan config:clear` / `config:cache` | Remove / reconstrói o cache de configuração | Após alterar `.env` com cache ativo; `clear` em dev, `cache` em release |
 
-Os comandos `infra:*` são exclusivos de desenvolvimento e nunca vão para produção.
+> Os comandos `infra:*` são exclusivos de desenvolvimento e nunca vão para produção.
 
-## 5. Perfis do Compose
+---
+
+## 🐳 Perfis do Compose
 
 O `compose.yaml` organiza os serviços em perfis. Sem `--profile`, sobem apenas os
 serviços do desenvolvimento padrão.
@@ -184,3 +205,36 @@ Detalhes que evitam surpresas:
 - Com múltiplos checkouts na máquina, adicione `-p <nome-unico>` a qualquer comando
   acima, porque o nome de projeto padrão é compartilhado. Nunca rode `down --volumes`
   contra o projeto compartilhado.
+
+---
+
+## 🚢 Pipeline de release e rollback
+
+A tag Git `v*` é só o gatilho: o workflow de deploy (`.github/workflows/deploy.yml`)
+gera a tag imutável `api-<data>-<sha>` (`api-$(date -u +%Y%m%d)-${GITHUB_SHA::12}`),
+recusa sobrescrever uma tag que já exista no GHCR, publica a imagem, atualiza o host
+via SSH (`API_IMAGE` + `migrate --force` + `up -d`) e roda o smoke reutilizável
+(`.github/workflows/smoke.yml`).
+
+```mermaid
+flowchart TD
+    TAG[git tag v* + push] --> BUILD[build: gera tag api-DATA-SHA12]
+    BUILD --> REJ{tag já existe no GHCR?}
+    REJ -->|sim| FAIL[recusa: tag imutável<br/>nunca é sobrescrita]
+    REJ -->|não| PUSH[push da imagem imutável]
+    PUSH --> INFRA[SSH: up -d postgres-release + redis-release]
+    INFRA --> MIG[migrate --force no app]
+    MIG --> UP[grava API_IMAGE no .env remoto<br/>up -d app + worker-release + scheduler-release]
+    UP --> SMOKE[smoke: csrf-cookie → login → my-profile → logout]
+    SMOKE -->|verde| DONE[release ativa]
+    SMOKE -->|vermelho| RB[rollback: API_IMAGE = tag anterior<br/>up -d app worker-release scheduler-release]
+    RB --> SMOKE2[smoke contra a URL do rollback]
+    SMOKE2 --> OBS[observar o ambiente antes de encerrar]
+```
+
+> Para o rollback, aponte `API_IMAGE` no `.env` do host para a tag imutável anterior
+> e suba só `app worker-release scheduler-release`. Rode o smoke contra a URL do
+> rollback e observe o ambiente antes de encerrar. Nunca apague volumes de banco no
+> deploy nem no rollback — migration sem compatibilidade retroativa exige um plano de
+> rollback de dados aprovado à parte. O passo a passo completo está em
+> [`release.md`](release.md).

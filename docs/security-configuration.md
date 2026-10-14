@@ -1,4 +1,4 @@
-# Configuração de segurança em produção
+# 🔒 Configuração de segurança em produção
 
 Defina estes valores no ambiente de execução da API antes de publicar:
 

@@ -1,11 +1,33 @@
-# 04 — Decisões técnicas: o motivo e a alternativa rejeitada
+# ⚖️ Decisões técnicas: o motivo e a alternativa rejeitada
 
 Este guia explica cada decisão relevante da API no formato motivo → escolha →
 alternativa rejeitada. É a leitura para quem precisa entender **por que** as coisas
 são como são antes de propor mudanças. Cada item aponta onde a decisão vive no código
 ou na configuração.
 
-## 1. Sessão em cookie via Sanctum em vez de tokens
+---
+
+## 📑 Índice
+
+1. [Sessão em cookie via Sanctum em vez de tokens](#-sessão-em-cookie-via-sanctum-em-vez-de-tokens)
+2. [Hash argon2id como padrão](#-hash-argon2id-como-padrão)
+3. [Throttle em duas camadas no login](#-throttle-em-duas-camadas-no-login-5min-por-emailip-e-20min-por-ip)
+4. [Dummy hash no login](#️-dummy-hash-no-login-para-não-revelar-existência-de-conta)
+5. [Busca de e-mail case-insensitive](#️-busca-de-e-mail-case-insensitive-com-normalização)
+6. [CPF opcional em texto](#-cpf-opcional-em-texto-com-índice-único-parcial)
+7. [Exclusão definitiva vs desativação](#-exclusão-definitiva-vs-desativação-por-estado)
+8. [Fila `database` com despacho após commit](#-fila-database-com-despacho-após-commit)
+9. [Logs em JSON no release](#-logs-em-json-no-release-legíveis-no-desenvolvimento)
+10. [TLS terminado no edge](#-tls-terminado-no-edge-nunca-no-container)
+11. [Imagem multi-stage](#️-imagem-multi-stage-com-phpini-por-ambiente-e-opcache-travado)
+12. [Cobertura mínima de 100%](#-cobertura-mínima-de-100-medida-sobre-o-merge-pgsql--sqlite)
+13. [Smoke de login → perfil → logout](#-smoke-de-login--perfil--logout-com-limpeza-de-throttle-entre-casos)
+14. [Versionamento em `/api/v1`](#️-versionamento-em-apiv1-com-apiv2-reservado-para-quebras)
+15. [Onboarding de usuário criado pelo administrador](#-onboarding-de-usuário-criado-pelo-administrador)
+
+---
+
+## 🍪 Sessão em cookie via Sanctum em vez de tokens
 
 **Onde vive:** `config/sanctum.php` (modo stateful), guard `web` com driver `session`
 em `config/auth.php`, middleware `statefulApi` no bootstrap, mais
@@ -23,7 +45,9 @@ restritos a integrações específicas aprovadas, e qualquer `Authorization` env
 rotas desta API é rejeitado com 401 — os tokens pessoais do Sanctum não funcionam
 aqui por desenho, não por acidente.
 
-## 2. Hash argon2id como padrão
+---
+
+## 🔑 Hash argon2id como padrão
 
 **Onde vive:** `config/hashing.php` com driver `argon2id`, memória, threads e tempo
 ajustáveis por `ARGON_MEMORY`, `ARGON_THREADS` e `ARGON_TIME`.
@@ -37,7 +61,9 @@ permitem endurecer a produção sem penalizar o desenvolvimento. O login ainda v
 alternativa de configuração, mas oferece menos margem de ajuste memória-tempo para o
 mesmo custo de CPU.
 
-## 3. Throttle em duas camadas no login: 5/min por e-mail+IP e 20/min por IP
+---
+
+## 🚦 Throttle em duas camadas no login: 5/min por e-mail+IP e 20/min por IP
 
 **Onde vive:** limitadores `login`, `register`, `verification`, `forgot`, `reset` e
 `api` registrados no `AppServiceProvider`.
@@ -61,7 +87,9 @@ ataques mirados ou agressivo contra redes compartilhadas, e chaves de throttle c
 e-mail em claro, que vazariam identidade no backend de cache — por isso a chave passa
 por hash SHA-256.
 
-## 4. Dummy hash no login para não revelar existência de conta
+---
+
+## 🕵️ Dummy hash no login para não revelar existência de conta
 
 **Onde vive:** `LoginController`, constante de hash falso argon2id.
 
@@ -74,7 +102,9 @@ custam parecido e devolvem o mesmo 401 genérico.
 incorreta"), que seriam mais amigáveis, mas entregariam o cadastro a quem varre
 e-mails — uma troca de usabilidade por enumeração que a API não aceita.
 
-## 5. Busca de e-mail case-insensitive com normalização
+---
+
+## ✉️ Busca de e-mail case-insensitive com normalização
 
 **Onde vive:** normalização para minúsculas sem espaços nos requests e no controller,
 comparação com `lower(btrim(email, ...))` no PostgreSQL, apoio central em
@@ -87,7 +117,9 @@ acidentais e logins que falham por caixa alta, sem depender da collation da colu
 **Alternativa rejeitada.** Comparação exata, que fragmentaria identidades por
 capitalização e criaria duplicatas silenciosas difíceis de fundir depois.
 
-## 6. CPF opcional em texto com índice único parcial
+---
+
+## 🪪 CPF opcional em texto com índice único parcial
 
 **Onde vive:** coluna `users.cpf` (texto, 11 posições, anulável) com índice único
 parcial `where cpf is not null`, validação de formato e dígitos verificadores,
@@ -103,7 +135,9 @@ opcional), criptografia da coluna em repouso (rejeitada porque o controle é por
 acesso — permissão `users.read-cpf` — e redação em auditoria e logs, não por cifra) e
 índice único total (que impediria múltiplos nulos em alguns bancos).
 
-## 7. Exclusão definitiva vs desativação por estado
+---
+
+## 🚫 Exclusão definitiva vs desativação por estado
 
 **Onde vive:** `DELETE /users/{user}` (remoção) e `POST /users/{user}/status`
 (transição ativo/desativado) em `routes/api.php`, protegidos por `UserPolicy`.
@@ -117,7 +151,9 @@ perda de dados e que uma remoção necessária vire conta fantasma desativada pa
 **Alternativa rejeitada.** Exclusão lógica única para tudo, que acumularia contas
 mortas no banco e confundiria "suspenso" com "removido" nos relatórios e na trilha.
 
-## 8. Fila `database` com despacho após commit
+---
+
+## 📬 Fila `database` com despacho após commit
 
 **Onde vive:** `QUEUE_CONNECTION=database` com `QUEUE_AFTER_COMMIT=true` nos
 ambientes local, teste e release.
@@ -133,7 +169,9 @@ pré-requisito.
 após rollback) e broker obrigatório desde o scaffold (complexidade operacional sem
 demanda demonstrada).
 
-## 9. Logs em JSON no release, legíveis no desenvolvimento
+---
+
+## 🪵 Logs em JSON no release, legíveis no desenvolvimento
 
 **Onde vive:** `LOG_CHANNEL=stderr` com `LOG_STDERR_FORMATTER` apontando para o
 `JsonFormatter` do Monolog no perfil release; log legível em arquivo único no
@@ -148,7 +186,9 @@ acompanha o ambiente em vez de forçar um só para os dois.
 quebra parsing e correlação no coletor; JSON no desenvolvimento atrasa a leitura
 durante o debug.
 
-## 10. TLS terminado no edge, nunca no container
+---
+
+## 🔒 TLS terminado no edge, nunca no container
 
 **Onde vive:** perfil release servindo HTTP puro na porta 8080 atrás do proxy, HSTS
 aplicado pelos cabeçalhos de segurança da API.
@@ -162,7 +202,9 @@ o tráfego interno em HTTP.
 cada réplica, complicaria rotação e misturaria segredos de transporte com a imagem da
 aplicação. A porta do release nunca é exposta à internet sem proxy com TLS à frente.
 
-## 11. Imagem multi-stage com `php.ini` por ambiente e opcache travado
+---
+
+## 🏗️ Imagem multi-stage com `php.ini` por ambiente e opcache travado
 
 **Onde vive:** `Dockerfile` em estágios `composer`, `vendor` e `runtime`, mais
 `docker/local/php.ini` e `docker/production/php.ini`.
@@ -179,7 +221,9 @@ novo deploy. Ambos mantêm `expose_php` desligado e JIT desligado.
 (superfície maior, segredos de build na imagem final) e `php.ini` único (ou
 desenvolvimento sem recarregamento, ou produção revalidando arquivos a cada request).
 
-## 12. Cobertura mínima de 100% medida sobre o merge pgsql + sqlite
+---
+
+## 💯 Cobertura mínima de 100% medida sobre o merge pgsql + sqlite
 
 **Onde vive:** job de cobertura do workflow de qualidade (`composer test:coverage`:
 duas execuções PHPUnit com driver pcov — PostgreSQL e SQLite —, a união em
@@ -204,7 +248,7 @@ excluindo os ramos do outro driver ou marcando linhas com `@codeCoverageIgnore`,
 cumprindo a meta por exclusão. Drivers de cobertura mais lentos alongariam cada execução
 sem mudar a decisão.
 
-**Limite honesto.** O relatório unificado prova que cada linha foi executada em pelo menos
+> **Limite honesto.** O relatório unificado prova que cada linha foi executada em pelo menos
 uma perna; como a união usa o maior `count` por linha, ela mede execução e nunca soma
 hits. Ele não certifica que um driver específico executa cada ramo: a perna SQLite roda o
 testsuite `Feature` em `:memory:` e exclui, por arquivo de teste, os casos que dependem do
@@ -213,7 +257,9 @@ enquanto a suíte completa roda sob PostgreSQL, e divergências de versão do Po
 entre ambientes locais e CI podem mudar quais ramos executam. Por isso o percentual
 alegado é o que o CI mede, nunca o que se presume.
 
-## 13. Smoke de login → perfil → logout, com limpeza de throttle entre casos
+---
+
+## 🧪 Smoke de login → perfil → logout, com limpeza de throttle entre casos
 
 **Onde vive:** workflow reutilizável de pós-deploy e teste de fronteira HTTP.
 
@@ -226,7 +272,9 @@ esperado num caso não contamine o seguinte — determinismo sem afrouxar os lim
 alguém consegue autenticar) e limpeza global de cache (rápida, mas esconderia
 vazamento de estado entre testes).
 
-## 14. Versionamento em `/api/v1` com `/api/v2` reservado para quebras
+---
+
+## 🏷️ Versionamento em `/api/v1` com `/api/v2` reservado para quebras
 
 **Onde vive:** prefixo `api/v1` no bootstrap, rotas em `routes/api.php`, geração
 OpenAPI restrita a `api/v1/*`, versão do documento vinda de `API_VERSION`.
@@ -240,7 +288,9 @@ pinado dão ao frontend um alvo estável para gerar tipos.
 e versionamento por cabeçalho ou parâmetro (invisível em logs, difícil de rotear no
 edge e fácil de esquecer no cliente).
 
-## 15. Onboarding de usuário criado pelo administrador
+---
+
+## 📩 Onboarding de usuário criado pelo administrador
 
 **Onde vive:** `app/Actions/Users/StoreUser.php`, `app/Notifications/VerifyEmail.php`,
 comando `auth:prune-expired-tokens` em `routes/console.php`.

@@ -1,4 +1,4 @@
-# Receita para uma fatia vertical
+# 🧩 Receita para uma fatia vertical
 
 Uma fatia vertical entrega um comportamento observável completo, do limite HTTP à
 persistência e resposta quando esses componentes forem necessários. Organize a

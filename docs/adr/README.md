@@ -1,4 +1,4 @@
-# Decisões arquiteturais incrementais
+# 🏛️ Decisões arquiteturais incrementais
 
 Origem: [API #1](https://github.com/yanpenalva/starter-kit-api/issues/1). Data: 2026-10-01.
 

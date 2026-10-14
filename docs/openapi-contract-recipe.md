@@ -1,4 +1,4 @@
-# Receita de proveniência do artifact OpenAPI
+# 🧾 Receita de proveniência do artifact OpenAPI
 
 Use esta receita quando o contrato ou seus tipos forem consumidos fora do
 repositório da API. O workflow `OpenAPI Contract` publica um JSON em um artifact;

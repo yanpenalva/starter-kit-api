@@ -1,4 +1,4 @@
-# 03 — Arquitetura: requisição, camadas, RBAC e auditoria
+# 🏛️ Arquitetura: requisição, camadas, RBAC e auditoria
 
 Este guia explica como uma requisição atravessa a API, o que mora em cada camada do
 código, como a autorização decide quem pode o quê e como a auditoria registra o que
@@ -6,7 +6,18 @@ foi decidido. Os quatro desenhos usam Mermaid e acompanham o código real em
 `routes/api.php`, `bootstrap/app.php`, `app/Policies`, `app/Support` e nos enums de
 catálogo.
 
-## 1. Ciclo de vida de uma requisição: o login como exemplo
+---
+
+## 📑 Índice
+
+1. [Ciclo de vida da requisição](#️-ciclo-de-vida-da-requisição)
+2. [Camadas do código](#️-camadas-do-código)
+3. [RBAC na prática](#️-rbac-na-prática)
+4. [Auditoria e envelope mínimo](#️-auditoria-e-envelope-mínimo)
+
+---
+
+## 🔄 Ciclo de vida da requisição
 
 Toda a API vive sob o prefixo `api/v1`, configurado no bootstrap. Antes de qualquer
 controller, dois middlewares globais sempre executam: `CorrelateRequest`, que garante
@@ -31,30 +42,14 @@ flowchart TD
 
 Cada parada tem um motivo:
 
-- **Correlação primeiro.** O `CorrelateRequest` é o middleware mais externo, então o
-  identificador acompanha a requisição do início ao fim e volta no cabeçalho da
-  resposta. Em ambientes locais, um valor válido enviado pelo cliente é respeitado;
-  qualquer outra coisa é substituída por um UUID novo, para que nada arbitrário vire
-  registro de log.
-- **Bloqueio de cabeçalho antes de tudo.** O `DisallowHeaderAuthentication` roda antes
-  da autenticação do framework e aborta com 401 qualquer requisição que traga
-  `Authorization`. É assim que a API garante que tokens nunca funcionem como
-  credencial, mesmo que o pacote Sanctum os conheça.
-- **Throttle antes do controller.** O limitador `login` permite 5 tentativas por minuto
-  por combinação de e-mail e IP, mais um teto de 20 por minuto por IP. A chave usa o
-  hash SHA-256 do e-mail normalizado com o IP, então o endereço nunca aparece na chave
-  de cache. Estourar o limite responde 429 com mensagem padronizada.
-- **Sessão stateful exigida.** O `EnsureStatefulSession` aborta com 419 quando não há
-  sessão, o que acontece se o cliente pulou o `GET /sanctum/csrf-cookie`. Essa é a
-  falha típica de integrações novas: sem cookie XSRF prévio, o login nunca chega ao
-  controller.
-- **Busca que não entrega existência.** O controller normaliza o e-mail para
-  minúsculas sem espaços e busca de forma case-insensitive. Se o usuário não existe,
-  ele ainda executa `Hash::check` contra um hash falso (dummy hash) e responde o mesmo
-  401 genérico. O tempo de resposta fica parecido nos dois casos, e a mensagem nunca
-  revela se o e-mail está cadastrado.
-- **Sessão regenerada.** Após autenticar, o ID da sessão é regenerado, o que impede
-  fixação de sessão: um identificador obtido antes do login deixa de valer depois.
+| Parada | Motivo |
+| --- | --- |
+| Correlação primeiro | O `CorrelateRequest` é o middleware mais externo, então o identificador acompanha a requisição do início ao fim e volta no cabeçalho da resposta. Em ambientes locais, um valor válido enviado pelo cliente é respeitado; qualquer outra coisa é substituída por um UUID novo, para que nada arbitrário vire registro de log. |
+| Bloqueio de cabeçalho | O `DisallowHeaderAuthentication` roda antes da autenticação do framework e aborta com 401 qualquer requisição que traga `Authorization`. É assim que a API garante que tokens nunca funcionem como credencial, mesmo que o pacote Sanctum os conheça. |
+| Throttle antes do controller | O limitador `login` permite 5 tentativas por minuto por combinação de e-mail e IP, mais um teto de 20 por minuto por IP. A chave usa o hash SHA-256 do e-mail normalizado com o IP, então o endereço nunca aparece na chave de cache. Estourar o limite responde 429 com mensagem padronizada. |
+| Sessão stateful exigida | O `EnsureStatefulSession` aborta com 419 quando não há sessão, o que acontece se o cliente pulou o `GET /sanctum/csrf-cookie`. Essa é a falha típica de integrações novas: sem cookie XSRF prévio, o login nunca chega ao controller. |
+| Busca que não entrega existência | O controller normaliza o e-mail para minúsculas sem espaços e busca de forma case-insensitive. Se o usuário não existe, ele ainda executa `Hash::check` contra um hash falso (dummy hash) e responde o mesmo 401 genérico. O tempo de resposta fica parecido nos dois casos, e a mensagem nunca revela se o e-mail está cadastrado. |
+| Sessão regenerada | Após autenticar, o ID da sessão é regenerado, o que impede fixação de sessão: um identificador obtido antes do login deixa de valer depois. |
 
 Rotas autenticadas trocam o trecho central do desenho: em vez de throttle de login e
 `EnsureStatefulSession`, entra `auth:sanctum` (exige sessão válida), seguido do gate
@@ -63,12 +58,14 @@ transação de privilégio. O perfil próprio (`GET /auth/my-profile`) ainda pas
 `EnsureAccountNotDeactivated`, que responde 403 para contas desativadas mesmo com
 sessão válida.
 
-O perfil próprio representa exclusivamente o usuário autenticado pela sessão
-Sanctum: parâmetros fornecidos pelo cliente não podem escolher usuário, papel ou
-permissão. O SPA pode usar `roles` e `permissions` para exibição; cada rota protegida
-reavalia a autorização no backend a partir do estado atual do servidor.
+> O perfil próprio representa exclusivamente o usuário autenticado pela sessão
+> Sanctum: parâmetros fornecidos pelo cliente não podem escolher usuário, papel ou
+> permissão. O SPA pode usar `roles` e `permissions` para exibição; cada rota protegida
+> reavalia a autorização no backend a partir do estado atual do servidor.
 
-## 2. As camadas e o que mora em cada uma
+---
+
+## 🧱 Camadas do código
 
 ```mermaid
 flowchart TD
@@ -128,9 +125,9 @@ A regra de separação é simples de aplicar na prática:
   schema; `links` e `meta` são opcionais para que o envelope seja aditivo para clientes
   do contrato anterior, embora a API emita os três campos.
 
-No OpenAPI, `UserResource.roles.items` mantém o objeto com `relations` obrigatório do
-snapshot-base. O transformer preserva esse schema e limita esta extensão aos campos
-opcionais `links` e `meta` nos envelopes de listagem.
+> No OpenAPI, `UserResource.roles.items` mantém o objeto com `relations` obrigatório do
+> snapshot-base. O transformer preserva esse schema e limita esta extensão aos campos
+> opcionais `links` e `meta` nos envelopes de listagem.
 - **Support** concentra comportamento transversal: vocabulário de mensagens de erro,
   escritor de auditoria, correlação, filtros de listagem com allowlist e verificações
   de prontidão usadas pelo healthcheck.
@@ -139,7 +136,9 @@ Erros seguem o catálogo central de mensagens: autenticação ausente é 401, fa
 permissão é 403, validação é 422 com detalhe por campo, e falhas inesperadas são 500
 com mensagem genérica quando o debug está desligado — nunca com detalhes internos.
 
-## 3. O RBAC na prática
+---
+
+## 🔐 RBAC na prática
 
 O catálogo de permissões é fechado: vive num enum e é provisionado por seeder
 idempotente. A API administra usuários e papéis, inclusive atribuindo permissões
@@ -205,7 +204,9 @@ conta como em pé. Terceiro, concorrência: mutações de privilégio rodam sob 
 consultiva do PostgreSQL, então duas remoções simultâneas do último admin não passam
 juntas pela verificação.
 
-## 4. A auditoria e seu envelope mínimo
+---
+
+## 📝 Auditoria e envelope mínimo
 
 A trilha usa o Activitylog como único mecanismo inicial. Nem todo modelo nem todo
 request é auditado: só eventos aprovados (mudanças de privilégio e bootstrap
@@ -226,24 +227,11 @@ flowchart TD
 
 O que o desenho garante, ponto a ponto:
 
-- **Fail-closed.** O evento é gravado na mesma transação da operação e sua existência
-  é verificada antes do commit. Se a gravação falha, a mutação é revertida: nunca
-  existe privilégio concedido sem registro correspondente.
-- **Envelope mínimo por negação padrão.** Só sobrevivem as chaves aprovadas
-  (`correlation_id`, `actor_type`, `actor_id` e `action`, com códigos aprovados como
-  `role.rename`); todo o resto é descartado. Senhas,
-  hashes, tokens, cookies, CSRF, CPF, e-mail e payload integral são proibidos, e IP
-  não é coletado por padrão.
-- **Ação específica e validada.** `event` agrupa mudanças privilegiadas e bootstrap;
-  `properties.action` identifica a operação com um código da allowlist, como
-  `user.store`, `user.status`, `role.update_permissions`, `role.rename` ou
-  `admin.bootstrap`. O feed
-  aceita `?action=<código aprovado>` e rejeita códigos fora da lista.
-- **Leitura controlada.** A trilha não pode ser editada nem removida pela API, e a
-  leitura exige a permissão `logs.view`. A limpeza após 90 dias é restrita ao processo
-  operacional agendado (`activitylog:clean`), nunca a um endpoint.
-- **Filtro por ação.** `GET /api/v1/activity-log?action=<código>` aceita apenas um
-  dos códigos de operação aprovados; `event` continua disponível para filtrar a
-  categoria ampla da atividade.
-- **Retenção declarada.** Eventos vivem 90 dias. Classificação fina, responsabilidades
-  operacionais e tratamento em backups são definidos antes da coleta em produção.
+| Garantia | Como |
+| --- | --- |
+| Fail-closed | O evento é gravado na mesma transação da operação e sua existência é verificada antes do commit. Se a gravação falha, a mutação é revertida: nunca existe privilégio concedido sem registro correspondente. |
+| Envelope mínimo por negação padrão | Só sobrevivem as chaves aprovadas (`correlation_id`, `actor_type`, `actor_id` e `action`, com códigos aprovados como `role.rename`); todo o resto é descartado. Senhas, hashes, tokens, cookies, CSRF, CPF, e-mail e payload integral são proibidos, e IP não é coletado por padrão. |
+| Ação específica e validada | `event` agrupa mudanças privilegiadas e bootstrap; `properties.action` identifica a operação com um código da allowlist, como `user.store`, `user.status`, `role.update_permissions`, `role.rename` ou `admin.bootstrap`. O feed aceita `?action=<código aprovado>` e rejeita códigos fora da lista. |
+| Leitura controlada | A trilha não pode ser editada nem removida pela API, e a leitura exige a permissão `logs.view`. A limpeza após 90 dias é restrita ao processo operacional agendado (`activitylog:clean`), nunca a um endpoint. |
+| Filtro por ação | `GET /api/v1/activity-log?action=<código>` aceita apenas um dos códigos de operação aprovados; `event` continua disponível para filtrar a categoria ampla da atividade. |
+| Retenção declarada | Eventos vivem 90 dias. Classificação fina, responsabilidades operacionais e tratamento em backups são definidos antes da coleta em produção. |

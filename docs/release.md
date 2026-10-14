@@ -1,4 +1,4 @@
-# API image release, deploy and rollback
+# 🚢 API Image Release, Deploy and Rollback
 
 Releases are immutable OCI images tagged `api-<UTC-date>-<12-char-commit-sha>` in GHCR. Never move or overwrite a release tag. The deploy workflow builds and pushes the image, switches the remote Compose project to that tag, runs database migrations, restarts the API/worker/scheduler and runs the reusable login → my-profile → logout smoke test.
 

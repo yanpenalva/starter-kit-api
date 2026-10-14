@@ -1,4 +1,4 @@
-# 05 — Integração fullstack: SPA, sessão, CORS e contrato
+# 🔗 Integração fullstack: SPA, sessão, CORS e contrato
 
 Este guia explica como o SPA consome a API como origem independente usando a mesma
 sessão em cookie, o que cada lado precisa configurar para o navegador permitir isso
@@ -6,7 +6,19 @@ e como o contrato OpenAPI pinado mantém os dois repositórios sincronizados. É
 leitura para quem desenvolve o frontend ou depura falhas de autenticação entre
 origens.
 
-## 1. A sequência completa no navegador
+---
+
+## 📑 Índice
+
+1. [A sequência completa no navegador](#️-a-sequência-completa-no-navegador)
+2. [CORS stateful](#-cors-stateful-o-acordo-entre-as-origens)
+3. [`VITE_API_URL`](#-vite_api_url-a-única-ponte-de-endereço)
+4. [Contrato OpenAPI pinado](#-contrato-openapi-pinado-gerando-tipos)
+5. [Quando o contrato muda](#-quando-o-contrato-muda-o-que-cada-lado-faz)
+
+---
+
+## 🖥️ A sequência completa no navegador
 
 O frontend nunca envia credenciais por cabeçalho: ele trabalha com a sessão em
 cookie emitida pela API, com CSRF validado a cada mutação. A ordem é rígida — cada
@@ -28,19 +40,62 @@ sequenceDiagram
 
 Lendo a sequência:
 
-- **O CSRF vem primeiro.** Antes da primeira chamada autenticada, o SPA requisita
-  `GET /sanctum/csrf-cookie`. A resposta planta dois cookies: o `XSRF-TOKEN`, legível
-  pelo JavaScript, e o de sessão, `HttpOnly`. Pular essa chamada é a causa mais comum
-  de 419: sem sessão prévia, o login é abortado antes do controller.
-- **Mutação leva token.** `POST /login` e `POST /logout` enviam os cookies junto com
-  o cabeçalho `X-XSRF-TOKEN`. Leitura (`GET /auth/my-profile`) envia só os cookies.
-- **401 volta ao login, 403 vai ao "/403".** As guardas de rota do SPA tratam os dois
-  códigos separadamente: sessão ausente ou expirada manda de volta ao login; sessão
-  válida sem permissão leva à página dedicada de acesso negado. Testes cobrem ambos.
-- **Logout encerra de verdade.** A sessão é invalidada no servidor e o CSRF é
-  renovado, então reutilizar cookies antigos depois do logout não autentica ninguém.
+### 1️⃣ O CSRF vem primeiro
 
-## 2. CORS stateful: o acordo entre as origens
+Antes da primeira chamada autenticada, o SPA requisita `GET /sanctum/csrf-cookie`.
+A resposta planta dois cookies: o `XSRF-TOKEN`, legível pelo JavaScript, e o de
+sessão, `HttpOnly`. Pular essa chamada é a causa mais comum de 419: sem sessão
+prévia, o login é abortado antes do controller.
+
+### 2️⃣ Mutação leva token
+
+`POST /login` e `POST /logout` enviam os cookies junto com o cabeçalho
+`X-XSRF-TOKEN`. Leitura (`GET /auth/my-profile`) envia só os cookies.
+
+### 3️⃣ 401 volta ao login, 403 vai ao "/403"
+
+As guardas de rota do SPA tratam os dois códigos separadamente: sessão ausente ou
+expirada manda de volta ao login; sessão válida sem permissão leva à página dedicada
+de acesso negado. Testes cobrem ambos.
+
+### 4️⃣ Logout encerra de verdade
+
+A sessão é invalidada no servidor e o CSRF é renovado, então reutilizar cookies
+antigos depois do logout não autentica ninguém.
+
+### 5️⃣ O mesmo fluxo no smoke de pós-deploy
+
+O workflow reutilizável `.github/workflows/smoke.yml` executa exatamente essa
+sequência com curl sobre HTTP real, usando `API_BASE_URL` e `SMOKE_ORIGIN` (com
+`SMOKE_EMAIL` e `SMOKE_PASSWORD` nos segredos):
+
+```mermaid
+sequenceDiagram
+    participant T as Smoke (curl + cookie jar)
+    participant API as API (Nginx → Laravel)
+    T->>API: GET /sanctum/csrf-cookie<br/>Origin: $SMOKE_ORIGIN
+    API-->>T: XSRF-TOKEN + cookie de sessão
+    Note over T: URL-decode de XSRF-TOKEN<br/>para o header X-XSRF-TOKEN
+    T->>API: POST /api/v1/login {email, password}<br/>cookies + Origin + Referer + X-XSRF-TOKEN
+    API-->>T: 204, Auth::login + regenerate
+    Note over T: relê XSRF-TOKEN do jar<br/>(o login regenerou a sessão)
+    T->>API: GET /api/v1/auth/my-profile<br/>cookies + Origin
+    API-->>T: 200, perfil em JSON
+    T->>API: POST /api/v1/logout<br/>cookies + Origin + Referer + X-XSRF-TOKEN
+    API-->>T: 204, logout + invalidate + regenerateToken
+```
+
+| Passo do smoke | Detalhe fiel ao workflow |
+| --- | --- |
+| CSRF com origem | `GET /sanctum/csrf-cookie` com `Origin`, guardando os cookies no jar |
+| Decodificação | URL-decode do `XSRF-TOKEN` para montar o `X-XSRF-TOKEN` |
+| Login com contexto | `POST /api/v1/login` com cookies, `Origin`, `Referer` e `X-XSRF-TOKEN`, corpo `{email, password}` |
+| Releitura do XSRF | O login regenera a sessão, então o token é relido do jar antes do logout |
+| Perfil e logout | `GET /api/v1/auth/my-profile` com cookies, depois `POST /api/v1/logout` com o token relido; a sessão é invalidada e o CSRF renovado |
+
+---
+
+## 🔀 CORS stateful: o acordo entre as origens
 
 Em desenvolvimento, o Vite serve o SPA em `http://localhost:5173` enquanto a API
 escuta em outra porta — origens diferentes para o navegador. Três variáveis, uma de
@@ -85,7 +140,9 @@ flowchart TD
     SES -->|CSRF ausente| B3[419]
 ```
 
-## 3. `VITE_API_URL`: a única ponte de endereço
+---
+
+## 🔌 `VITE_API_URL`: a única ponte de endereço
 
 O cliente HTTP do SPA cria a instância axios com `withCredentials` habilitado,
 configurada a partir de `VITE_API_URL`. Essa variável aponta para a **raiz da API,
@@ -94,7 +151,9 @@ desenvolvimento. Todos os caminhos (`/sanctum/csrf-cookie`, `/api/v1/login`, ...
 anexados a essa base pelo cliente centralizado, que também injeta o `X-XSRF-TOKEN` nas
 mutações. Trocar de ambiente é trocar essa variável, nunca espalhar URLs pelo código.
 
-## 4. Contrato OpenAPI pinado gerando tipos
+---
+
+## 📜 Contrato OpenAPI pinado gerando tipos
 
 O snapshot `contracts/openapi.json` (OpenAPI 3.1.0, versão vinda de `API_VERSION`) é
 a fonte canônica do formato de cada endpoint: entradas, respostas, erros e
@@ -112,7 +171,9 @@ que o snapshot commitado corresponde ao runtime e rejeita mudanças incompatíve
 Exportações locais servem para inspeção, não substituem o produtor oficial. Para os
 passos operacionais e a validação de provenance, siga o [guia de release do contrato](contract-release.md).
 
-## 5. Quando o contrato muda: o que cada lado faz
+---
+
+## 🔄 Quando o contrato muda: o que cada lado faz
 
 | Tipo de mudança | Lado API | Lado SPA |
 | --- | --- | --- |
@@ -121,6 +182,6 @@ passos operacionais e a validação de provenance, siga o [guia de release do co
 | Mudança incompatível real | Novo prefixo `/api/v2` com convivência do v1 | Migra no ritmo próprio, com tipos gerados do v2 |
 | Novo código de erro ou permissão | Documenta no contrato e no snapshot | Ajusta guardas de rota (401 → login, 403 → "/403") |
 
-A ordem nunca inverte: primeiro a API versiona e publica o snapshot revisado, depois
-o SPA regenera os tipos contra o arquivo pinado. Mudança de contrato sem snapshot
-atualizado é mudança pela metade — o CI barra, e é para barrar mesmo.
+> A ordem nunca inverte: primeiro a API versiona e publica o snapshot revisado, depois
+> o SPA regenera os tipos contra o arquivo pinado. Mudança de contrato sem snapshot
+> atualizado é mudança pela metade — o CI barra, e é para barrar mesmo.

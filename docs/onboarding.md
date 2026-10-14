@@ -1,4 +1,4 @@
-# Onboarding de desenvolvimento
+# 🧭 Onboarding de desenvolvimento
 
 Este guia leva de um checkout limpo à suíte PHPUnit verde. Os comandos pressupõem a raiz do repositório e Docker Compose v2.
 

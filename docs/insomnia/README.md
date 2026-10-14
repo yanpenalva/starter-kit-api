@@ -1,4 +1,4 @@
-# Starter Kit API — Insomnia
+# 📬 Starter Kit API — Insomnia
 
 Importe `starter-kit-api-insomnia.json` em **Import → File** no Insomnia com suporte a v5. São **37 requests em 5 pastas**: Auth (20), Users (7), Roles (6), Audit (1) e Health (3). Os exemplos de resposta (status e corpo) ficam na descrição de cada request. Exemplos corrigidos usam capturas HTTP sanitizadas; os demais exemplos sintéticos e erros ilustrativos estão identificados. A validação live e seus limites estão em [VALIDATION.md](VALIDATION.md), com [capturas reais](live-responses.json).
 
