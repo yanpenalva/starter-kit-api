@@ -39,18 +39,17 @@ final class HttpAuthSmokeTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (config('database.default') !== 'pgsql') {
+        try {
+            $this->assertIsolatedTestingRuntime(skipOnNonPgsql: false);
+        } finally {
+            Cache::store('file')->flush();
+
+            if (config('database.default') === 'pgsql') {
+                $this->cleanSmokeUserFixtures();
+            }
+
             parent::tearDown();
-
-            return;
         }
-
-        $this->assertIsolatedTestingRuntime();
-
-        Cache::store('file')->flush();
-        $this->cleanSmokeUserFixtures();
-
-        parent::tearDown();
     }
 
     public function test_smoke_fixture_cleanup_removes_polymorphic_role_assignments(): void
@@ -334,7 +333,7 @@ final class HttpAuthSmokeTest extends TestCase
      * local runs (sqlite-first policy) skip: these tests drive a real HTTP
      * server against the isolated pgsql stack.
      */
-    private function assertIsolatedTestingRuntime(): void
+    private function assertIsolatedTestingRuntime(bool $skipOnNonPgsql = true): void
     {
         $this->assertTrue(
             app()->environment('testing'),
@@ -342,7 +341,11 @@ final class HttpAuthSmokeTest extends TestCase
         );
 
         if (config('database.default') !== 'pgsql') {
-            $this->markTestSkipped('Real-HTTP smoke tests require the isolated pgsql stack.');
+            if ($skipOnNonPgsql) {
+                $this->markTestSkipped('Real-HTTP smoke tests require the isolated pgsql stack.');
+            }
+
+            return;
         }
 
         $this->assertSame(

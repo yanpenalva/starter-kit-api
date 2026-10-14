@@ -21,6 +21,10 @@ final class LogoutTest extends TestCase
         $database = config('database.connections.'.config('database.default').'.database');
         $this->assertIsString($database);
         $this->assertSame($database, DB::connection()->getDatabaseName());
+
+        if (config('database.default') === 'pgsql') {
+            $this->assertSame('starter_api_test', $database);
+        }
     }
 
     public function test_anonymous_logout_returns_401(): void

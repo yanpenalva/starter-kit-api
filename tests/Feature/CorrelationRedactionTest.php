@@ -25,6 +25,10 @@ final class CorrelationRedactionTest extends TestCase
         $this->assertIsString($database);
         $this->assertSame($database, DB::connection()->getDatabaseName());
 
+        if (config('database.default') === 'pgsql') {
+            $this->assertSame('starter_api_test', $database);
+        }
+
         $this->seed(RbacCatalogueSeeder::class);
     }
 

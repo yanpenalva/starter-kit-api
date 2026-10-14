@@ -116,6 +116,10 @@ final class HttpBoundarySmokeTest extends TestCase
         $this->assertIsString($database);
         $this->assertSame($database, DB::connection()->getDatabaseName());
 
+        if (config('database.default') === 'pgsql') {
+            $this->assertSame('starter_api_test', $database);
+        }
+
         $environment = $this->serverEnvironment();
         $this->runMigrations($environment);
 

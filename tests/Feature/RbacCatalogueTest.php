@@ -22,6 +22,10 @@ final class RbacCatalogueTest extends TestCase
         $database = config('database.connections.'.config('database.default').'.database');
         $this->assertIsString($database);
         $this->assertSame($database, DB::connection()->getDatabaseName());
+
+        if (config('database.default') === 'pgsql') {
+            $this->assertSame('starter_api_test', $database);
+        }
     }
 
     public function test_seeder_is_idempotent_and_matches_the_approved_catalogue(): void
