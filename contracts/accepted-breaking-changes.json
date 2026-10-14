@@ -15,7 +15,7 @@
       "endpoint": "GET /api/v1/health",
       "change": "The 200 response body schema is now an object {status, checks} instead of a string.",
       "justification": "Snapshot correction BUG-42: runtime always returned the readiness object; the old string schema never matched any real response. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-body-type-changed",
       "oasdiff_text": "the response's body `type` changed from `string` to `object` for status `200`"
     },
@@ -24,7 +24,7 @@
       "endpoint": "GET /api/v1/users",
       "change": "User roles items are documented as strings instead of objects.",
       "justification": "Snapshot correction BUG-42: UserResource always returned role name strings (live-validated 35/35); the object-with-relations schema never matched any real response. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-property-type-changed",
       "oasdiff_text": "the `data/items/roles/items/` response's property `type` changed from `object` to `string` for status `200`"
     },
@@ -33,7 +33,7 @@
       "endpoint": "GET /api/v1/users",
       "change": "The required relations property was removed from user roles items.",
       "justification": "Snapshot correction BUG-42: follows BRK-2026-10-13-003; relations never existed in real responses. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-required-property-removed",
       "oasdiff_text": "removed the required property `data/items/roles/items/relations` from the response with the `200` status"
     },
@@ -42,7 +42,7 @@
       "endpoint": "POST /api/v1/users",
       "change": "User roles items are documented as strings instead of objects.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-003, for the 201 response. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-property-type-changed",
       "oasdiff_text": "the `data/roles/items/` response's property `type` changed from `object` to `string` for status `201`"
     },
@@ -51,7 +51,7 @@
       "endpoint": "POST /api/v1/users",
       "change": "The required relations property was removed from user roles items.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-004, for the 201 response. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-required-property-removed",
       "oasdiff_text": "removed the required property `data/roles/items/relations` from the response with the `201` status"
     },
@@ -60,7 +60,7 @@
       "endpoint": "GET /api/v1/users/{user}",
       "change": "User roles items are documented as strings instead of objects.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-003. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-property-type-changed",
       "oasdiff_text": "the `data/roles/items/` response's property `type` changed from `object` to `string` for status `200`"
     },
@@ -69,7 +69,7 @@
       "endpoint": "GET /api/v1/users/{user}",
       "change": "The required relations property was removed from user roles items.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-004. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-required-property-removed",
       "oasdiff_text": "removed the required property `data/roles/items/relations` from the response with the `200` status"
     },
@@ -78,7 +78,7 @@
       "endpoint": "PATCH /api/v1/users/{user}",
       "change": "User roles items are documented as strings instead of objects.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-003. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-property-type-changed",
       "oasdiff_text": "the `data/roles/items/` response's property `type` changed from `object` to `string` for status `200`"
     },
@@ -87,7 +87,7 @@
       "endpoint": "PATCH /api/v1/users/{user}",
       "change": "The required relations property was removed from user roles items.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-004. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-required-property-removed",
       "oasdiff_text": "removed the required property `data/roles/items/relations` from the response with the `200` status"
     },
@@ -96,7 +96,7 @@
       "endpoint": "PUT /api/v1/users/{user}/roles",
       "change": "User roles items are documented as strings instead of objects.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-003. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-property-type-changed",
       "oasdiff_text": "the `data/roles/items/` response's property `type` changed from `object` to `string` for status `200`"
     },
@@ -105,7 +105,7 @@
       "endpoint": "PUT /api/v1/users/{user}/roles",
       "change": "The required relations property was removed from user roles items.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-004. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-required-property-removed",
       "oasdiff_text": "removed the required property `data/roles/items/relations` from the response with the `200` status"
     },
@@ -114,7 +114,7 @@
       "endpoint": "POST /api/v1/users/{user}/status",
       "change": "User roles items are documented as strings instead of objects.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-003. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-property-type-changed",
       "oasdiff_text": "the `data/roles/items/` response's property `type` changed from `object` to `string` for status `200`"
     },
@@ -123,7 +123,7 @@
       "endpoint": "POST /api/v1/users/{user}/status",
       "change": "The required relations property was removed from user roles items.",
       "justification": "Snapshot correction BUG-42: same as BRK-2026-10-13-004. No runtime behavior changed.",
-      "pr": "PENDING-PR",
+      "pr": "https://github.com/yanpenalva/starter-kit-api/commit/ee4fc0e028f381e6e9c35f8c1c99b7fcc073abe1",
       "oasdiff_id": "response-required-property-removed",
       "oasdiff_text": "removed the required property `data/roles/items/relations` from the response with the `200` status"
     }
