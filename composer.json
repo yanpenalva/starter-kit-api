@@ -34,10 +34,13 @@
         }
     },
     "scripts": {
+        "//": "test:coverage mede duas execuções: pgsql (canônica, gate de aceitação) e sqlite. Os ramos de driver (like/ilike, json_extract, EmailLookup, LoginController) são mutuamente exclusivos, então só a união dos dois relatórios fecha 100% sem excluir código de app.",
         "test": "@php vendor/bin/phpunit",
         "test:coverage": [
-            "@php vendor/bin/phpunit --coverage-clover storage/app/coverage.xml --coverage-text",
-            "@php scripts/coverage-floor.php storage/app/coverage.xml 85"
+            "@php vendor/bin/phpunit --coverage-clover storage/app/coverage-pgsql.xml",
+            "@php vendor/bin/phpunit -c phpunit.sqlite.xml --coverage-clover storage/app/coverage-sqlite.xml",
+            "@php scripts/merge-coverage.php storage/app/coverage-pgsql.xml storage/app/coverage-sqlite.xml storage/app/coverage.xml",
+            "@php scripts/coverage-floor.php storage/app/coverage.xml 100"
         ],
         "lint": "@php vendor/bin/pint --test",
         "analyse": "@php vendor/bin/phpstan analyse --memory-limit=512M",

@@ -105,7 +105,7 @@ jobs:
       - run: composer test
 
   coverage:
-    name: Coverage gate (pcov, min 85%)
+    name: Coverage gate (pcov, merged pgsql+sqlite, min 100%)
     runs-on: ubuntu-latest
     services:
       postgres-test:
@@ -160,12 +160,16 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, pdo_pgsql, redis
+          # pdo_sqlite: `composer test:coverage` runs a second leg under
+          # phpunit.sqlite.xml to measure the driver branches PostgreSQL
+          # never executes (like/json_extract fallbacks).
+          extensions: mbstring, pdo_pgsql, pdo_sqlite, redis
           coverage: pcov
           tools: composer:v2
       - run: composer validate --strict
       - run: composer install --no-interaction --prefer-dist
-      - run: composer test:coverage
+      - name: Coverage gate (merged pgsql+sqlite, min 100%)
+        run: composer test:coverage
 
   contract:
     name: Contract generation and compatibility

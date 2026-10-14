@@ -3,16 +3,17 @@
 declare(strict_types=1);
 
 /*
- * Enforces the documented coverage floor (default 85% lines) over a PHPUnit
- * Clover report. Usage:
+ * Enforces the documented coverage floor (default 100% lines) over a PHPUnit
+ * Clover report — in CI the report merged from the pgsql and sqlite runs.
+ * Usage:
  *
- *   php scripts/coverage-floor.php storage/app/coverage.xml 85
+ *   php scripts/coverage-floor.php storage/app/coverage.xml [floor]
  *
  * Exits 0 when covered lines meet the floor, 1 otherwise.
  */
 
 $report = $argv[1] ?? '';
-$floor = (float) ($argv[2] ?? 85);
+$floor = (float) ($argv[2] ?? 100);
 
 if ($report === '' || ! is_file($report)) {
     fwrite(STDERR, "Coverage report not found: {$report}\n");
