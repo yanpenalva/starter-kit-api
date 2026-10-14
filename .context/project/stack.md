@@ -1,6 +1,6 @@
 # Stack and Tooling
 
-Runtime and dependency versions are resolved in `composer.lock` and Docker image digests. Application feature evidence is recorded by the owning work items; the contract workflow is tracked in FEAT-11.
+Runtime and dependency versions are resolved in `composer.lock` and Docker image digests. Application feature evidence is recorded in relevant documentation and contracts.
 
 | Area | Technology | Version | State |
 | --- | --- | --- | --- |
@@ -21,4 +21,4 @@ Application package manager: Composer; composer.lock records resolved versions. 
 
 Resolved quality tools: PHPUnit 12.5.37, Pint 1.32.1, Larastan 3.12.2 (level 10). Optional Mailpit image: 1.28.0, pinned by digest. PHP includes mbstring/OPcache natively; Dockerfile adds pdo_pgsql and zip. Versions reflect actual runtime/lockfile verification, not production deployment.
 
-OpenAPI contract tooling: `.github/workflows/openapi.yml` (`OpenAPI Contract`) runs by manual dispatch on `main`, pins Scramble `0.13.47`, enforces two byte-identical exports under `LC_ALL=C`, and uploads `openapi-<fullSHA>` for 90 days. `.github/workflows/quality.yml` validates the committed snapshot and breaking changes using pinned `oasdiff 1.33.0`. Provenance tooling records and verifies workflow/artifact metadata and independent ZIP/file hashes; these prove transfer integrity, not cryptographic authorship. See the [contract release guide](../../docs/contract-release.md) and [FEAT-11](../work/FEAT-11/work-item.json).
+OpenAPI contract tooling: `.github/workflows/openapi.yml` (`OpenAPI Contract`) runs by manual dispatch on `main`, pins Scramble `0.13.47`, enforces two byte-identical exports under `LC_ALL=C`, and uploads `openapi-<fullSHA>` for 90 days. `.github/workflows/quality.yml` validates the committed snapshot and breaking changes using pinned `oasdiff 1.33.0`. Provenance tooling records and verifies workflow/artifact metadata and independent ZIP/file hashes; these prove transfer integrity, not cryptographic authorship. See the [contract release guide](../../docs/contract-release.md).

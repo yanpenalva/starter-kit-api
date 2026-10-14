@@ -18,8 +18,8 @@ The `auth` module owns stateful SPA session authentication, user identity bounda
 - **Does NOT Own:**
   - Administrative user mutations, user creation, or role assignment (owned by privileged administration / `UserPolicy`).
   - Personal Access Tokens (PAT) or Bearer token issuance (expressly disallowed for SPA authentication).
-  - Public registration and email verification links (owned by API #14).
-  - Password-reset issuance and notification (owned by API #15); auth owns invalidating the user's sessions after a successful reset.
+  - Public registration and email verification links (owned by registration and verification workflows).
+  - Password-reset issuance and notification (owned by password-reset workflows); auth owns invalidating the user's sessions after a successful reset.
   - Production TLS, session domains, or production reverse-proxy configuration.
 
 ## Endpoints and Contracts

@@ -1,3 +1,0 @@
-# Release — FEAT-9 (owned slices)
-
-Delivered and integrated in `main` 1390009: wave-1 user identity schema with optional CPF (partial unique index, normalization rule, factory, concurrency-tested constraints), default catalogue seeder idempotent over `migrate:fresh --seed` twice (8 permissions, 2 roles, 0 users, 0 assignments), and — via FEAT-13 — the case-insensitive email uniqueness slice (`users_email_lower_unique`, fail-closed collision check, normalized lookup). Wave-2 RBAC and audit schema arrived through PR #33 with coverage in FEAT-16 and FEAT-19, which stay active. No deploy, no production operation. GitHub issue #9 stays open; closure belongs to the parent.

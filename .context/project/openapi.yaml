@@ -3,8 +3,7 @@ info:
   title: Starter Kit API
   version: 0.1.0
   description: >-
-    Initial v1 contract draft. Login, profile, and logout are planned by API #13
-    and are not yet implemented. The source of truth for conventions is
+    Initial v1 contract draft. The source of truth for conventions is
     .context/project/api.md.
 servers:
   - url: http://localhost:8080
@@ -210,12 +209,12 @@ components:
           type: array
           items:
             type: string
-          description: Effective role identifiers; exact names belong to API #16.
+          description: Effective role identifiers.
         permissions:
           type: array
           items:
             type: string
-          description: Effective permission identifiers; exact names belong to API #16.
+          description: Effective permission identifiers.
     ErrorResponse:
       type: object
       required: [message]

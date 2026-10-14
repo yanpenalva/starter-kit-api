@@ -1,3 +1,0 @@
-# Approval — FEAT-13
-
-Standing roadmap authorization plus EXC-0001 (owner yanpenalva, valid until 2026-12-31) covered candidate commit, push, independent review, and conditional integration. The parent executed the final gate: PR #37 normal merge to `main` (merged 2026-10-04T19:49:53Z, `1390009d37f6a3493b21be7d83dbd32ae355d579`) with required checks green and no rule weakening, bypass, force push, or administrative override. No GitHub approving review was fabricated; the author's account never approved its own PR. Producer and reviewer are recorded separately in acceptance.md. Issue and board closure remain the parent's explicit act.

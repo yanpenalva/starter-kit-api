@@ -169,7 +169,7 @@ This kit already ships the artifacts that carry these roles; do not duplicate th
 
 - Planner → executor: the subtask row in `plan.md` (with its optional context-domains column) plus the accepted specification.
 - Executor → reviewer: the diff, changed files, and `verification.md` evidence.
-- Agent → agent across sessions: `handoff.md` and `progress.md` within their existing boundaries.
+- Agent → agent across sessions: handoff and progress records within their existing boundaries.
 
 The previous agent's full reasoning is NOT a handoff artifact. Persist decisions, evidence, constraints, outputs and acceptance criteria — never chain-of-thought or private deliberation.
 

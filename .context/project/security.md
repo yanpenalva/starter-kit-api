@@ -5,16 +5,16 @@
 - Authorization: Spatie Laravel Permission and Policies, including access to the target object. Permission names are enum-owned and provisioned by the seeder; the API has no HTTP CRUD for permission definitions. Role names and the permission matrix are documented by ADRs 0007/0008 and the API contract.
 - First administrator: restricted operational command promoting an explicitly selected verified account, idempotently and transactionally with audit. No public bootstrap endpoint or fixed credentials.
 - CPF optional for cadastral identification: normalize to 11 digits, validate format/check digits, unique when supplied. Subject access and management access with a specific permission; no public exposure, logs or audit capture.
-- Audit: Activitylog v5 records allowlisted events and role action values in a minimal property envelope. The current main allowlist contains role actions; user-action codes from slices 7/11 remain branch-only. Privileged mutations recheck policy under the shared transaction lock; current main does not reload the actor in every action. In particular, `RenameRole` checks with the actor supplied to the action. Slice 11's broader actor-refresh hardening remains branch-only. Audit failure rolls back the mutation. The feed requires a specific permission and has no edit/delete API. Event retention is 90 days with daily cleanup. Credentials, CPF, email, free text, and unapproved properties are excluded; no default IP/user-agent capture.
+- Audit: Activitylog v5 records allowlisted events and role action values in a minimal property envelope. Privileged mutations recheck policy under the shared transaction lock. Audit failure rolls back the mutation. The feed requires a specific permission and has no edit/delete API. Event retention is 90 days with daily cleanup. Credentials, CPF, email, free text, and unapproved properties are excluded; no default IP/user-agent capture.
 - Backup retention/deletion, data classification, operational ownership and applicable requirements must be specified before audit collection in production. Secrets provider, reporting channel and production operational controls: `NOT FOUND`.
 - LDAP excluded; new domain rules/texts are feature-driven.
 - Never version secrets, credentials or sensitive data; keep test data isolated and synthetic. Follow `.context/policies/core/security-privacy.md`.
 
-Decisions: [ADR 0004](../../docs/adr/0004-identidade-rbac.md), [ADR 0005](../../docs/adr/0005-auditoria.md), and successor [ADR 0011](../../docs/adr/0011-rbac-auditoria-e-roles-customizadas.md). Human acceptance by yanpenalva in [FEAT-1 approval](../work/FEAT-1/approval.md). Audit dependency evidence uses concrete manifests, not a resolved application lockfile.
+Decisions: [ADR 0004](../../docs/adr/0004-identidade-rbac.md), [ADR 0005](../../docs/adr/0005-auditoria.md), and successor [ADR 0011](../../docs/adr/0011-rbac-auditoria-e-roles-customizadas.md). Audit dependency evidence uses concrete manifests, not a resolved application lockfile.
 
 Scaffold defaults: APP_DEBUG=false; no public frontend/default accounts; secrets generated locally and excluded from Git. HTTP/Mailpit ports bind to localhost; databases/Redis/Mailpit/SMTP have no host ports. Test DB uses a separate PostgreSQL instance and ephemeral tmpfs. Local database users are container initialization users, for development/test only; production least-privilege provisioning remains separate. Logs use stderr; Nginx access logs are disabled. Production trusted hosts/proxies, TLS, CORS and business-input redaction remain with HTTP/security feature work.
 
-## Error-body negative space (pt-BR API, FEAT-10 wave 3)
+## Error-body negative space (pt-BR API)
 
 Rationale moved out of `bootstrap/app.php` / `app/Rules/Cpf.php` / `app/Http/Controllers/Auth/LoginController.php` code comments (comment-hygiene policy); this section is the canonical owner of the invariants:
 

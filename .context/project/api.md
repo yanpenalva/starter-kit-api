@@ -1,8 +1,6 @@
 # HTTP API Contract
 
-This file defines the canonical HTTP behavior and compatibility policy. The generated OpenAPI snapshot is [`../../contracts/openapi.json`](../../contracts/openapi.json); `.context/project/openapi.yaml` remains the historical initial draft and is not a substitute for the generated contract. Authentication, administration, audit, Scramble export, artifact publication, and compatibility checks are implemented and have owning work-item evidence.
-
-The documentation branch includes PRs #79, #82, #83, #84, #86, #87, and #89. Their role-grant, active-session, admin MFA, custom-role, privilege-mutation, and OpenAPI-envelope changes are reflected in the current implementation and snapshot. This documentation work does not change runtime behavior or the API contract. ADRs 0010–0012 record the related decisions and identify implementation and integration evidence by slice.
+This file defines the canonical HTTP behavior and compatibility policy. The generated OpenAPI snapshot is [`../../contracts/openapi.json`](../../contracts/openapi.json); `.context/project/openapi.yaml` remains the historical initial draft and is not a substitute for the generated contract. Authentication, administration, audit, Scramble export, artifact publication, and compatibility checks are implemented. ADRs 0010–0012 record related architectural decisions.
 
 ## Transport and responses
 
@@ -24,8 +22,8 @@ The documentation branch includes PRs #79, #82, #83, #84, #86, #87, and #89. The
 - `POST /api/v1/logout` invalidates the current session and returns 204. It does not revoke separately authorized integration tokens.
 - `GET /api/v1/auth/sessions` lists only the signed-in user's sessions. `DELETE /api/v1/auth/sessions/{id}` revokes one of that user's sessions; `DELETE /api/v1/auth/sessions` revokes every other session and keeps the current one. Both DELETE routes allow 10 requests per minute per user and return 429 after the limit.
 - Active-session listing and revocation (including bulk revocation), password-reset invalidation, and account-suspension invalidation require `SESSION_DRIVER=database`. The `sessions.id` primary key remains Laravel's opaque string session ID; `users.id` and `sessions.user_id` use bigint keys.
-- A newly registered, not-yet-verified user may establish a limited session and read a minimal profile for verification. Business routes remain denied until email verification automatically activates the basic profile. An explicitly deactivated account receives 403. This distinction was approved by yanpenalva on 2026-10-02 and clarifies API #13 against the accepted ADR 0004.
-- An authenticated profile contains only the current user's identity plus effective role and permission identifiers. Before verification, roles and permissions are empty and the identity is limited to the fields in the OpenAPI schema. CPF is omitted from this initial minimal auth profile; any future CPF response must follow the holder/specific-permission access in ADR 0004, never public exposure. Permission names remain owned by API #16.
+- A newly registered, not-yet-verified user may establish a limited session and read a minimal profile for verification. Business routes remain denied until email verification automatically activates the basic profile. An explicitly deactivated account receives 403. This distinction clarifies session behavior against accepted ADR 0004.
+- An authenticated profile contains only the current user's identity plus effective role and permission identifiers. Before verification, roles and permissions are empty and the identity is limited to the fields in the OpenAPI schema. CPF is omitted from this initial minimal auth profile; any future CPF response must follow the holder/specific-permission access in ADR 0004, never public exposure. Permission names are defined in the permission matrix.
 - The authenticated session is the sole authority for the profile subject; client-supplied IDs, roles, or permissions never select the user or grant authority. The profile endpoint reloads the session user and already-loaded RBAC relations before eligibility checks and serialization, so reads reflect persisted identity, role, permission, and deactivation changes. Before verification, roles and permissions are empty. CPF, credentials, and remember tokens are excluded; administrative CPF access follows ADR 0004.
 - The API rechecks authorization against server-side state on every protected request. The session driver for active-session management is `database`.
 - Production CORS origins, session domain, lifetime, SameSite policy, and TLS termination are `NOT FOUND` and must be resolved before production auth deployment.
@@ -33,7 +31,7 @@ The documentation branch includes PRs #79, #82, #83, #84, #86, #87, and #89. The
 ## SPA origins and email links
 
 - Configure trusted SPA origins and API URLs explicitly per environment. Credentialed CORS must use exact allowed origins; do not derive trust from the request `Host` header. Production values remain `NOT FOUND`.
-- Verification and password-reset messages link to routes on the configured SPA origin and use the API's callback/validation flow. Construct the final URL before signing or encoding it; never alter a signed URL afterward. Exact routes, payloads, expiry, and replay behavior belong to API #14 and #15.
+- Verification and password-reset messages link to routes on the configured SPA origin and use the API's callback/validation flow. Construct the final URL before signing or encoding it; never alter a signed URL afterward. Exact routes, payloads, expiry, and replay behavior are governed by registration and password reset contracts.
 - Do not put passwords, CPF, or reusable credentials into links, logs, analytics, or public error responses. The mail transport and production delivery policy remain owned by the corresponding feature.
 
 ## Administration, filters, and pagination
@@ -57,19 +55,18 @@ The documentation branch includes PRs #79, #82, #83, #84, #86, #87, and #89. The
 
 ## Evidence and decisions
 
-- API Issue [#3](https://github.com/yanpenalva/starter-kit-api/issues/3) defines the initial conventions and login/profile surface.
-- API Issue [#13](https://github.com/yanpenalva/starter-kit-api/issues/13) defines the exact login, profile, logout, session, and failure-status paths.
+- Conventions establish the login, profile, logout, session, and failure-status paths.
 - Accepted architecture: [ADR 0002](../../docs/adr/0002-autenticacao-spa.md), [ADR 0003](../../docs/adr/0003-persistencia-contratos.md), and [ADR 0004](../../docs/adr/0004-identidade-rbac.md), with current successor records [ADR 0010](../../docs/adr/0010-autenticacao-http-somente-sessao.md), [ADR 0011](../../docs/adr/0011-rbac-auditoria-e-roles-customizadas.md), and [ADR 0012](../../docs/adr/0012-contrato-openapi-e-release.md).
 - Laravel 13 documents Sanctum SPA authentication as cookie/session based and separate from personal access token authentication: [Sanctum SPA authentication](https://laravel.com/framework/docs/13.x/sanctum#spa-authentication).
 - Scramble documents OpenAPI 3.1 generation and its current Composer manifest declares Laravel 13 compatibility: [Scramble](https://github.com/dedoc/scramble), [composer.json](https://github.com/dedoc/scramble/blob/main/composer.json).
 
-**Review state (historical):** initial conventions were accepted and integrated via [PR #30](https://github.com/yanpenalva/starter-kit-api/pull/30); API #11 contract generation and compatibility are recorded as completed in [FEAT-11](../work/FEAT-11/work-item.json). The limited pre-verification session rule remains approved. Production CORS origins, session domain/lifetime, TLS termination, and production proxy configuration remain `NOT FOUND` until deployment planning.
+The limited pre-verification session rule remains approved. Production CORS origins, session domain/lifetime, TLS termination, and production proxy configuration remain `NOT FOUND` until deployment planning.
 
-## Private OpenAPI transport policy (approved 2026-10-03)
+## Private OpenAPI transport policy
 
-yanpenalva approved this policy via the question tool ("Aprovar transporte") on 2026-10-03. Routine SHA/workflow pins need no new human choice; CI credential provision remains a human decision. The API producer exists in .github/workflows/openapi.yml and is limited to workflow_dispatch on main. Quality validates the committed snapshot; the API producer has no cross-repository write permission.
+Routine SHA/workflow pins need no new human choice; CI credential provision remains a human decision. The API producer exists in `.github/workflows/openapi.yml` and is limited to workflow_dispatch on `main`. Quality validates the committed snapshot; the API producer has no cross-repository write permission.
 
-### Producer (API repository; API #11)
+### Producer (API repository)
 
 - Generate the OpenAPI document only from real implemented Controllers, Form Requests and Resources, in a successful trusted run on `main` at an exact full revision SHA that is already reviewed and integrated under the recorded delivery authorization.
 - Identify the run by an allowlist of trusted workflow id/path/triggering event; verify the artifact by id, name and digest.
@@ -102,7 +99,7 @@ yanpenalva approved this policy via the question tool ("Aprovar transporte") on 
 
 - Retention: the producer artifact retention is 90 days; absent or expired artifacts fail the first fetch closed.
 - Production and backups are out of scope.
-- Scramble version pin: `dedoc/scramble 0.13.47` installed (exact pin; lock ref `d1597812fa8ce40a257d83c527bec28cb60de7a5`). FEAT-11 Stage B and its consumer acceptance are recorded complete. PR #87 integrated Slice 9's collection-envelope and nullable-field refinements with a reviewed snapshot update.
+- Scramble version pin: `dedoc/scramble 0.13.47` installed (exact pin; lock ref `d1597812fa8ce40a257d83c527bec28cb60de7a5`). Contract generation and consumer acceptance are established.
 - Producer workflow: `.github/workflows/openapi.yml` (`name: OpenAPI Contract`) accepts only `workflow_dispatch` on `main`, enforces `LC_ALL=C` and two byte-identical exports, and uploads `openapi-<fullSHA>` for 90 days. The receipt is constructed by the operator after trusted workflow/artifact metadata and raw ZIP verification; it is not placed inside the ZIP being verified.
-- At this branch's base, `origin/main` includes PRs #79, #83, #86, #89, and #87 and their reviewed snapshot updates. A feature branch may propose a candidate snapshot for review, but only the main-only producer publishes the official artifact. The contract uses session-cookie and XSRF schemes only; Bearer/PAT/JWT are forbidden.
+- A feature branch may propose a candidate snapshot for review, but only the main-only producer publishes the official artifact. The contract uses session-cookie and XSRF schemes only; Bearer/PAT/JWT are forbidden.
 - Sources: [fine-grained PAT permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), [GITHUB_TOKEN security](https://docs.github.com/en/actions/concepts/security/github_token), [security hardening](https://docs.github.com/en/actions/reference/security/secure-use), [workflow runs API](https://docs.github.com/en/rest/actions/workflow-runs), [artifact retention](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization), [gh run download](https://cli.github.com/manual/gh_run_download).
