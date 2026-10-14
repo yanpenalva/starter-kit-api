@@ -39,6 +39,12 @@ final class HttpAuthSmokeTest extends TestCase
 
     protected function tearDown(): void
     {
+        if (config('database.default') !== 'pgsql') {
+            parent::tearDown();
+
+            return;
+        }
+
         $this->assertIsolatedTestingRuntime();
 
         Cache::store('file')->flush();

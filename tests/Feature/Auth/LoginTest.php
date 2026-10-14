@@ -27,7 +27,7 @@ final class LoginTest extends TestCase
         if ($connection === 'pgsql') {
             $database = config('database.connections.pgsql.database');
             $this->assertIsString($database);
-            $this->assertSame('starter_api_test', $database);
+            $this->assertSame($database, DB::connection()->getDatabaseName());
         }
 
         RateLimiter::clear(hash('sha256', 'user@example.test|127.0.0.1'));

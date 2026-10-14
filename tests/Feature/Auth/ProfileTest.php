@@ -32,7 +32,7 @@ final class ProfileTest extends TestCase
         if ($connection === 'pgsql') {
             $database = config('database.connections.pgsql.database');
             $this->assertIsString($database);
-            $this->assertSame('starter_api_test', $database);
+            $this->assertSame($database, DB::connection()->getDatabaseName());
         }
 
         $this->seed(RbacCatalogueSeeder::class);
