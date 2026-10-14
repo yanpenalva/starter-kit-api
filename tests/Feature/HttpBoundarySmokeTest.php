@@ -11,10 +11,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\Process\Process;
+use Tests\Concern\UsesTypedDatabaseConfig;
 use Tests\TestCase;
 
 final class HttpBoundarySmokeTest extends TestCase
 {
+    use UsesTypedDatabaseConfig;
+
     private ?string $sqliteDatabasePath = null;
 
     private const SERVER_HOST = '127.0.0.1';
@@ -111,9 +114,8 @@ final class HttpBoundarySmokeTest extends TestCase
 
     public function test_real_server_enforces_csrf_cookies_origins_and_throttle(): void
     {
-        $connection = config('database.default');
-        $database = config("database.connections.{$connection}.database");
-        $this->assertIsString($database);
+        $connection = $this->databaseConnectionName();
+        $database = $this->databaseConfigString($this->databaseConnectionConfig($connection), 'database');
         $this->assertSame($database, DB::connection()->getDatabaseName());
 
         if (config('database.default') === 'pgsql') {
@@ -174,9 +176,9 @@ final class HttpBoundarySmokeTest extends TestCase
     private function serverEnvironment(): array
     {
         $inherited = static fn (string $key): string => (string) getenv($key);
-        $connection = config('database.default');
-        $connectionConfig = config("database.connections.{$connection}");
-        $database = (string) $connectionConfig['database'];
+        $connection = $this->databaseConnectionName();
+        $connectionConfig = $this->databaseConnectionConfig($connection);
+        $database = $this->databaseConfigString($connectionConfig, 'database');
 
         if ($connection === 'sqlite') {
             if ($this->sqliteDatabasePath === null) {
@@ -194,11 +196,11 @@ final class HttpBoundarySmokeTest extends TestCase
             'APP_KEY' => 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
             'APP_URL' => 'http://'.self::SERVER_HOST.':'.self::SERVER_PORT,
             'DB_CONNECTION' => $connection,
-            'DB_HOST' => (string) ($connectionConfig['host'] ?? $inherited('DB_HOST')),
-            'DB_PORT' => (string) ($connectionConfig['port'] ?? $inherited('DB_PORT')),
+            'DB_HOST' => $this->databaseConfigString($connectionConfig, 'host', $inherited('DB_HOST')),
+            'DB_PORT' => $this->databaseConfigString($connectionConfig, 'port', $inherited('DB_PORT')),
             'DB_DATABASE' => $database,
-            'DB_USERNAME' => (string) ($connectionConfig['username'] ?? ''),
-            'DB_PASSWORD' => (string) ($connectionConfig['password'] ?? ''),
+            'DB_USERNAME' => $this->databaseConfigString($connectionConfig, 'username'),
+            'DB_PASSWORD' => $this->databaseConfigString($connectionConfig, 'password'),
             'SESSION_DRIVER' => 'file',
             'SESSION_SECURE_COOKIE' => 'false',
 

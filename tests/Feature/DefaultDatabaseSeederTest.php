@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\AssertionFailedError;
 use ReflectionMethod;
 use Symfony\Component\Process\Process;
+use Tests\Concern\UsesTypedDatabaseConfig;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,8 @@ use Tests\TestCase;
  */
 final class DefaultDatabaseSeederTest extends TestCase
 {
+    use UsesTypedDatabaseConfig;
+
     private ?string $sqliteDatabasePath = null;
 
     protected function setUp(): void
@@ -90,7 +93,7 @@ final class DefaultDatabaseSeederTest extends TestCase
     public function test_guard_rejects_a_database_url_override(): void
     {
 
-        $connection = config('database.default');
+        $connection = $this->databaseConnectionName();
         config()->set("database.connections.{$connection}.url", 'postgres://synthetic:synthetic@127.0.0.1:5/none');
 
         $this->expectException(AssertionFailedError::class);
@@ -130,9 +133,8 @@ final class DefaultDatabaseSeederTest extends TestCase
             'Seeder tests require the testing environment.',
         );
 
-        $connection = config('database.default');
-        $database = config("database.connections.{$connection}.database");
-        $this->assertIsString($database);
+        $connection = $this->databaseConnectionName();
+        $database = $this->databaseConfigString($this->databaseConnectionConfig($connection), 'database');
         $this->assertSame($database, DB::connection()->getDatabaseName());
 
         if ($connection === 'pgsql') {
@@ -169,8 +171,8 @@ final class DefaultDatabaseSeederTest extends TestCase
      */
     private function runMigrateFreshSeed(): void
     {
-        $connection = config('database.default');
-        $connectionConfig = config("database.connections.{$connection}");
+        $connection = $this->databaseConnectionName();
+        $connectionConfig = $this->databaseConnectionConfig($connection);
         $database = DB::connection()->getDatabaseName();
 
         $process = new Process(
@@ -178,11 +180,11 @@ final class DefaultDatabaseSeederTest extends TestCase
             cwd: base_path(),
             env: [
                 'DB_CONNECTION' => $connection,
-                'DB_HOST' => (string) ($connectionConfig['host'] ?? ''),
-                'DB_PORT' => (string) ($connectionConfig['port'] ?? ''),
+                'DB_HOST' => $this->databaseConfigString($connectionConfig, 'host'),
+                'DB_PORT' => $this->databaseConfigString($connectionConfig, 'port'),
                 'DB_DATABASE' => $database,
-                'DB_USERNAME' => (string) ($connectionConfig['username'] ?? ''),
-                'DB_PASSWORD' => (string) ($connectionConfig['password'] ?? ''),
+                'DB_USERNAME' => $this->databaseConfigString($connectionConfig, 'username'),
+                'DB_PASSWORD' => $this->databaseConfigString($connectionConfig, 'password'),
                 'DB_URL' => false,
             ],
         );

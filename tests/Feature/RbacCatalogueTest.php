@@ -9,18 +9,20 @@ use App\Enums\Role;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concern\UsesTypedDatabaseConfig;
 use Tests\TestCase;
 
 final class RbacCatalogueTest extends TestCase
 {
     use RefreshDatabase;
+    use UsesTypedDatabaseConfig;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $database = config('database.connections.'.config('database.default').'.database');
-        $this->assertIsString($database);
+        $connection = $this->databaseConnectionName();
+        $database = $this->databaseConfigString($this->databaseConnectionConfig($connection), 'database');
         $this->assertSame($database, DB::connection()->getDatabaseName());
 
         if (config('database.default') === 'pgsql') {

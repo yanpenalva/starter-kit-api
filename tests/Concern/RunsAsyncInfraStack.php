@@ -15,6 +15,8 @@ use Symfony\Component\Process\Process;
  */
 trait RunsAsyncInfraStack
 {
+    use UsesTypedDatabaseConfig;
+
     /**
      * Run a bounded queue worker against the redis `testqueue`.
      * `--stop-when-empty` + `--max-jobs` keep it ephemeral.
@@ -59,16 +61,16 @@ trait RunsAsyncInfraStack
         $redisHost = getenv('REDIS_HOST');
         $dbHost = getenv('ASYNC_WORKER_DB_HOST');
         $mailHost = getenv('ASYNC_WORKER_MAIL_HOST');
-        $connection = config('database.default');
-        $connectionConfig = config("database.connections.{$connection}");
+        $connection = $this->databaseConnectionName();
+        $connectionConfig = $this->databaseConnectionConfig($connection);
 
         return [
             'APP_ENV' => 'testing',
             'APP_DEBUG' => 'false',
             'APP_KEY' => $this->stringConfig('app.key', ''),
             'DB_CONNECTION' => $connection,
-            'DB_HOST' => is_string($dbHost) && $dbHost !== '' ? $dbHost : (string) ($connectionConfig['host'] ?? ''),
-            'DB_PORT' => (string) ($connectionConfig['port'] ?? '5432'),
+            'DB_HOST' => is_string($dbHost) && $dbHost !== '' ? $dbHost : $this->databaseConfigString($connectionConfig, 'host'),
+            'DB_PORT' => $this->databaseConfigString($connectionConfig, 'port', '5432'),
             'DB_DATABASE' => $this->stringConfig("database.connections.{$connection}.database", 'starter_api_test'),
             'DB_USERNAME' => $this->stringConfig("database.connections.{$connection}.username", ''),
             'DB_PASSWORD' => $this->stringConfig("database.connections.{$connection}.password", ''),

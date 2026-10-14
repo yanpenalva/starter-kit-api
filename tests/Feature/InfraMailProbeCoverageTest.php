@@ -67,7 +67,7 @@ final class InfraMailProbeCoverageTest extends TestCase
 
         $this->assertSame(0, $exit);
         $this->assertSame(1, preg_match('/enfileirado token=([0-9a-f-]{36})/', $output, $matches), $output);
-        $outputToken = $matches[1];
+        $outputToken = $matches[1] ?? throw new \LogicException('Infra smoke output must include its token.');
         $queuedToken = null;
         $envelope = null;
 
@@ -80,7 +80,7 @@ final class InfraMailProbeCoverageTest extends TestCase
 
         $this->assertSame($outputToken, $queuedToken);
         $this->assertSame('[infra-smoke] '.$outputToken, $envelope?->subject);
-        $this->assertCount(1, $envelope?->to ?? []);
+        $this->assertCount(1, $envelope->to);
     }
 
     public function test_smoke_mail_command_disabled_outside_local_testing_queues_nothing(): void
