@@ -87,7 +87,7 @@ jobs:
         run: echo "full=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Upload contract artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: openapi-${{ steps.sha.outputs.full }}
           path: contracts/openapi.json
