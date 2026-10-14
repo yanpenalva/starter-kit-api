@@ -74,8 +74,6 @@ final class OpenApiResponseShapeTest extends TestCase
         $userProperties = $this->object($user['properties'] ?? null);
         $roles = $this->object($userProperties['roles'] ?? null);
         $roleItems = $this->object($roles['items'] ?? null);
-        $roleItemProperties = $this->object($roleItems['properties'] ?? null);
-        $relations = $this->object($roleItemProperties['relations'] ?? null);
         $cpf = $this->object($userProperties['cpf'] ?? null);
         $roleDisplayNames = $this->object($userProperties['role_display_names'] ?? null);
         $userRequired = $user['required'] ?? null;
@@ -90,12 +88,8 @@ final class OpenApiResponseShapeTest extends TestCase
         $permissionItems = $this->object($permissions['items'] ?? null);
         $roleDisplayNameValues = $this->object($roleDisplayNames['additionalProperties'] ?? null);
 
-        $this->assertSame('object', $roleItems['type'] ?? null);
-        $this->assertSame(['relations'], $roleItems['required'] ?? null);
-        $this->assertSame('array', $relations['type'] ?? null);
-        $this->assertSame([['type' => 'string', 'const' => 'roles']], $relations['prefixItems'] ?? null);
-        $this->assertSame(1, $relations['minItems'] ?? null);
-        $this->assertSame(1, $relations['maxItems'] ?? null);
+        $this->assertSame('array', $roles['type'] ?? null);
+        $this->assertSame('string', $roleItems['type'] ?? null);
         $this->assertSame('string', $permissionItems['type'] ?? null);
         $this->assertSame('string', $roleDisplayName['type'] ?? null);
         $this->assertSame('object', $roleDisplayNames['type'] ?? null);
@@ -108,6 +102,34 @@ final class OpenApiResponseShapeTest extends TestCase
         $this->assertNullableDateTimeField($schemas['UserResource'] ?? null, 'email_verified_at');
         $this->assertNullableDateTimeField($schemas['UserResource'] ?? null, 'deactivated_at');
         $this->assertNullableDateTimeField($schemas['ActivityResource'] ?? null, 'created_at');
+    }
+
+    public function test_export_documents_healthy_and_degraded_readiness_responses(): void
+    {
+        $document = $this->exportDocument();
+        $paths = $this->object($document['paths'] ?? null);
+        $path = $this->object($paths['/api/v1/health'] ?? null);
+        $get = $this->object($path['get'] ?? null);
+        $responses = $this->object($get['responses'] ?? null);
+
+        foreach (['200', '503'] as $status) {
+            $response = $this->object($responses[$status] ?? null);
+            $content = $this->object($response['content'] ?? null);
+            $json = $this->object($content['application/json'] ?? null);
+            $schema = $this->object($json['schema'] ?? null);
+            $properties = $this->object($schema['properties'] ?? null);
+            $statusProperty = $this->object($properties['status'] ?? null);
+            $checks = $this->object($properties['checks'] ?? null);
+            $checkProperties = $this->object($checks['properties'] ?? null);
+
+            $this->assertSame(['status', 'checks'], $schema['required'] ?? null);
+            $this->assertSame('string', $statusProperty['type'] ?? null);
+            $this->assertSame(['database', 'redis', 'queue'], $checks['required'] ?? null);
+            foreach (['database', 'redis', 'queue'] as $check) {
+                $property = $this->object($checkProperties[$check] ?? null);
+                $this->assertSame('boolean', $property['type'] ?? null);
+            }
+        }
     }
 
     /**

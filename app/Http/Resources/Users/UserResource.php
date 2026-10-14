@@ -48,6 +48,7 @@ final class UserResource extends JsonResource
             'email' => (string) $user->email,
             'email_verified_at' => $verifiedAt,
             'deactivated_at' => $deactivatedAt,
+            /** @var list<string> */
             'roles' => $roles,
             'role_display_names' => $roleDisplayNames,
             'cpf' => $this->when($canReadCpf, $user->cpf),

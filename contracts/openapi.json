@@ -941,7 +941,73 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "string"
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "checks": {
+                                            "type": "object",
+                                            "properties": {
+                                                "database": {
+                                                    "type": "boolean"
+                                                },
+                                                "redis": {
+                                                    "type": "boolean"
+                                                },
+                                                "queue": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "database",
+                                                "redis",
+                                                "queue"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "checks"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "checks": {
+                                            "type": "object",
+                                            "properties": {
+                                                "database": {
+                                                    "type": "boolean"
+                                                },
+                                                "redis": {
+                                                    "type": "boolean"
+                                                },
+                                                "queue": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "database",
+                                                "redis",
+                                                "queue"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "checks"
+                                    ]
                                 }
                             }
                         }
@@ -3607,23 +3673,7 @@
                     "roles": {
                         "type": "array",
                         "items": {
-                            "type": "object",
-                            "properties": {
-                                "relations": {
-                                    "type": "array",
-                                    "prefixItems": [
-                                        {
-                                            "type": "string",
-                                            "const": "roles"
-                                        }
-                                    ],
-                                    "minItems": 1,
-                                    "maxItems": 1
-                                }
-                            },
-                            "required": [
-                                "relations"
-                            ]
+                            "type": "string"
                         }
                     },
                     "role_display_names": {
