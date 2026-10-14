@@ -1,7 +1,7 @@
 # ADR 0007 — Matriz RBAC revisada e contrato de administração (wave A)
 
 - Estado: aceito. Registra a revisão wave A da matriz aprovada em FEAT-16 e prepara o contrato de usuários/roles para a wave B.
-- Data: 2026-10-06. Owner: yanpenalva. Evidência: execução da wave A na branch `feat/wave-a-rbac-contract`, sobre o catálogo já integrado (PR #33, `main` `4f7c74d`) e aprovado em [FEAT-16](../../.context/work/FEAT-16/spec.md).
+- Data: 2026-10-06. Owner: yanpenalva. Evidência: execução da wave A na branch `feat/wave-a-rbac-contract`, sobre o catálogo já integrado (PR #33, `main` `4f7c74d`) e aprovado em FEAT-16.
 
 ## Contexto
 

@@ -1,7 +1,7 @@
 # ADR 0002 — Sessão Sanctum para a SPA
 
 - Estado: aceito como registro histórico; a permissão para tokens Bearer está parcialmente substituída pelo [ADR 0010](0010-autenticacao-http-somente-sessao.md).
-- Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em [FEAT-1](../../.context/work/FEAT-1/approval.md).
+- Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em FEAT-1.
 
 ## Contexto e evidência
 

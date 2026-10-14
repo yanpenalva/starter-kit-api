@@ -31,6 +31,6 @@ No simulated or unavailable check is reported as passing. GitHub workflow config
 
 ## Wave 0 documentation slices (2026-10-03)
 
-- Progressive gate definitions with implemented-vs-planned state live in [FEAT-4](.context/work/FEAT-4/spec.md); the existing CI is preserved verbatim and is not recreated by documentation. The initial CI stage remains recognized under [FEAT-24](.context/work/FEAT-24/verification.md).
-- The initial threat model (assets, boundaries, negative-acceptance matrix) lives in [FEAT-22](.context/work/FEAT-22/spec.md); planned tests accompany their owning features and are consolidated in wave 7.
+- Progressive gate definitions with implemented-vs-planned state live in FEAT-4; the existing CI is preserved verbatim and is not recreated by documentation. The initial CI stage remains recognized under FEAT-24.
+- The initial threat model (assets, boundaries, negative-acceptance matrix) lives in FEAT-22; planned tests accompany their owning features and are consolidated in wave 7.
 - The approved private OpenAPI transport policy (producer/consumer rules, fail-closed artifact verification, credential-free frontend CI) lives in [api.md](.context/project/api.md); no producer workflow exists yet.

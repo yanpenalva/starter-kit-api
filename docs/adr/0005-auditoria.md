@@ -1,7 +1,7 @@
 # ADR 0005 — Auditoria por eventos e diffs permitidos
 
 - Estado: aceito; implementação incremental registrada na arquitetura e nas fatias do roadmap.
-- Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em [FEAT-1](../../.context/work/FEAT-1/approval.md).
+- Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em FEAT-1.
 
 ## Contexto e evidência
 

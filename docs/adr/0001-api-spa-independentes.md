@@ -1,7 +1,7 @@
 # ADR 0001 — API e SPA independentes
 
 - Estado: aceito; decisão arquitetural aprovada, ainda não implementada.
-- Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em [FEAT-1](../../.context/work/FEAT-1/approval.md).
+- Data: 2026-10-01. Owner e aprovador: yanpenalva. Evidência: revisão nesta conversa e solicitação explícita de implementar o plano “Consolidar as decisões dos ADRs”; registro em FEAT-1.
 
 ## Contexto e evidência
 

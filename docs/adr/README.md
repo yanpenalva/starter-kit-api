@@ -2,7 +2,7 @@
 
 Origem: [API #1](https://github.com/yanpenalva/starter-kit-api/issues/1). Data: 2026-10-01.
 
-A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As decisões arquiteturais foram aceitas por yanpenalva, conforme [registro de aprovação](../../.context/work/FEAT-1/approval.md) e decisões posteriores registradas nesta pasta. Aprovação arquitetural não comprova implementação.
+A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As decisões arquiteturais foram aceitas por yanpenalva, conforme registro de aprovação e decisões posteriores registradas nesta pasta. Aprovação arquitetural não comprova implementação.
 
 | ADR | Tema | Estado | Aplicação |
 | --- | --- | --- | --- |
@@ -19,7 +19,7 @@ A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As decis�
 | [0011](0011-rbac-auditoria-e-roles-customizadas.md) | RBAC, auditoria e roles customizadas | Sucessor parcial de 0004, 0005 e 0007; reafirma 0008 | Mutações privilegiadas |
 | [0012](0012-contrato-openapi-e-release.md) | Contrato OpenAPI e release verificável | Sucessor parcial de 0003 | Publicação e compatibilidade do contrato |
 
-Owner e aprovador arquitetural: yanpenalva. Owner operacional: NOT FOUND. Preparação técnica: Codex. Work item: [FEAT-1](../../.context/work/FEAT-1/work-item.json).
+Owner e aprovador arquitetural: yanpenalva. Owner operacional: NOT FOUND. Preparação técnica: Codex. Work item: FEAT-1.
 
 ## Aprovação e evolução
 
