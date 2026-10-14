@@ -14,9 +14,36 @@ com `composer <script>` se o PHP local estiver correto.
 | Script | Comando real | O que faz | Quando usar |
 | --- | --- | --- | --- |
 | `composer test` | `php vendor/bin/phpunit` | Executa a suíte PHPUnit contra PostgreSQL isolado | Após qualquer mudança de comportamento; é o sinal verde básico |
-| `composer test:coverage` | `phpunit --coverage-clover` + `scripts/coverage-floor.php` | Executa a suíte com cobertura pcov e exige o piso de 85% das linhas | Antes de abrir um pull request; mesmo gate do CI |
+| `composer test:coverage` | duas execuções `phpunit --coverage-clover` (pgsql e sqlite) + `scripts/merge-coverage.php` + `scripts/coverage-floor.php` | Mede a união dos dois relatórios e exige o piso de **100%** das linhas | Antes de abrir um pull request; mesmo gate do CI |
 | `composer lint` | `php vendor/bin/pint --test` | Verifica a formatação no preset `laravel` **sem alterar arquivos** | Antes de abrir um pull request; se falhar, rode o Pint sem `--test` localmente para aplicar |
 | `composer analyse` | `php vendor/bin/phpstan analyse --memory-limit=512M` | Roda PHPStan com Larastan no nível 10 sobre aplicação, rotas e testes, sem linha de base de supressão | Antes de abrir um pull request; qualquer erro precisa ser corrigido, não suprimido |
+
+### Por que `test:coverage` executa a suíte duas vezes
+
+Os caminhos de código mudam por driver: `app/Support/Filters/*` usa `ilike` no
+PostgreSQL e `like` + `json_extract` no SQLite, `EmailLookup` e `LoginController`
+montam predicados diferentes pelo mesmo motivo. Como cada ramo é exclusivo do seu
+driver, nenhuma execução isolada alcança todas as linhas — daí a medição ser a **união**
+de duas execuções. O script encadeia quatro etapas:
+
+1. `php vendor/bin/phpunit --coverage-clover storage/app/coverage-pgsql.xml` — perna
+   canônica (PostgreSQL, `phpunit.xml`); é o gate de aceitação, com zero falhas exigidas.
+2. `php vendor/bin/phpunit -c phpunit.sqlite.xml --coverage-clover storage/app/coverage-sqlite.xml`
+   — perna SQLite (`:memory:`), que mede os ramos do outro driver. O `phpunit.sqlite.xml`
+   roda o testsuite `Feature` e exclui **por arquivo de teste** (lista documentada no
+   próprio XML) os casos que só fazem sentido no ambiente pgsql/Compose — guardas de
+   conexão, worker com Redis/Mailpit reais e servidor HTTP real. Nenhum código de `app/`
+   é excluído do relatório (o `<source>` continua `app/`) e o `phpunit.xml` continua
+   rodando todos os testes sob PostgreSQL.
+3. `php scripts/merge-coverage.php storage/app/coverage-pgsql.xml storage/app/coverage-sqlite.xml storage/app/coverage.xml`
+   — une os dois relatórios Clover por arquivo e linha (o maior `count` vence), sem
+   encolher o denominador.
+4. `php scripts/coverage-floor.php storage/app/coverage.xml 100` — lê o relatório
+   unificado e sai com código 1 se as linhas cobertas ficarem abaixo do piso.
+
+Para inspecionar uma perna isolada, rode as etapas 1 e 2 direto e passe o relatório
+correspondente ao `coverage-floor.php` com o piso desejado como segundo argumento
+(ex.: `php scripts/coverage-floor.php storage/app/coverage-sqlite.xml 90`).
 
 Dois scripts são ganchos automáticos do Composer, não comandos do dia a dia:
 

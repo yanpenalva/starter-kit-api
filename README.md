@@ -37,7 +37,7 @@ inicializou, sem verificar dependências.
 | Testes | PHPUnit | Contra PostgreSQL isolado |
 | Formatação | Pint | Preset `laravel` |
 | Análise estática | PHPStan via Larastan | Nível 10, sem linha de base |
-| Cobertura | pcov | Gate de 85% no CI |
+| Cobertura | pcov | Gate de 100% no CI sobre relatórios PostgreSQL e SQLite mesclados |
 | Hash de senhas | argon2id | Parâmetros ajustáveis por ambiente |
 
 ## Índice da documentação

@@ -12,6 +12,13 @@ Canonical commands, thresholds and evidence live in [.context/project/quality.md
 
 Application CI runs PHP 8.5 and PostgreSQL 18, independently of production and legacy data. No coverage percentage is claimed yet: the scaffold has no business logic; changed-behavior coverage expectations will be reviewed per feature. Automated cognitive/cyclomatic measurements are not configured. CSD structural/code-review limits remain applicable; absence of a metric tool is not a waiver.
 
+## Measured coverage gate (merged pgsql + sqlite, min 100%)
+
+- `composer test:coverage` measures the union of two PHPUnit runs — the canonical PostgreSQL leg (`phpunit.xml`, acceptance gate, zero failures, every test) and the SQLite leg (`phpunit.sqlite.xml`, `Feature` suite in `:memory:`, excluding per test file only the cases that assert pgsql/Compose environment behaviour) — merges both Clover reports with `scripts/merge-coverage.php` and enforces a 100% statement floor through `scripts/coverage-floor.php`.
+- Two runs are required because driver branches are mutually exclusive: `app/Support/Filters/*` uses `ilike` on PostgreSQL and `like`/`json_extract` on SQLite, and `EmailLookup`/`LoginController` branch on `getDriverName()`.
+- Nothing is excluded from the report — no `@codeCoverageIgnore`, no `<exclude>` inside `<source>`, no ignore lists. The SQLite leg's `<exclude>` entries drop environment-dependent *test files* from that run, never app code from the report. An uncovered line needs a test or a recorded human decision, never a filter.
+- The merged report proves every line ran in at least one leg; it does not prove that each driver branch runs in every environment, so the claimed percentage is the one CI measures. Evidence: FEAT-23 `verification.md`.
+
 ## Add with the owning feature
 
 - Identity/RBAC/CRUD: validation, authorization, account states, CPF privacy/uniqueness, CSRF/session and negative access cases.

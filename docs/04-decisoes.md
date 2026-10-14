@@ -179,20 +179,39 @@ novo deploy. Ambos mantêm `expose_php` desligado e JIT desligado.
 (superfície maior, segredos de build na imagem final) e `php.ini` único (ou
 desenvolvimento sem recarregamento, ou produção revalidando arquivos a cada request).
 
-## 12. Cobertura mínima de 85% com pcov no CI
+## 12. Cobertura mínima de 100% medida sobre o merge pgsql + sqlite
 
 **Onde vive:** job de cobertura do workflow de qualidade (`composer test:coverage`:
-PHPUnit com driver pcov gera o relatório clover e `scripts/coverage-floor.php`
-exige o piso de 85%).
+duas execuções PHPUnit com driver pcov — PostgreSQL e SQLite —, a união em
+`scripts/merge-coverage.php` e o piso exigido por `scripts/coverage-floor.php`).
 
-**Motivo.** O gate impede erosão silenciosa: cada pull request precisa manter pelo
-menos 85% das linhas cobertas, então funcionalidade nova chega com testes ou o CI
-barra. Pcov foi escolhido por ser rápido e sem dependências nativas pesadas, rodando
-contra PostgreSQL, Redis e Mailpit reais no job.
+**Motivo.** A medição é a união de duas execuções, não de uma. Os caminhos de código
+mudam por driver — `app/Support/Filters/*` usa `ilike` no PostgreSQL e `like` +
+`json_extract` no SQLite, e `EmailLookup`/`LoginController` montam predicados diferentes
+pelo mesmo motivo — então cada perna isolada deixa os ramos da outra descobertos. O piso
+de 100% sobre o relatório unificado impede erosão silenciosa: cada pull request precisa
+manter todas as linhas cobertas, e funcionalidade nova chega com teste ou o CI barra. O
+piso só é sustentável porque as duas pernas somam o mesmo `app/` completo e **nada é
+excluído do relatório** — `@codeCoverageIgnore`, `<exclude>` no `<source>` e listas de
+ignorados são proibidos: uma linha não coberta exige teste ou decisão humana registrada,
+nunca um filtro. Pcov foi escolhido por ser rápido e sem dependências nativas pesadas,
+rodando contra PostgreSQL, Redis e Mailpit reais no job.
 
-**Alternativa rejeitada.** Sem gate numérico (cobertura cai aos poucos até os testes
-virarem enfeite) e medição com drivers mais lentos que alongariam cada execução sem
-mudar a decisão.
+**Alternativa rejeitada.** Piso de 85% sobre uma única execução PostgreSQL (o número
+dependia do driver da máquina e os ramos alternativos podiam apodrecer sem o gate notar —
+decisão substituída por esta) e piso de 100% sobre uma única perna, que só fecharia
+excluindo os ramos do outro driver ou marcando linhas com `@codeCoverageIgnore`, isto é,
+cumprindo a meta por exclusão. Drivers de cobertura mais lentos alongariam cada execução
+sem mudar a decisão.
+
+**Limite honesto.** O relatório unificado prova que cada linha foi executada em pelo menos
+uma perna; como a união usa o maior `count` por linha, ela mede execução e nunca soma
+hits. Ele não certifica que um driver específico executa cada ramo: a perna SQLite roda o
+testsuite `Feature` em `:memory:` e exclui, por arquivo de teste, os casos que dependem do
+ambiente pgsql/Compose — exclusão de teste, nunca de código de `app/` no relatório —
+enquanto a suíte completa roda sob PostgreSQL, e divergências de versão do PostgreSQL
+entre ambientes locais e CI podem mudar quais ramos executam. Por isso o percentual
+alegado é o que o CI mede, nunca o que se presume.
 
 ## 13. Smoke de login → perfil → logout, com limpeza de throttle entre casos
 
