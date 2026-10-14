@@ -5,23 +5,44 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Models\User;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
+use Fruitcake\LaravelDebugbar\Facades\Debugbar;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Sleep;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role as SpatieRole;
 
 final class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        if (! app()->environment('local') && class_exists(Debugbar::class)) {
+            Debugbar::disable();
+        }
+    }
 
     public function boot(): void
     {
+        Model::shouldBeStrict(! app()->isProduction());
+        Model::automaticallyEagerLoadRelationships();
+
+        if (class_exists(DB::class)) {
+            DB::prohibitDestructiveCommands(app()->isProduction());
+        }
+
+        if (class_exists(Sleep::class) && app()->runningUnitTests()) {
+            Sleep::fake();
+        }
+
         if (app()->environment('production')) {
             $mailer = config('mail.default');
 
@@ -86,6 +107,10 @@ final class AppServiceProvider extends ServiceProvider
         Gate::policy(SpatieRole::class, RolePolicy::class);
 
         $this->registerCatalogueGates();
+        Gate::define('viewPulse', static fn (?User $actor): bool => $actor !== null
+            && $actor->email_verified_at !== null
+            && $actor->deactivated_at === null
+            && $actor->hasRole(Role::Admin->value));
     }
 
     private function registerCatalogueGates(): void
