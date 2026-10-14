@@ -1,0 +1,18 @@
+#!/bin/sh
+# Pre-push: análise estática local (phpstan) antes de subir.
+# Evita descobrir erro só na pipeline. Pular com: SKIP_PHPSTAN=1 git push
+set -e
+if [ "${SKIP_PHPSTAN:-0}" = "1" ]; then
+  echo "[pre-push] phpstan pulado (SKIP_PHPSTAN=1)"
+  exit 0
+fi
+# Garante composer+php no PATH mesmo em shell mínimo (dirs inexistentes são ignorados).
+for d in /opt/data/bin /opt/data/home/.local/bin; do
+  if [ -x "$d/composer" ]; then
+    PATH="$d:$PATH"
+    break
+  fi
+done
+echo "[pre-push] phpstan..."
+composer analyse
+echo "[pre-push] ok"
