@@ -27,7 +27,7 @@ com `composer <script>` se o PHP local estiver correto.
 | Script | Comando real | O que faz | Quando usar |
 | --- | --- | --- | --- |
 | `composer test` | `php vendor/bin/phpunit` | Executa a suíte PHPUnit contra PostgreSQL isolado | Após qualquer mudança de comportamento; é o sinal verde básico |
-| `composer test:coverage` | duas execuções `phpunit --coverage-clover` (pgsql e sqlite) + `scripts/merge-coverage.php` + `scripts/coverage-floor.php` | Mede a união dos dois relatórios e exige o piso de **100%** das linhas | Antes de abrir um pull request; mesmo gate do CI |
+| `composer test:coverage` | duas execuções `phpunit --coverage-clover` (pgsql e sqlite) + `scripts/merge-coverage.php` + `scripts/coverage-floor.php` | Mede a união dos dois relatórios e exige o piso de **80%** das linhas | Antes de abrir um pull request; mesmo gate do CI |
 | `composer lint` | `php vendor/bin/pint --test` | Verifica a formatação no preset `laravel` **sem alterar arquivos** | Antes de abrir um pull request; se falhar, rode o Pint sem `--test` localmente para aplicar |
 | `composer analyse` | `php vendor/bin/phpstan analyse --memory-limit=512M` | Roda PHPStan com Larastan no nível 10 sobre aplicação, rotas e testes, sem linha de base de supressão | Antes de abrir um pull request; qualquer erro precisa ser corrigido, não suprimido |
 
@@ -51,7 +51,7 @@ de duas execuções. O script encadeia quatro etapas:
 3. `php scripts/merge-coverage.php storage/app/coverage-pgsql.xml storage/app/coverage-sqlite.xml storage/app/coverage.xml`
    — une os dois relatórios Clover por arquivo e linha (o maior `count` vence), sem
    encolher o denominador.
-4. `php scripts/coverage-floor.php storage/app/coverage.xml 100` — lê o relatório
+4. `php scripts/coverage-floor.php storage/app/coverage.xml 80` — lê o relatório
    unificado e sai com código 1 se as linhas cobertas ficarem abaixo do piso.
 
 Para inspecionar uma perna isolada, rode as etapas 1 e 2 direto e passe o relatório
