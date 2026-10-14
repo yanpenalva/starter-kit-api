@@ -20,6 +20,15 @@ final class InfraQueueFailureTest extends TestCase
 
     public function test_failing_job_is_retried_with_backoff_then_stored_in_failed_jobs(): void
     {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('The bounded worker targets the isolated PostgreSQL stack (RunsAsyncInfraStack), so the retry-to-failed_jobs proof only holds on PostgreSQL.');
+        }
+
+        // The worker commits its row to failed_jobs outside this transaction, so
+        // an earlier run leaves rows behind: dropping them in transaction scope
+        // keeps the 0 -> 1 counts below about this run's token only.
+        DB::table('failed_jobs')->delete();
+
         config()->set('queue.default', 'redis');
         config()->set('queue.connections.redis.after_commit', false);
 
