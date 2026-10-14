@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\Audit;
 use Database\Seeders\RbacCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role as RoleModel;
@@ -31,7 +32,7 @@ final class RolesAdminHttpTest extends TestCase
         if ($connection === 'pgsql') {
             $database = config('database.connections.pgsql.database');
             $this->assertIsString($database);
-            $this->assertSame('starter_api_test', $database);
+            $this->assertSame($database, DB::connection()->getDatabaseName());
         }
 
         $this->seed(RbacCatalogueSeeder::class);

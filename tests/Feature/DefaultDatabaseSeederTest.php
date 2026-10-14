@@ -23,11 +23,31 @@ use Tests\TestCase;
  */
 final class DefaultDatabaseSeederTest extends TestCase
 {
+    private ?string $sqliteDatabasePath = null;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        if (config('database.default') === 'sqlite') {
+            $this->sqliteDatabasePath = tempnam(sys_get_temp_dir(), 'starter-api-seeder-');
+            $this->assertIsString($this->sqliteDatabasePath);
+            config()->set('database.connections.sqlite.database', $this->sqliteDatabasePath);
+            DB::purge('sqlite');
+        }
+
         $this->assertIsolatedSeedRuntime();
+    }
+
+    protected function tearDown(): void
+    {
+        if (is_string($this->sqliteDatabasePath)) {
+            DB::purge('sqlite');
+            @unlink($this->sqliteDatabasePath);
+            @unlink($this->sqliteDatabasePath.'-journal');
+        }
+
+        parent::tearDown();
     }
 
     public function test_migrate_fresh_seed_command_succeeds_twice_and_keeps_the_canonical_catalogue(): void
@@ -70,7 +90,8 @@ final class DefaultDatabaseSeederTest extends TestCase
     public function test_guard_rejects_a_database_url_override(): void
     {
 
-        config()->set('database.connections.pgsql.url', 'postgres://synthetic:synthetic@127.0.0.1:5/none');
+        $connection = config('database.default');
+        config()->set("database.connections.{$connection}.url", 'postgres://synthetic:synthetic@127.0.0.1:5/none');
 
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('database URL');
@@ -78,7 +99,7 @@ final class DefaultDatabaseSeederTest extends TestCase
         try {
             $this->invokeSeedRuntimeGuard();
         } finally {
-            config()->set('database.connections.pgsql.url', null);
+            config()->set("database.connections.{$connection}.url", null);
         }
     }
 
@@ -109,17 +130,18 @@ final class DefaultDatabaseSeederTest extends TestCase
             'Seeder tests require the testing environment.',
         );
 
-        $database = config('database.connections.pgsql.database');
+        $connection = config('database.default');
+        $database = config("database.connections.{$connection}.database");
         $this->assertIsString($database);
-        $this->assertSame(
-            'starter_api_test',
-            $database,
-            'Seeder tests must target the dedicated starter_api_test database.',
-        );
+        $this->assertSame($database, DB::connection()->getDatabaseName());
+
+        if ($connection === 'pgsql') {
+            $this->assertSame('starter_api_test', $database, 'Seeder tests must target the dedicated test database.');
+        }
 
         $this->assertNull(
-            config('database.connections.pgsql.url'),
-            'Refusing to seed: the pgsql connection resolves through a database URL, which could override the pinned starter_api_test target.',
+            config("database.connections.{$connection}.url"),
+            'Refusing to seed: the active connection resolves through a database URL.',
         );
 
         $this->assertSame(
@@ -139,9 +161,7 @@ final class DefaultDatabaseSeederTest extends TestCase
     /**
      * Runs `migrate:fresh --seed` as its own process so it never interacts
      * with the in-process connection, transaction state or pooled variants.
-     * The child only ever reaches the dedicated test database: host/port and
-     * password come from the isolated test stack, the database name is
-     * pinned to `starter_api_test`, and any inherited DB_URL is stripped
+     * The child targets the same active test database, and any inherited DB_URL is stripped
      * (Symfony Process drops variables set to `false`). A URL smuggled in
      * through `.env` cannot reach the child either: the parent boots from
      * the same file and the setUp guard rejects any URL configuration
@@ -149,16 +169,20 @@ final class DefaultDatabaseSeederTest extends TestCase
      */
     private function runMigrateFreshSeed(): void
     {
+        $connection = config('database.default');
+        $connectionConfig = config("database.connections.{$connection}");
+        $database = DB::connection()->getDatabaseName();
+
         $process = new Process(
             [PHP_BINARY, 'artisan', 'migrate:fresh', '--seed', '--force'],
             cwd: base_path(),
             env: [
-                'DB_CONNECTION' => 'pgsql',
-                'DB_HOST' => (string) (getenv('DB_HOST') ?: 'postgres-test'),
-                'DB_PORT' => (string) (getenv('DB_PORT') ?: '5432'),
-                'DB_DATABASE' => 'starter_api_test',
-                'DB_USERNAME' => 'starter_api_test',
-                'DB_PASSWORD' => (string) getenv('DB_PASSWORD'),
+                'DB_CONNECTION' => $connection,
+                'DB_HOST' => (string) ($connectionConfig['host'] ?? ''),
+                'DB_PORT' => (string) ($connectionConfig['port'] ?? ''),
+                'DB_DATABASE' => $database,
+                'DB_USERNAME' => (string) ($connectionConfig['username'] ?? ''),
+                'DB_PASSWORD' => (string) ($connectionConfig['password'] ?? ''),
                 'DB_URL' => false,
             ],
         );

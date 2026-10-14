@@ -210,6 +210,44 @@ final class PrivilegeMutationPostgresRaceTest extends TestCase
         }
     }
 
+    public function test_concurrent_admin_mutations_serialize_through_the_global_lock(): void
+    {
+        config(['database.connections.conc' => config('database.connections.pgsql')]);
+
+        $first = User::factory()->create();
+        $first->assignRole('admin');
+        $second = User::factory()->create();
+        $second->assignRole('admin');
+
+        $this->assertNotNull(
+            DB::table('model_has_roles')->where('model_id', $second->getKey())->first(),
+        );
+
+        DB::beginTransaction();
+        try {
+            DB::selectOne('select pg_advisory_xact_lock(?) as acquired', [727423]);
+
+            DB::table('model_has_roles')->where('model_id', $second->getKey())->delete();
+
+            $concurrent = DB::connection('conc');
+            $concurrent->statement("SET lock_timeout TO '500ms'");
+
+            try {
+                $concurrent->selectOne('select pg_advisory_xact_lock(?) as acquired', [727423]);
+                $this->fail('The second writer must block on the global privilege lock.');
+            } catch (QueryException $exception) {
+                $this->assertTrue(
+                    str_contains($exception->getMessage(), 'lock timeout')
+                    || str_contains($exception->getMessage(), '55P03'),
+                );
+            }
+
+            $this->assertSame(1, DB::table('model_has_roles')->count());
+        } finally {
+            DB::rollBack();
+        }
+    }
+
     private function operatorWithStatusPermission(): User
     {
         $operator = User::factory()->verified()->create();

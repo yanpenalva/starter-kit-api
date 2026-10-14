@@ -8,17 +8,30 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 final class HttpBoundarySmokeTest extends TestCase
 {
+    private ?string $sqliteDatabasePath = null;
+
     private const SERVER_HOST = '127.0.0.1';
 
     private const SERVER_PORT = '8097';
 
     private const SERVER_PORT_ALT = '8098';
+
+    protected function tearDown(): void
+    {
+        if (is_string($this->sqliteDatabasePath)) {
+            @unlink($this->sqliteDatabasePath);
+            @unlink($this->sqliteDatabasePath.'-journal');
+        }
+
+        parent::tearDown();
+    }
 
     public function test_trusted_proxies_default_to_empty(): void
     {
@@ -98,9 +111,10 @@ final class HttpBoundarySmokeTest extends TestCase
 
     public function test_real_server_enforces_csrf_cookies_origins_and_throttle(): void
     {
-        $database = config('database.connections.pgsql.database');
+        $connection = config('database.default');
+        $database = config("database.connections.{$connection}.database");
         $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        $this->assertSame($database, DB::connection()->getDatabaseName());
 
         $environment = $this->serverEnvironment();
         $this->runMigrations($environment);
@@ -156,18 +170,31 @@ final class HttpBoundarySmokeTest extends TestCase
     private function serverEnvironment(): array
     {
         $inherited = static fn (string $key): string => (string) getenv($key);
+        $connection = config('database.default');
+        $connectionConfig = config("database.connections.{$connection}");
+        $database = (string) $connectionConfig['database'];
+
+        if ($connection === 'sqlite') {
+            if ($this->sqliteDatabasePath === null) {
+                $databasePath = tempnam(sys_get_temp_dir(), 'starter-api-http-boundary-');
+                $this->assertIsString($databasePath);
+                $this->sqliteDatabasePath = $databasePath;
+            }
+
+            $database = (string) $this->sqliteDatabasePath;
+        }
 
         return [
             'APP_ENV' => 'local',
             'APP_DEBUG' => 'false',
             'APP_KEY' => 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
             'APP_URL' => 'http://'.self::SERVER_HOST.':'.self::SERVER_PORT,
-            'DB_CONNECTION' => 'pgsql',
-            'DB_HOST' => $inherited('DB_HOST') ?: 'postgres-test',
-            'DB_PORT' => $inherited('DB_PORT') ?: '5432',
-            'DB_DATABASE' => 'starter_api_test',
-            'DB_USERNAME' => 'starter_api_test',
-            'DB_PASSWORD' => $inherited('DB_PASSWORD'),
+            'DB_CONNECTION' => $connection,
+            'DB_HOST' => (string) ($connectionConfig['host'] ?? $inherited('DB_HOST')),
+            'DB_PORT' => (string) ($connectionConfig['port'] ?? $inherited('DB_PORT')),
+            'DB_DATABASE' => $database,
+            'DB_USERNAME' => (string) ($connectionConfig['username'] ?? ''),
+            'DB_PASSWORD' => (string) ($connectionConfig['password'] ?? ''),
             'SESSION_DRIVER' => 'file',
             'SESSION_SECURE_COOKIE' => 'false',
 

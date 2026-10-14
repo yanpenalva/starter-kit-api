@@ -59,17 +59,19 @@ trait RunsAsyncInfraStack
         $redisHost = getenv('REDIS_HOST');
         $dbHost = getenv('ASYNC_WORKER_DB_HOST');
         $mailHost = getenv('ASYNC_WORKER_MAIL_HOST');
+        $connection = config('database.default');
+        $connectionConfig = config("database.connections.{$connection}");
 
         return [
             'APP_ENV' => 'testing',
             'APP_DEBUG' => 'false',
             'APP_KEY' => $this->stringConfig('app.key', ''),
-            'DB_CONNECTION' => 'pgsql',
-            'DB_HOST' => is_string($dbHost) && $dbHost !== '' ? $dbHost : $this->stringConfig('database.connections.pgsql.host', 'postgres-test'),
-            'DB_PORT' => '5432',
-            'DB_DATABASE' => $this->stringConfig('database.connections.pgsql.database', 'starter_api_test'),
-            'DB_USERNAME' => $this->stringConfig('database.connections.pgsql.username', 'starter_api_test'),
-            'DB_PASSWORD' => $this->stringConfig('database.connections.pgsql.password', ''),
+            'DB_CONNECTION' => $connection,
+            'DB_HOST' => is_string($dbHost) && $dbHost !== '' ? $dbHost : (string) ($connectionConfig['host'] ?? ''),
+            'DB_PORT' => (string) ($connectionConfig['port'] ?? '5432'),
+            'DB_DATABASE' => $this->stringConfig("database.connections.{$connection}.database", 'starter_api_test'),
+            'DB_USERNAME' => $this->stringConfig("database.connections.{$connection}.username", ''),
+            'DB_PASSWORD' => $this->stringConfig("database.connections.{$connection}.password", ''),
             'CACHE_STORE' => 'array',
             'SESSION_DRIVER' => 'array',
             'QUEUE_CONNECTION' => 'redis',

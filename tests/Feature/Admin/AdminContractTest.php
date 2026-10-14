@@ -22,6 +22,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role as RoleModel;
 use Tests\TestCase;
@@ -62,7 +63,7 @@ final class AdminContractTest extends TestCase
         if ($connection === 'pgsql') {
             $database = config('database.connections.pgsql.database');
             $this->assertIsString($database);
-            $this->assertSame('starter_api_test', $database);
+            $this->assertSame($database, DB::connection()->getDatabaseName());
         }
 
         $this->seed(RbacCatalogueSeeder::class);

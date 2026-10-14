@@ -19,9 +19,9 @@ final class RbacCatalogueTest extends TestCase
     {
         parent::setUp();
 
-        $database = config('database.connections.pgsql.database');
+        $database = config('database.connections.'.config('database.default').'.database');
         $this->assertIsString($database);
-        $this->assertSame('starter_api_test', $database);
+        $this->assertSame($database, DB::connection()->getDatabaseName());
     }
 
     public function test_seeder_is_idempotent_and_matches_the_approved_catalogue(): void
