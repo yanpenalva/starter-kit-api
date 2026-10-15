@@ -375,9 +375,11 @@ final class AuditFeedTest extends TestCase
     public function test_activity_log_has_composite_event_id_index(): void
     {
         $indexes = Schema::getIndexes('activity_log');
-        $compositeIndex = collect($indexes)->first(static function (mixed $index): bool {
-            return is_array($index) && ($index['columns'] ?? []) === ['event', 'id'];
-        });
+        /** @param array{name: string, columns: list<string>, type: string, unique: bool, primary: bool} $index */
+        $matchesCompositeIndex = static function (array $index): bool {
+            return $index['columns'] === ['event', 'id'];
+        };
+        $compositeIndex = collect($indexes)->first($matchesCompositeIndex);
 
         $this->assertNotNull($compositeIndex);
     }
