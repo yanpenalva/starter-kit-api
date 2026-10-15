@@ -92,12 +92,12 @@ final class User extends Authenticatable implements MustVerifyEmailContract
 
     public function sendEmailVerificationNotification(): void
     {
-        $this->notify(new VerifyEmail);
+        $this->notify((new VerifyEmail)->afterCommit());
     }
 
     public function sendPasswordResetNotification($token): void
     {
-        $this->notify(new ResetPasswordNotification($token));
+        $this->notify((new ResetPasswordNotification($token))->afterCommit());
     }
 
     public static function otherAdminsRemain(int $targetId): bool

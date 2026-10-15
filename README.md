@@ -67,6 +67,9 @@ Guias novos, em ordem de leitura:
 | 03 | [`Arquitetura`](docs/03-arquitetura.md) | Ciclo de vida da requisição, camadas do código, RBAC e auditoria, com desenhos Mermaid por fluxo. |
 | 04 | [`Decisões`](docs/04-decisoes.md) | Cada decisão técnica com motivo e alternativa rejeitada: sessão vs tokens, argon2id, throttle, CPF, fila, logs, TLS, imagem e contrato. |
 | 05 | [`Integração fullstack`](docs/05-integracao-fullstack.md) | Sequência SPA → CSRF → login → perfil → logout, CORS stateful, `VITE_API_URL` e contrato gerando tipos. |
+| 06 | [`Padrões`](docs/06-padroes.md) | Catálogo de design patterns: onde cada um vive no código, ganho, limite e o que evitamos — mais gatilhos de escala/performance. |
+| 07 | [`Receitas de features`](docs/07-receitas-de-features.md) | Quero fazer X, por onde parto: CRUD novo, campo, filtro, job, integração externa e permissão, arquivo a arquivo. |
+| 08 | [`Arquitetura e escala`](docs/08-arquitetura-e-escala.md) | Desenhos Mermaid: módulos e núcleo, leitura vs escrita, e estágios de escala a nível de código. |
 
 Referências operacionais e arquiteturais existentes:
 

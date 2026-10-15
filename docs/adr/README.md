@@ -18,6 +18,7 @@ A fonte normativa permanece em [`.context/`](../../.context/INDEX.md). As decis�
 | [0010](0010-autenticacao-http-somente-sessao.md) | Autenticação HTTP exclusivamente por sessão | Sucessor parcial de 0002 e 0004 | Login, MFA e perfil de sessão |
 | [0011](0011-rbac-auditoria-e-roles-customizadas.md) | RBAC, auditoria e roles customizadas | Sucessor parcial de 0004, 0005 e 0007; reafirma 0008 | Mutações privilegiadas |
 | [0012](0012-contrato-openapi-e-release.md) | Contrato OpenAPI e release verificável | Sucessor parcial de 0003 | Publicação e compatibilidade do contrato |
+| [0013](0013-padroes-e-escala-de-codigo.md) | Padrões de código e escala sem reescrita | Proposto | Actions, filtros, afterCommit, recusas e gatilhos de escala |
 
 Owner e aprovador arquitetural: yanpenalva. Owner operacional: NOT FOUND. Preparação técnica: Codex. Work item: FEAT-1.
 
