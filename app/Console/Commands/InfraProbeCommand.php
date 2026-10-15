@@ -22,7 +22,8 @@ final class InfraProbeCommand extends Command
             return self::SUCCESS;
         }
 
-        $key = (string) $this->option('key');
+        $option = $this->option('key');
+        $key = is_string($option) && $option !== '' ? $option : 'infra:probe:last';
         $connection = Redis::connection();
         $connection->ping();
         $connection->set($key, now()->toIso8601String());
