@@ -27,7 +27,7 @@ com `composer <script>` se o PHP local estiver correto.
 | Script | Comando real | O que faz | Quando usar |
 | --- | --- | --- | --- |
 | `composer test` | `php vendor/bin/phpunit` | Executa a suíte PHPUnit contra PostgreSQL isolado | Após qualquer mudança de comportamento; é o sinal verde básico |
-| `composer test:coverage` | duas execuções `phpunit --coverage-clover` (pgsql e sqlite) + `scripts/merge-coverage.php` + `scripts/coverage-floor.php` | Mede a união dos dois relatórios e exige o piso de **80%** das linhas | Antes de abrir um pull request; mesmo gate do CI |
+| `composer test:coverage` | duas execuções `phpunit --coverage-clover` (pgsql e sqlite) + `scripts/merge-coverage.php` + `scripts/coverage-floor.php` | Mede a união dos dois relatórios e exige o piso de **80%** das linhas | No job de cobertura do CI; localmente só com driver pcov instalado |
 | `composer lint` | `php vendor/bin/pint --test` | Verifica a formatação no preset `laravel` **sem alterar arquivos** | Antes de abrir um pull request; se falhar, rode o Pint sem `--test` localmente para aplicar |
 | `composer analyse` | `php vendor/bin/phpstan analyse --memory-limit=512M` | Roda PHPStan com Larastan no nível 10 sobre aplicação, rotas e testes, sem linha de base de supressão | Antes de abrir um pull request; qualquer erro precisa ser corrigido, não suprimido |
 
@@ -57,6 +57,11 @@ de duas execuções. O script encadeia quatro etapas:
 Para inspecionar uma perna isolada, rode as etapas 1 e 2 direto e passe o relatório
 correspondente ao `coverage-floor.php` com o piso desejado como segundo argumento
 (ex.: `php scripts/coverage-floor.php storage/app/coverage-sqlite.xml 90`).
+
+O `test:coverage` exige um driver de cobertura como pcov. A imagem de runtime do
+`Dockerfile` não instala esse driver; o job de cobertura do CI habilita pcov. Para medir
+localmente, use um ambiente PHP com o driver instalado — sem ele o comando falha em vez
+de medir.
 
 Dois scripts são ganchos automáticos do Composer, não comandos do dia a dia:
 

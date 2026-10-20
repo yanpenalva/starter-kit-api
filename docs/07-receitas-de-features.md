@@ -8,8 +8,8 @@ Padrões e vereditos vivem em [06-padroes](06-padroes.md).
 
 Checklist comum a todas: fatia mínima observável → teste focado que falha →
 menor implementação → `composer lint`, `composer analyse`, suíte focada →
-snapshot do contrato se rota/resposta mudou → cobertura segue 100% no merge
-pgsql+sqlite (nada de `@codeCoverageIgnore`).
+snapshot do contrato se rota/resposta mudou → cobertura segue o piso configurado de 80% no merge
+pgsql+sqlite, medido no CI (nada de `@codeCoverageIgnore`).
 
 ---
 

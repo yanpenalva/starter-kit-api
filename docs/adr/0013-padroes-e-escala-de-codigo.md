@@ -40,4 +40,4 @@ como o código escala sem reescrita. O detalhamento vive em
   (`EXPLAIN (ANALYZE, BUFFERS)`, p95, throughput); sem medição, não entra.
 - Verificação atual: `AfterCommitDispatchTest` (rollback 0 / commit N com
   `after_commit=false`), `FiltersTest` nos dois drivers, gates `composer lint`,
-  `composer analyse` e cobertura 100% no merge pgsql+sqlite.
+  `composer analyse` e cobertura com piso configurado de 80% no merge pgsql+sqlite.
