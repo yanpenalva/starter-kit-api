@@ -17,7 +17,7 @@ php artisan key:generate
 sh scripts/install-hooks.sh
 ```
 
-Defina em `.env` valores locais descartáveis para `DB_PASSWORD` e `TEST_DB_PASSWORD` (o Compose exige ambos). Não use credenciais reais e não versione o arquivo `.env`. Para desenvolvimento local, o `.env.example` configura PostgreSQL no serviço `postgres`; a suíte de CI usa `postgres-test`, Redis e Mailpit separados.
+Defina em `.env` valores locais descartáveis para `DB_PASSWORD` e `TEST_DB_PASSWORD` (o Compose exige ambos). Não use credenciais reais e não versione o arquivo `.env`. Para desenvolvimento local, o `.env.example` configura PostgreSQL no serviço `postgres`; a suíte de CI usa `postgres-test`, Redis e Mailpit separados. Os hooks instalados cobrem apenas parte dos gates: o `pre-commit` roda `composer lint` e, quando há `.md`, `.json` ou `.context/` no stage, `python3 scripts/validate_context.py --strict`; o `pre-push` roda `composer analyse` e pode ser pulado com `SKIP_PHPSTAN=1`. Nenhum hook executa `composer test` ou `composer test:coverage`.
 
 Para iniciar a base de desenvolvimento e aplicar migrations e dados de exemplo, use a imagem/serviço `api` do Compose (o PostgreSQL de desenvolvimento não publica porta no host):
 

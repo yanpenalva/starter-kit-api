@@ -51,7 +51,7 @@ inicializou, sem verificar dependências.
 | Testes | PHPUnit | Contra PostgreSQL isolado |
 | Formatação | Pint | Preset `laravel` |
 | Análise estática | PHPStan via Larastan | Nível 10, sem linha de base |
-| Cobertura | pcov | Gate de 100% no CI sobre relatórios PostgreSQL e SQLite mesclados |
+| Cobertura | pcov | Gate de 80% no CI sobre relatórios PostgreSQL e SQLite mesclados |
 | Hash de senhas | argon2id | Parâmetros ajustáveis por ambiente |
 
 ---
@@ -81,6 +81,7 @@ Referências operacionais e arquiteturais existentes:
 | [`Segurança em produção`](docs/security-configuration.md) | Variáveis obrigatórias de produção antes de publicar: origens CORS, domínio de sessão e hosts stateful. |
 | [`Receita do contrato`](docs/openapi-contract-recipe.md) | Proveniência do artifact OpenAPI consumido fora deste repositório: download, receipt e verificação. |
 | [`Receita de fatia vertical`](docs/vertical-slice-recipe.md) | Entregar um comportamento completo do HTTP à persistência, com TDD, gates e contrato no mesmo slice. |
+| [`Exemplo CSD → strict-code`](docs/csd-strict-code-example.md) | Handoff ilustrativo do filtro de usuários: dono por etapa, ponteiros de spec externa, checagens automatizadas vs. manuais e limites explícitos. |
 | [`ADRs`](docs/adr/README.md) | Decisões arquiteturais incrementais. Índice dos ADRs aceitos, do scaffold ao catálogo fechado de permissões. |
 | [`Insomnia`](docs/insomnia/README.md) | Collection Insomnia v5: 37 requests em 5 pastas, com environment, CSRF e validação live. |
 

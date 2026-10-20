@@ -2,7 +2,7 @@
 
 Read [.context/INDEX.md](.context/INDEX.md) and follow its canonical onboarding or daily-work route; `.context/` is the sole normative source.
 Project commands and validation adaptations: [.context/project/quality.md](.context/project/quality.md). Git scope and delivery: [.context/project/delivery.md](.context/project/delivery.md).
-Developer setup: [docs/onboarding.md](docs/onboarding.md). Project-scoped CSD skill: `.agents/skills/csd/SKILL.md` (Codex: `$csd`).
+Developer setup: [docs/onboarding.md](docs/onboarding.md). Project-scoped CSD skill: `.agents/skills/csd/SKILL.md` (Codex: `$csd`). CSD-to-engineering handoff example: [docs/csd-strict-code-example.md](docs/csd-strict-code-example.md); engineering criteria come from the external strict-code standard (`NOT FOUND` here), and the bundled CSD policy copy remains transitional pending the upstream migration.
 
 ## Repository conventions
 

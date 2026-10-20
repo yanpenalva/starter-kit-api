@@ -225,6 +225,10 @@ desenvolvimento sem recarregamento, ou produção revalidando arquivos a cada re
 
 ## 💯 Cobertura mínima de 100% medida sobre o merge pgsql + sqlite
 
+> **Nota factual.** O piso configurado hoje é 80% das linhas mescladas (`composer.json`,
+> `scripts/coverage-floor.php 80`); o texto abaixo registra a decisão histórica de 100% e
+> não é reescrito.
+
 **Onde vive:** job de cobertura do workflow de qualidade (`composer test:coverage`:
 duas execuções PHPUnit com driver pcov — PostgreSQL e SQLite —, a união em
 `scripts/merge-coverage.php` e o piso exigido por `scripts/coverage-floor.php`).
@@ -233,8 +237,9 @@ duas execuções PHPUnit com driver pcov — PostgreSQL e SQLite —, a união e
 mudam por driver — `app/Support/Filters/*` usa `ilike` no PostgreSQL e `like` +
 `json_extract` no SQLite, e `EmailLookup`/`LoginController` montam predicados diferentes
 pelo mesmo motivo — então cada perna isolada deixa os ramos da outra descobertos. O piso
-de 100% sobre o relatório unificado impede erosão silenciosa: cada pull request precisa
-manter todas as linhas cobertas, e funcionalidade nova chega com teste ou o CI barra. O
+de 100% então decidido (hoje configurado em 80%) sobre o relatório unificado impede erosão
+silenciosa: cada pull request precisa manter todas as linhas cobertas, e funcionalidade
+nova chega com teste ou o CI barra. O
 piso só é sustentável porque as duas pernas somam o mesmo `app/` completo e **nada é
 excluído do relatório** — `@codeCoverageIgnore`, `<exclude>` no `<source>` e listas de
 ignorados são proibidos: uma linha não coberta exige teste ou decisão humana registrada,
@@ -243,10 +248,10 @@ rodando contra PostgreSQL, Redis e Mailpit reais no job.
 
 **Alternativa rejeitada.** Piso de 85% sobre uma única execução PostgreSQL (o número
 dependia do driver da máquina e os ramos alternativos podiam apodrecer sem o gate notar —
-decisão substituída por esta) e piso de 100% sobre uma única perna, que só fecharia
-excluindo os ramos do outro driver ou marcando linhas com `@codeCoverageIgnore`, isto é,
-cumprindo a meta por exclusão. Drivers de cobertura mais lentos alongariam cada execução
-sem mudar a decisão.
+decisão substituída por esta) e piso de 100% (hoje 80% configurado) sobre uma única perna,
+que só fecharia excluindo os ramos do outro driver ou marcando linhas com
+`@codeCoverageIgnore`, isto é, cumprindo a meta por exclusão. Drivers de cobertura mais
+lentos alongariam cada execução sem mudar a decisão.
 
 > **Limite honesto.** O relatório unificado prova que cada linha foi executada em pelo menos
 uma perna; como a união usa o maior `count` por linha, ela mede execução e nunca soma
