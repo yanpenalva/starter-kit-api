@@ -4,7 +4,7 @@ Runtime and dependency versions are resolved in `composer.lock` and Docker image
 
 | Area | Technology | Version | State |
 | --- | --- | --- | --- |
-| Runtime | PHP | 8.5.11 | Docker runtime; host PHP is not the validation target |
+| Runtime | PHP | 8.5.12 | Docker runtime; host PHP is not the validation target |
 | Framework | Laravel | 13.34.0 | API-only scaffold |
 | Database | PostgreSQL | 18.6 | Separate development/test containers |
 | Queues/cache | Redis | 8.4.0; pinned image digest | Optional async profile; application integration deferred |

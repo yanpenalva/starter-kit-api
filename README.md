@@ -37,7 +37,7 @@ inicializou, sem verificar dependências.
 
 | Camada | Tecnologia | Versão / detalhe |
 | --- | --- | --- |
-| Linguagem | PHP | 8.5 (`php:8.5-fpm-bookworm` no Docker) |
+| Linguagem | PHP | 8.5.12 (`php:8.5.12-fpm-bookworm` no Docker) |
 | Framework | Laravel | 13.17 |
 | Autenticação | Sanctum stateful | Sessão em cookie mais CSRF |
 | Autorização | Spatie Permission | Catálogo fechado de 10 permissões |

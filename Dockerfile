@@ -1,6 +1,6 @@
 FROM composer:2@sha256:af98f42dfff7c68ba8d53c2164fd9fde1087b7d449514baa38c418b1f6bc4bac AS composer
 
-FROM php:8.5-fpm-bookworm@sha256:53eab56a8f43f51a92119f6c29b3448af98eec288ff17f92829354a4b4c9ca05 AS vendor
+FROM php:8.5.12-fpm-bookworm@sha256:740a5adab5af19504d8aa0754e903e20b40b0153cfd4013c11e4df2029a7b73c AS vendor
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libpq-dev libzip-dev libonig-dev \
@@ -10,7 +10,7 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --no-scripts --optimize-autoloader
 
-FROM php:8.5-fpm-bookworm@sha256:53eab56a8f43f51a92119f6c29b3448af98eec288ff17f92829354a4b4c9ca05 AS runtime
+FROM php:8.5.12-fpm-bookworm@sha256:740a5adab5af19504d8aa0754e903e20b40b0153cfd4013c11e4df2029a7b73c AS runtime
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends nginx supervisor libpq-dev libzip-dev libonig-dev curl \
