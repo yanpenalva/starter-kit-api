@@ -4,6 +4,7 @@
 - Substitui parcialmente: ADR 0003 (status de geração/publicação); mantém sua decisão PostgreSQL e de versões fixadas.
 - Data: 2026-10-12. Owner: yanpenalva.
 - Evidência: workflow integrado em main e job Quality; o snapshot atual inclui as atualizações das PRs #79, #83, #86 e #87. A PR #87 integrou os envelopes de coleção, campos nullable e seus testes de contrato; esse é o snapshot atual de `main`.
+- Atualização 2026-10-28: gerador elevado de 0.13.47 para 0.13.49 na PR #111 (correção de recursão com framework 13.39 e revisão OpenAPI 3.1.2); a decisão registrada abaixo permanece.
 
 ## Contexto
 

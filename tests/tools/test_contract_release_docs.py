@@ -22,7 +22,7 @@ class ContractReleaseDocsTest(unittest.TestCase):
         for claim in (
             "workflow_dispatch",
             "main",
-            "0.13.47",
+            "0.13.49",
             "LC_ALL=C",
             "90 dias",
             "não cria commit",

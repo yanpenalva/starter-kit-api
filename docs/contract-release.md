@@ -58,7 +58,7 @@ Exemplo da assinatura estruturada do checker para tornar obrigatório `roles`:
 Depois que a mudança de contrato for integrada em main, execute OpenAPI Contract em
 GitHub Actions e informe o motivo exigido. O produtor aceita somente
 `workflow_dispatch` e falha fora de main. Ele instala as dependências fixadas, exige
-dedoc/scramble 0.13.47, migra o PostgreSQL de teste e exporta com `LC_ALL=C`; as duas
+dedoc/scramble 0.13.49, migra o PostgreSQL de teste e exporta com `LC_ALL=C`; as duas
 exportações precisam ter bytes idênticos.
 
 O workflow publica `contracts/openapi.json` como artifact
