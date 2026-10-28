@@ -155,7 +155,7 @@ mutações. Trocar de ambiente é trocar essa variável, nunca espalhar URLs pel
 
 ## 📜 Contrato OpenAPI pinado gerando tipos
 
-O snapshot `contracts/openapi.json` (OpenAPI 3.1.0, versão vinda de `API_VERSION`) é
+O snapshot `contracts/openapi.json` (OpenAPI 3.1.2, versão vinda de `API_VERSION`) é
 a fonte canônica do formato de cada endpoint: entradas, respostas, erros e
 autenticação. O repositório do frontend gera seus tipos TypeScript a partir desse
 arquivo pinado, com saída para cliente sobre axios e mutador centralizando base URL,

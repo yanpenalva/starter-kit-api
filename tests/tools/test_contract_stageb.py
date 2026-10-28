@@ -36,7 +36,7 @@ def make_zip(entries: dict[str, bytes]) -> bytes:
 def minimal_spec() -> bytes:
     """Minimal valid OpenAPI 3.1 payload without remote refs."""
     document = {
-        'openapi': '3.1.0',
+        'openapi': '3.1.2',
         'info': {'title': 'Starter Kit API', 'version': '1.0.0'},
         'paths': {'/login': {'post': {'responses': {'204': {'description': 'No content'}}}}},
     }

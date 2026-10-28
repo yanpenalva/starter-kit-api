@@ -230,7 +230,7 @@ jobs:
           python3 - <<'PY'
           import json, sys
           doc = json.loads(open('contracts/openapi.json', encoding='utf-8').read())
-          assert doc.get('openapi') == '3.1.0', 'openapi must be 3.1.0'
+          assert doc.get('openapi') == '3.1.2', 'openapi must be 3.1.2'
           assert str(doc.get('info', {}).get('version', '')).strip() != '', 'info.version required'
           assert doc.get('servers') == [{'url': '/'}], 'server must be root-relative /'
           paths = doc.get('paths', {})

@@ -42,7 +42,7 @@ inicializou, sem verificar dependências.
 | Autenticação | Sanctum stateful | Sessão em cookie mais CSRF |
 | Autorização | Spatie Permission | Catálogo fechado de 10 permissões |
 | Auditoria | Spatie Activitylog | Trilha fail-closed, retenção de 90 dias |
-| Documentação da API | Scramble | OpenAPI 3.1.0, snapshot em `contracts/openapi.json` |
+| Documentação da API | Scramble | OpenAPI 3.1.2, snapshot em `contracts/openapi.json` |
 | Banco de dados | PostgreSQL | 18 (`postgres:18-alpine`) |
 | Fila | Banco de dados | Driver `database` com `after_commit` |
 | Cache e sessões em release | Redis | Extensão `redis-6.3.0` |
