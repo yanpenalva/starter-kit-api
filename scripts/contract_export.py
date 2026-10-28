@@ -2,7 +2,7 @@
 
 Executa `php artisan scramble:export` duas vezes sob LC_ALL=C e exige saída
 byte a byte idêntica antes de promover o snapshot para o caminho de contratos.
-Registra o pin exato do gerador (dedoc/scramble 0.13.47) junto ao SHA do arquivo.
+Registra o pin exato do gerador (dedoc/scramble 0.13.49) junto ao SHA do arquivo.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 import subprocess
 
-GENERATOR_PIN: str = "dedoc/scramble 0.13.47"
+GENERATOR_PIN: str = "dedoc/scramble 0.13.49"
 DEFAULT_OUTPUT: str = "contracts/openapi.json"
 
 
