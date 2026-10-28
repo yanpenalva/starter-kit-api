@@ -110,7 +110,7 @@ final class ApiDocsAccessTest extends TestCase
         $response->assertOk();
         $document = $response->json();
         $this->assertIsArray($document);
-        $this->assertSame('3.1.0', $document['openapi']);
+        $this->assertSame('3.1.2', $document['openapi']);
     }
 
     public function test_production_docs_policy_denies_guest_non_admin_unverified_and_deactivated_users(): void
@@ -159,7 +159,7 @@ final class ApiDocsAccessTest extends TestCase
 
         $document = $this->getJson('/docs/api.json');
         $document->assertOk();
-        $this->assertSame('3.1.0', $document->json('openapi'));
+        $this->assertSame('3.1.2', $document->json('openapi'));
 
         $ui = $this->get('/docs/api');
         $ui->assertOk();

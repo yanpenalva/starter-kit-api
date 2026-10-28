@@ -81,8 +81,8 @@ def validate_openapi_document(payload: bytes) -> None:
     except (UnicodeDecodeError, ValueError) as exc:
         raise ExportError(f"JSON exportado inválido: {exc}") from exc
 
-    if document.get("openapi") != "3.1.0":
-        raise ExportError("Exportação deve declarar openapi 3.1.0.")
+    if document.get("openapi") != "3.1.2":
+        raise ExportError("Exportação deve declarar openapi 3.1.2.")
 
     paths = document.get("paths")
     if not isinstance(paths, dict) or not paths:

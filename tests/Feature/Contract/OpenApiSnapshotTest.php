@@ -36,7 +36,7 @@ final class OpenApiSnapshotTest extends TestCase
         /** @var array<string, mixed> $document */
         $document = $decoded;
 
-        $this->assertSame('3.1.0', $document['openapi']);
+        $this->assertSame('3.1.2', $document['openapi']);
 
         /** @var array<string, mixed> $info */
         $info = $document['info'];

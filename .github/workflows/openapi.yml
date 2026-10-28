@@ -67,8 +67,8 @@ jobs:
 
       - name: Verify Scramble pin
         run: |
-          test "$(composer show dedoc/scramble --format=json | python3 -c 'import json,sys; print(json.load(sys.stdin)["versions"][0])')" = "v0.13.47" || \
-          composer show dedoc/scramble | grep -q 'versions.*0.13.47'
+          test "$(composer show dedoc/scramble --format=json | python3 -c 'import json,sys; print(json.load(sys.stdin)["versions"][0])')" = "v0.13.49" || \
+          composer show dedoc/scramble | grep -q 'versions.*0.13.49'
 
       - name: Migrate test database
         run: php artisan migrate --force

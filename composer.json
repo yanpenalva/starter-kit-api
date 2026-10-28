@@ -8,7 +8,7 @@
         "php": "~8.5.0",
         "ext-pdo": "*",
         "ext-pdo_pgsql": "*",
-        "dedoc/scramble": "0.13.47",
+        "dedoc/scramble": "0.13.49",
         "laravel/framework": "^13.17",
         "laravel/pulse": "^1.4",
         "laravel/sanctum": "^4.3.3",
