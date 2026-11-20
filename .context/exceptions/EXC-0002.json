@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "id": "EXC-0002",
+  "policy": "GitHub Issue linkage requirement (.context/project/delivery.md:3)",
+  "scope": "Work item BUG-42 (security dependency refresh November 2026) in repository yanpenalva/starter-kit-api, branch security/dependency-refresh-2026-11 targeting main on origin.",
+  "rationale": "The user explicitly waived the creation of a GitHub Issue for this dependency/security refresh task only in this conversation on 2026-11-20, approving isolated branch delivery, commits, push, merge into main, and auxiliary branch deletion without an Issue link.",
+  "risk": "low",
+  "compensating_controls": [
+    "Scoped strictly to work item BUG-42; does not alter standing delivery policy or waive Issue-link requirements for future tasks.",
+    "Retains full CSD work evidence under .context/work/BUG-42/, including task spec, triage, reproduction, plan, preflight, review, and verification.",
+    "Preserves independent review and PR traceability before integration.",
+    "Does not waive any security or test gate; all validation, audit, lint, analysis, and test suites must pass.",
+    "Expiring exception: expires automatically when work item BUG-42 closes or by 2026-12-20."
+  ],
+  "owner": "yanpenalva",
+  "approver": "yanpenalva",
+  "created_at": "2026-11-20",
+  "expires_at": "2026-12-20",
+  "status": "approved"
+}

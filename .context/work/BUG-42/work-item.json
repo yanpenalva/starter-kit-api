@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "id": "BUG-42",
+  "title": "Security dependency refresh (November 2026)",
+  "track": "support",
+  "type": "bug",
+  "phase": "verify",
+  "status": "ready",
+  "risk": "low",
+  "owner": "yanpenalva",
+  "conversation_profile": "support-incident-engineer",
+  "git_finalization_mode": "confirm_each",
+  "classification": {
+    "complexity": "low",
+    "impact": "module",
+    "security": "relevant",
+    "confidence": "high"
+  },
+  "routing": {
+    "derived": "standard",
+    "effective": "standard"
+  },
+  "context": {
+    "budget": "standard",
+    "required": [
+      "core",
+      "project",
+      "testing",
+      "security",
+      "release"
+    ],
+    "deferred": [
+      "architecture",
+      "incident"
+    ],
+    "triggers": []
+  },
+  "reclassification": [],
+  "policy_exceptions": [
+    "EXC-0002"
+  ],
+  "last_updated": "2026-11-20"
+}
